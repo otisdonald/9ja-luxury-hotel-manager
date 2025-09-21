@@ -1544,16 +1544,22 @@ app.put('/api/rooms/:id', requireStaffAuth, async (req, res) => {
 
 // Customer Management Routes
 app.get('/api/customers', requireStaffAuth, async (req, res) => {
+  console.log('👥 Fetching customers - DB connected:', dbConnected, '- Customer model:', !!Customer);
+  
   if (dbConnected && Customer) {
     try {
       const docs = await Customer.find().lean();
+      console.log('✅ Fetched', docs.length, 'customers from MongoDB');
       return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId })));
     } catch (err) {
-      console.error('Error fetching customers from DB:', err);
-      return res.status(500).json({ error: 'DB error' });
+      console.error('❌ Error fetching customers from DB:', err);
+      // Fall back to in-memory data if DB fails
     }
   }
-  return res.status(503).json({ error: 'Database not available' });
+  
+  // Fallback to in-memory customers data
+  console.log('⚠️ Using fallback customers data');
+  return res.json(customers.map(customer => ({ ...customer, id: customer.id || customer.legacyId })));
 });
 
 app.post('/api/customers', requireStaffAuth, async (req, res) => {
@@ -1715,16 +1721,22 @@ app.post('/api/bookings', requireStaffAuth, async (req, res) => {
 
 // Bar Management Routes
 app.get('/api/bar/inventory', requireStaffAuth, async (req, res) => {
+  console.log('🍺 Fetching bar inventory - DB connected:', dbConnected, '- BarItem model:', !!BarItem);
+  
   if (dbConnected && BarItem) {
     try {
       const docs = await BarItem.find().lean();
+      console.log('✅ Fetched', docs.length, 'bar items from MongoDB');
       return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId })));
     } catch (err) {
-      console.error('Error fetching bar inventory from DB:', err);
-      return res.status(500).json({ error: 'DB error' });
+      console.error('❌ Error fetching bar inventory from DB:', err);
+      // Fall back to in-memory data if DB fails
     }
   }
-  return res.status(503).json({ error: 'Database not available' });
+  
+  // Fallback to in-memory bar inventory data
+  console.log('⚠️ Using fallback bar inventory data');
+  return res.json(barInventory.map(item => ({ ...item, id: item.id || item.legacyId })));
 });
 
 app.post('/api/bar/inventory', requireStaffAuth, async (req, res) => {
