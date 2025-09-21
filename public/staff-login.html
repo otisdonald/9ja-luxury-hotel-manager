@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login - Hotel Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #4a6741 100%);
+            color: white;
+            padding: 40px 30px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .login-header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hotel-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-form {
+            padding: 40px 30px;
+            background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+            position: relative;
+        }
+
+        .login-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.025em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 18px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-weight: 500;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 18px 24px;
+            background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 12px;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(145deg, #1d4ed8 0%, #1e3a8a 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: linear-gradient(145deg, #fef2f2 0%, #ffffff 100%);
+            color: #dc2626;
+            padding: 18px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 2px solid #fecaca;
+            font-size: 1rem;
+            font-weight: 600;
+            display: none;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-message::before {
+            content: '⚠️';
+            margin-right: 8px;
+            font-size: 1.1em;
+        }
+
+        .error-message::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #dc2626;
+        }
+
+        .staff-info {
+            background: #f0f8ff;
+            border: 1px solid #b6d7ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.85em;
+            color: #1a365d;
+        }
+
+        .staff-info h4 {
+            margin-bottom: 10px;
+            color: #2b6cb0;
+        }
+
+        .staff-info ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .staff-info li {
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .staff-info li::before {
+            content: '👤';
+            position: absolute;
+            left: 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #667eea;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%);
+            color: #16a34a;
+            padding: 18px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 2px solid #bbf7d0;
+            font-size: 1rem;
+            font-weight: 600;
+            display: none;
+            box-shadow: 0 4px 16px rgba(22, 163, 74, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .success-message::before {
+            content: '✅';
+            margin-right: 8px;
+            font-size: 1.1em;
+        }
+
+        .success-message::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #16a34a;
+        }
+
+        .test-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #b6d7ff;
+        }
+
+        .test-section h4 {
+            color: #2b6cb0;
+            margin-bottom: 10px;
+        }
+
+        .test-note {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .quick-clock {
+            background: linear-gradient(145deg, #f8fafc 0%, #ffffff 100%);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 32px;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-clock::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .quick-clock h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.25em;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 700;
+            letter-spacing: 0.025em;
+        }
+
+        .clock-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 0;
+        }
+
+        .clock-btn {
+            flex: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.025em;
+        }
+
+        .clock-in-btn {
+            background: linear-gradient(145deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .clock-in-btn:hover {
+            background: linear-gradient(145deg, #059669 0%, #047857 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .clock-out-btn {
+            background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .clock-out-btn:hover {
+            background: linear-gradient(145deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .quick-clock-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .quick-clock-input {
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-clock-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .quick-clock-input::placeholder {
+            color: #94a3b8;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 32px 0;
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
+        }
+
+        .divider span {
+            padding: 0 20px;
+            background: white;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .login-header {
+                padding: 30px 20px 20px;
+            }
+            
+            .login-form {
+                padding: 30px 20px;
+            }
+            
+            .hotel-icon {
+                font-size: 2.5em;
+                margin-bottom: 15px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="hotel-icon">🏨</div>
+            <h1>Staff Portal</h1>
+            <p>Hotel Management System</p>
+        </div>
+        
+        <div class="login-form">
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            
+            <!-- Quick Clock In/Out Section -->
+            <div class="quick-clock">
+                <h3>⏰ Quick Clock In/Out</h3>
+                <div class="quick-clock-form">
+                    <input type="text" 
+                           id="quickClockId" 
+                           class="quick-clock-input" 
+                           placeholder="EMP001" 
+                           maxlength="6">
+                    <div class="clock-buttons">
+                        <button type="button" class="clock-btn clock-in-btn" onclick="quickClock('in')">
+                            🟢 Clock In
+                        </button>
+                        <button type="button" class="clock-btn clock-out-btn" onclick="quickClock('out')">
+                            🔴 Clock Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="divider">
+                <span>or login for full access</span>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="personalId">Personal ID</label>
+                    <input type="text" id="personalId" name="personalId" placeholder="Enter your Personal ID (e.g., EMP001)" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pin">PIN</label>
+                    <input type="password" id="pin" name="pin" placeholder="Enter your 4-digit PIN" required maxlength="4">
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span id="loginText">Login to Staff Portal</span>
+                    <div class="loading" id="loginLoading">
+                        <div class="loading-spinner"></div>
+                        <span>Authenticating...</span>
+                    </div>
+                </button>
+            </form>
+            
+            <div class="staff-info">
+                <h4>Demo Staff Credentials:</h4>
+                <ul>
+                    <li><strong>EMP001</strong> - Alice Manager (PIN: 1234) - 🔥 Admin Access</li>
+                    <li><strong>EMP002</strong> - Bob Reception (PIN: 2345) - 📋 Staff Access</li>
+                    <li><strong>EMP003</strong> - Carol Housekeeping (PIN: 3456) - 📋 Staff Access</li>
+                    <li><strong>EMP004</strong> - David Kitchen (PIN: 4567) - 📋 Staff Access</li>
+                </ul>
+                <div class="test-section">
+                    <h4>🧪 Quick Test (.env):</h4>
+                    <ul>
+                        <li><strong>EMP002</strong> - Staff Portal (PIN: 2345) - 📋 Main Interface</li>
+                        <li><strong>EMP001</strong> - Admin Dashboard (PIN: 1234) - 🔥 Full Access</li>
+                    </ul>
+                    <p class="test-note">
+                        <em>Use EMP002 for staff portal testing, EMP001 for admin dashboard!</em>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        // Quick Clock In/Out Function
+        async function quickClock(action) {
+            const personalId = document.getElementById('quickClockId').value.trim().toUpperCase();
+            
+            if (!personalId) {
+                showError('Please enter your Personal ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/clock`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        personalId, 
+                        action,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const actionText = action === 'in' ? 'clocked in' : 'clocked out';
+                    const emoji = action === 'in' ? '🟢' : '🔴';
+                    showSuccess(`${emoji} ${data.staff?.name || personalId} ${actionText} successfully at ${new Date().toLocaleTimeString()}`);
+                    document.getElementById('quickClockId').value = '';
+                } else {
+                    showError(data.error || `Failed to clock ${action}`);
+                }
+            } catch (error) {
+                console.error('Clock error:', error);
+                showError(`Error clocking ${action}. Please try again.`);
+            }
+        }
+        
+        // Check if already logged in
+        const token = localStorage.getItem('staffToken');
+        if (token) {
+            verifyToken(token);
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const personalId = document.getElementById('personalId').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+            
+            if (!personalId || !pin) {
+                showError('Please enter both Personal ID and PIN');
+                return;
+            }
+            
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                showError('PIN must be exactly 4 digits');
+                return;
+            }
+            
+            await authenticateStaff(personalId, pin);
+        });
+
+        async function authenticateStaff(personalId, pin) {
+            const loginBtn = document.getElementById('loginBtn');
+            const loginText = document.getElementById('loginText');
+            const loginLoading = document.getElementById('loginLoading');
+            
+            try {
+                loginBtn.disabled = true;
+                loginText.style.display = 'none';
+                loginLoading.style.display = 'block';
+                hideMessages();
+                
+                const response = await fetch(`${API_BASE}/api/staff/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ personalId, pin })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    localStorage.setItem('staffToken', data.token);
+                    localStorage.setItem('staffInfo', JSON.stringify(data.staff));
+                    
+                    console.log('Login successful, token stored:', data.token);
+                    
+                    showSuccess(`Welcome back, ${data.staff.name}! Redirecting to staff portal...`);
+                    
+                    setTimeout(() => {
+                        // Always go to staff portal after login
+                        console.log('Redirecting to index.html');
+                        window.location.href = '/index.html';
+                    }, 1500);
+                } else {
+                    showError(data.error || 'Authentication failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Connection error. Please try again.');
+            } finally {
+                loginBtn.disabled = false;
+                loginText.style.display = 'block';
+                loginLoading.style.display = 'none';
+            }
+        }
+
+        async function verifyToken(token) {
+            try {
+                const response = await fetch(`${API_BASE}/api/staff/verify`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.valid) {
+                        // Always go to staff portal when already logged in
+                        window.location.href = '/index.html';
+                    }
+                } else {
+                    // Invalid token, remove it
+                    localStorage.removeItem('staffToken');
+                    localStorage.removeItem('staffInfo');
+                }
+            } catch (error) {
+                console.error('Token verification error:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // Auto-format PIN input
+        document.getElementById('pin').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+
+        // Convert Personal ID to uppercase
+        document.getElementById('personalId').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>

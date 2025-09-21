@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9JA LUXURY life hotel - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1><i class="fas fa-hotel"></i> 9JA LUXURY life hotel</h1>
+                    <p class="header-subtitle">Complete Hotel Management System</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshAllData()" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-success" onclick="window.location.href='/admin'" title="Admin Dashboard">
+                        <i class="fas fa-chart-line"></i> Admin Dashboard
+                    </button>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <button class="tab-btn active" data-tab="rooms">
+                    <i class="fas fa-bed"></i> Rooms
+                </button>
+                <button class="tab-btn" data-tab="customers">
+                    <i class="fas fa-users"></i> Customers
+                </button>
+                <button class="tab-btn" data-tab="bar">
+                    <i class="fas fa-wine-glass"></i> Bar
+                </button>
+                <button class="tab-btn" data-tab="kitchen">
+                    <i class="fas fa-utensils"></i> Kitchen
+                </button>
+                <button class="tab-btn" data-tab="reports">
+                    <i class="fas fa-shield-alt"></i> Security
+                </button>
+                <button class="tab-btn" data-tab="payments">
+                    <i class="fas fa-credit-card"></i> Payments
+                </button>
+                <button class="tab-btn" data-tab="notifications">
+                    <i class="fas fa-bell"></i> Alerts
+                </button>
+                <button class="tab-btn" data-tab="staff">
+                    <i class="fas fa-users-cog"></i> Staff
+                </button>
+                <button class="tab-btn" data-tab="housekeeping">
+                    <i class="fas fa-broom"></i> Housekeeping
+                </button>
+                <button class="tab-btn" data-tab="analytics">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </button>
+                <button class="tab-btn" data-tab="services">
+                    <i class="fas fa-concierge-bell"></i> Services
+                </button>
+                <button class="tab-btn" data-tab="laundry">
+                    <i class="fas fa-soap"></i> Laundry
+                </button>
+                <button class="tab-btn" data-tab="scanpay">
+                    <i class="fas fa-qrcode"></i> Scan & Pay
+                </button>
+                <button class="tab-btn" data-tab="hr">
+                    <i class="fas fa-user-tie"></i> HR
+                </button>
+                <button class="tab-btn" data-tab="stock">
+                    <i class="fas fa-boxes"></i> Stock Control
+                </button>
+                <button class="tab-btn" data-tab="messaging">
+                    <i class="fas fa-envelope-open-text"></i> Messaging
+                </button>
+                <button class="tab-btn" data-tab="locations">
+                    <i class="fas fa-map-marker-alt"></i> Locations
+                </button>
+                <button class="tab-btn" data-tab="communication">
+                    <i class="fas fa-comments"></i> Communication
+                </button>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <!-- Rooms Tab -->
+            <div id="rooms" class="tab-content active">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-bed"></i>
+                        Room Management
+                        <span class="badge" id="roomsCount">11 Rooms</span>
+                    </h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="loadRooms()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary" onclick="showBookingModal()">
+                            <i class="fas fa-plus"></i> New Booking
+                        </button>
+                    </div>
+                </div>
+                <div class="rooms-grid" id="roomsGrid">
+                    <!-- Rooms will be loaded here -->
+                </div>
+            </div>
+            <!-- Restored missing tab-content sections so each tab button has a matching content area -->
+
+            <!-- Customers Tab -->
+            <div id="customers" class="tab-content">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-users"></i>
+                        Customer Management
+                        <span class="badge" id="customersCount">0 Customers</span>
+                    </h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="loadCustomers()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary" onclick="showCustomerModal()">
+                            <i class="fas fa-user-plus"></i> Add Customer
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="customers-table" id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Customers will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bar Tab -->
+            <div id="bar" class="tab-content">
+                <div class="section-header">
+                    <h2>Bar Inventory</h2>
+                    <button class="btn btn-primary" onclick="showBarItemModal()">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+                <div class="inventory-grid" id="barInventory">
+                    <!-- Bar inventory will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Kitchen Tab -->
+            <div id="kitchen" class="tab-content">
+                <div class="kitchen-dashboard">
+                    <!-- Kitchen Overview Cards -->
+                    <div class="kitchen-overview">
+                        <div class="kitchen-card">
+                            <h3><i class="fas fa-dollar-sign"></i> Today's Costs</h3>
+                            <div class="kitchen-stat" id="todayCosts">₦0.00</div>
+                        </div>
+                        <div class="kitchen-card">
+                            <h3><i class="fas fa-chart-line"></i> Monthly Budget</h3>
+                            <div class="kitchen-stat" id="monthlyBudget">₦0.00</div>
+                        </div>
+                        <div class="kitchen-card">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Low Stock Items</h3>
+                            <div class="kitchen-stat" id="lowStockCount">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Kitchen Tabs -->
+                    <div class="kitchen-tabs">
+                        <button class="kitchen-tab-btn active" data-kitchen-tab="inventory">
+                            <i class="fas fa-boxes"></i> Inventory
+                        </button>
+                        <button class="kitchen-tab-btn" data-kitchen-tab="orders">
+                            <i class="fas fa-utensils"></i> Orders
+                        </button>
+                        <button class="kitchen-tab-btn" data-kitchen-tab="purchases">
+                            <i class="fas fa-shopping-cart"></i> Purchases
+                        </button>
+                        <button class="kitchen-tab-btn" data-kitchen-tab="costs">
+                            <i class="fas fa-calculator"></i> Cost Analysis
+                        </button>
+                    </div>
+
+                    <!-- Kitchen Inventory Tab -->
+                    <div id="kitchen-inventory" class="kitchen-tab-content active">
+                        <div class="section-header">
+                            <h3>Kitchen Inventory</h3>
+                            <button class="btn btn-primary" onclick="showKitchenItemModal()">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                        </div>
+                        <div class="kitchen-inventory-grid">
+                            <table class="kitchen-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Category</th>
+                                        <th>Current Stock</th>
+                                        <th>Unit</th>
+                                        <th>Cost per Unit</th>
+                                        <th>Total Value</th>
+                                        <th>Min. Stock</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kitchenInventoryTable">
+                                    <!-- Kitchen inventory will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Kitchen Orders Tab -->
+                    <div id="kitchen-orders" class="kitchen-tab-content">
+                        <div class="section-header">
+                            <h3>Kitchen Orders</h3>
+                            <button class="btn btn-primary" onclick="showOrderModal()">
+                                <i class="fas fa-plus"></i> New Order
+                            </button>
+                        </div>
+                        <div class="orders-container" id="kitchenOrders">
+                            <!-- Kitchen orders will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Kitchen Purchases Tab -->
+                    <div id="kitchen-purchases" class="kitchen-tab-content">
+                        <div class="section-header">
+                            <h3>Purchase History</h3>
+                            <button class="btn btn-success" onclick="showPurchaseModal()">
+                                <i class="fas fa-plus"></i> Record Purchase
+                            </button>
+                        </div>
+                        <div class="purchases-container">
+                            <table class="kitchen-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Supplier</th>
+                                        <th>Items</th>
+                                        <th>Total Cost</th>
+                                        <th>Payment Method</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchaseHistoryTable">
+                                    <!-- Purchase history will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Kitchen Cost Analysis Tab -->
+                    <div id="kitchen-costs" class="kitchen-tab-content">
+                        <div class="section-header">
+                            <h3>Cost Analysis & Reports</h3>
+                            <div class="cost-period-selector">
+                                <select id="costPeriod">
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month" selected>This Month</option>
+                                    <option value="quarter">This Quarter</option>
+                                </select>
+                                <button class="btn btn-info" onclick="generateCostReport()">
+                                    <i class="fas fa-file-alt"></i> Generate Report
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cost-analysis-grid">
+                            <div class="cost-summary-cards">
+                                <div class="cost-card">
+                                    <h4>Total Purchases</h4>
+                                    <div class="cost-amount" id="totalPurchases">₦0.00</div>
+                                </div>
+                                <div class="cost-card">
+                                    <h4>Food Cost %</h4>
+                                    <div class="cost-percentage" id="foodCostPercentage">0%</div>
+                                </div>
+                                <div class="cost-card">
+                                    <h4>Waste Cost</h4>
+                                    <div class="cost-amount" id="wasteCost">₦0.00</div>
+                                </div>
+                                <div class="cost-card">
+                                    <h4>Average Daily Cost</h4>
+                                    <div class="cost-amount" id="avgDailyCost">₦0.00</div>
+                                </div>
+                            </div>
+                            <div class="cost-chart-container">
+                                <canvas id="costChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports" class="tab-content">
+                <div class="section-header">
+                    <h2>Security Reports</h2>
+                    <button class="btn btn-primary" onclick="showPoliceReportModal()">
+                        <i class="fas fa-plus"></i> New Report
+                    </button>
+                </div>
+                <div class="reports-container" id="policeReports">
+                    <!-- Reports will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Payments Tab -->
+            <div id="payments" class="tab-content">
+                <div class="section-header">
+                    <h2>Payments</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showPaymentModal()">
+                            <i class="fas fa-plus"></i> New Payment
+                        </button>
+                    </div>
+                </div>
+                <div class="payments-stats">
+                    <div class="stat">
+                        <div class="amount" id="todaysSales">₦0.00</div>
+                        <div class="label">Today's Sales</div>
+                    </div>
+                    <div class="stat">
+                        <div class="count" id="totalTransactions">0</div>
+                        <div class="label">Transactions</div>
+                    </div>
+                    <div class="stat">
+                        <div class="amount" id="avgTransaction">₦0.00</div>
+                        <div class="label">Avg Transaction</div>
+                    </div>
+                </div>
+                <div class="transactions-list" id="transactionsList">
+                    <!-- Transactions will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div id="notifications" class="tab-content">
+                <div class="section-header">
+                    <h2>Alerts & Notifications</h2>
+                </div>
+                <div class="notifications-list" id="notificationsList">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Staff Tab -->
+            <div id="staff" class="tab-content">
+                <div class="section-header">
+                    <h2>Staff Management</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showStaffModal()">
+                            <i class="fas fa-plus"></i> Add Staff
+                        </button>
+                        <button class="btn btn-success" onclick="showClockInModal()">
+                            <i class="fas fa-clock"></i> Clock In/Out
+                        </button>
+                        <button class="btn btn-info" onclick="showTimesheetModal()">
+                            <i class="fas fa-calendar-check"></i> View Timesheet
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Clock-In System -->
+                <div class="clock-in-system">
+                    <h3>Quick Clock In/Out</h3>
+                    <div class="quick-clock">
+                        <input type="text" id="quickPersonalId" placeholder="Enter Personal ID (e.g., EMP001)" class="quick-input">
+                        <div class="clock-buttons">
+                            <button class="btn btn-success" onclick="quickClock('clock-in')">
+                                <i class="fas fa-sign-in-alt"></i> Clock In
+                            </button>
+                            <button class="btn btn-warning" onclick="quickClock('break-start')">
+                                <i class="fas fa-coffee"></i> Start Break
+                            </button>
+                            <button class="btn btn-info" onclick="quickClock('break-end')">
+                                <i class="fas fa-play"></i> End Break
+                            </button>
+                            <button class="btn btn-danger" onclick="quickClock('clock-out')">
+                                <i class="fas fa-sign-out-alt"></i> Clock Out
+                            </button>
+                        </div>
+                    </div>
+                    <div class="current-status" id="currentStaffStatus">
+                        <!-- Current staff status will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="staff-dashboard">
+                    <div class="staff-stats">
+                        <div class="stat-card">
+                            <div class="count" id="onDutyCount">0</div>
+                            <div class="label">On Duty</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="count" id="totalStaffCount">0</div>
+                            <div class="label">Total Staff</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="count" id="onBreakCount">0</div>
+                            <div class="label">On Break</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="count" id="offDutyCount">0</div>
+                            <div class="label">Off Duty</div>
+                        </div>
+                    </div>
+                    <div class="staff-list" id="staffList">
+                        <!-- Staff will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Housekeeping Tab -->
+            <div id="housekeeping" class="tab-content">
+                <div class="section-header">
+                    <h2>Housekeeping</h2>
+                </div>
+                <div class="housekeeping-tabs">
+                    <div id="cleaning" class="hk-tab-content active">
+                        <div class="cleaning-tasks" id="cleaningTasks"></div>
+                    </div>
+                    <div id="maintenance" class="hk-tab-content">
+                        <div class="maintenance-requests" id="maintenanceRequests"></div>
+                    </div>
+                    <div id="supplies" class="hk-tab-content">
+                        <div class="supply-inventory" id="supplyInventory"></div>
+                    </div>
+                </div>
+                <div class="housekeeping-stats">
+                    <div class="count" id="roomsToClean">0</div>
+                    <div class="count" id="maintenanceIssues">0</div>
+                    <div class="count" id="lowStockItems">0</div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics" class="tab-content">
+                <div class="section-header">
+                    <h2>Analytics & Reports</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="generateReport()">
+                            <i class="fas fa-file-pdf"></i> Generate Report
+                        </button>
+                        <select id="analyticsTimeframe" onchange="updateAnalytics()">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="analytics-dashboard">
+                    <div class="analytics-cards">
+                        <div class="analytics-card">
+                            <h3>Revenue Forecast</h3>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Occupancy Rate</h3>
+                            <div class="chart-container">
+                                <canvas id="occupancyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Customer Loyalty</h3>
+                            <div class="chart-container">
+                                <canvas id="loyaltyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Seasonal Patterns</h3>
+                            <div class="chart-container">
+                                <canvas id="seasonalChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analytics-summary">
+                        <div class="summary-stats">
+                            <div class="summary-card">
+                                <h4>Average Daily Rate</h4>
+                                <div class="value" id="averageRate">$0.00</div>
+                            </div>
+                            <div class="summary-card">
+                                <h4>RevPAR</h4>
+                                <div class="value" id="revpar">$0.00</div>
+                            </div>
+                            <div class="summary-card">
+                                <h4>Customer Retention</h4>
+                                <div class="value" id="retention">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guest Services Tab -->
+            <div id="services" class="tab-content">
+                <div class="section-header">
+                    <h2>Guest Services & Amenities</h2>
+                    <div class="services-actions">
+                        <button class="btn btn-primary" onclick="showServiceModal()">
+                            <i class="fas fa-plus"></i> New Service Request
+                        </button>
+                        <button class="btn btn-success" onclick="showFeedbackModal()">
+                            <i class="fas fa-comment"></i> Guest Feedback
+                        </button>
+                        <button class="btn btn-info" onclick="showLostFoundModal()">
+                            <i class="fas fa-search"></i> Lost & Found
+                        </button>
+                    </div>
+                </div>
+                <div class="services-tabs">
+                    <button class="service-tab-btn active" data-service-tab="spa">Spa/Wellness</button>
+                    <button class="service-tab-btn" data-service-tab="events">Events</button>
+                    <button class="service-tab-btn" data-service-tab="concierge">Concierge</button>
+                    <button class="service-tab-btn" data-service-tab="feedback">Feedback</button>
+                    <button class="service-tab-btn" data-service-tab="lostfound">Lost & Found</button>
+                </div>
+                <div class="services-content">
+                    <div id="spa" class="service-tab-content active">
+                        <div class="spa-bookings" id="spaBookings">
+                            <!-- Spa bookings will be loaded here -->
+                        </div>
+                    </div>
+                    <div id="events" class="service-tab-content">
+                        <div class="event-bookings" id="eventBookings">
+                            <!-- Event bookings will be loaded here -->
+                        </div>
+                    </div>
+                    <div id="concierge" class="service-tab-content">
+                        <div class="concierge-requests" id="conciergeRequests">
+                            <!-- Concierge requests will be loaded here -->
+                        </div>
+                    </div>
+                    <div id="feedback" class="service-tab-content">
+                        <div class="guest-feedback" id="guestFeedback">
+                            <!-- Guest feedback will be loaded here -->
+                        </div>
+                    </div>
+                    <div id="lostfound" class="service-tab-content">
+                        <div class="lost-found-items" id="lostFoundItems">
+                            <!-- Lost & found items will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communication Hub Tab -->
+            <div id="communication" class="tab-content">
+                <div class="section-header">
+                    <h2>Communication Hub</h2>
+                    <div class="communication-actions">
+                        <button class="btn btn-primary" onclick="showMessageModal()">
+                            <i class="fas fa-envelope"></i> Send Message
+                        </button>
+                        <button class="btn btn-success" onclick="showCallLogModal()">
+                            <i class="fas fa-phone"></i> Log Call
+                        </button>
+                        <button class="btn btn-warning" onclick="showEmergencyModal()">
+                            <i class="fas fa-exclamation-triangle"></i> Emergency
+                        </button>
+                    </div>
+                </div>
+                <div class="communication-layout">
+                    <div class="message-board">
+                        <h3>Internal Messages</h3>
+                        <div class="messages-list" id="messagesList">
+                            <!-- Messages will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="call-log">
+                        <h3>Call Log</h3>
+                        <div class="calls-list" id="callsList">
+                            <!-- Call logs will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="emergency-contacts">
+                        <h3>Emergency Contacts</h3>
+                        <div class="emergency-list" id="emergencyList">
+                            <!-- Emergency contacts will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laundry Tab -->
+            <div id="laundry" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-soap"></i> Laundry Management</h2>
+                    <button class="btn btn-primary" onclick="showLaundryTaskModal()">
+                        <i class="fas fa-plus"></i> New Laundry Task
+                    </button>
+                </div>
+                <div class="laundry-tasks-list" id="laundryTasksList">
+                    <!-- Laundry tasks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Scan & Pay Tab -->
+            <div id="scanpay" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-qrcode"></i> Scan & Pay Orders</h2>
+                    <button class="btn btn-primary" onclick="showScanPayOrderModal()">
+                        <i class="fas fa-plus"></i> New Scan & Pay Order
+                    </button>
+                </div>
+                <div class="scanpay-orders-list" id="scanPayOrdersList">
+                    <!-- Scan & Pay orders will be loaded here -->
+                </div>
+            </div>
+
+            <!-- HR Tab -->
+            <div id="hr" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-tie"></i> HR Management</h2>
+                    <button class="btn btn-primary" onclick="showHRRecordModal()">
+                        <i class="fas fa-plus"></i> Add HR Record
+                    </button>
+                </div>
+                <div class="hr-records-list" id="hrRecordsList">
+                    <!-- HR records will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Stock Control Tab -->
+            <div id="stock" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-boxes"></i> Stock Control</h2>
+                    <button class="btn btn-primary" onclick="showStockItemModal()">
+                        <i class="fas fa-plus"></i> Add Stock Item
+                    </button>
+                </div>
+                <div class="stock-items-list" id="stockItemsList">
+                    <!-- Stock items will be loaded here -->
+                </div>
+                <div class="stock-transfer-section">
+                    <h3>Stock Transfers</h3>
+                    <button class="btn btn-info" onclick="showStockTransferModal()">
+                        <i class="fas fa-exchange-alt"></i> Transfer Stock
+                    </button>
+                    <div class="stock-transfers-list" id="stockTransfersList">
+                        <!-- Stock transfers will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messaging Tab -->
+            <div id="messaging" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-envelope-open-text"></i> Automated Messaging</h2>
+                    <button class="btn btn-primary" onclick="showAutomatedMessageModal()">
+                        <i class="fas fa-plus"></i> New Automated Message
+                    </button>
+                </div>
+                <div class="automated-messages-list" id="automatedMessagesList">
+                    <!-- Automated messages will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Locations Tab -->
+            <div id="locations" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-map-marker-alt"></i> Locations & Branches</h2>
+                    <button class="btn btn-primary" onclick="showLocationBranchModal()">
+                        <i class="fas fa-plus"></i> Add Location/Branch
+                    </button>
+                </div>
+                <div class="location-branches-list" id="locationBranchesList">
+                    <!-- Location branches will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>New Booking</h3>
+            <form id="bookingForm">
+                <select id="roomSelect" name="roomId" required>
+                    <option value="">Select Room</option>
+                </select>
+                <select id="customerSelect" name="customerId" required>
+                    <option value="">Select Customer</option>
+                </select>
+                <input type="date" id="checkIn" name="checkIn" required>
+                <input type="date" id="checkOut" name="checkOut" required>
+                <button type="submit" class="btn btn-primary">Create Booking</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Customer</h3>
+            <form id="customerForm">
+                <input type="text" id="customerName" name="name" placeholder="Full Name" required>
+                <input type="email" id="customerEmail" name="email" placeholder="Email" required>
+                <input type="tel" id="customerPhone" name="phone" placeholder="Phone" required>
+                <textarea id="customerNotes" name="notes" placeholder="Notes (optional)"></textarea>
+                <button type="submit" class="btn btn-primary">Add Customer</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="barItemModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Bar Item</h3>
+            <form id="barItemForm">
+                <input type="text" id="itemName" name="name" placeholder="Item Name" required>
+                <input type="number" id="itemPrice" name="price" placeholder="Price" step="0.01" required>
+                <input type="number" id="itemStock" name="stock" placeholder="Stock Quantity" required>
+                <select id="itemCategory" name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="beer">Beer</option>
+                    <option value="wine">Wine</option>
+                    <option value="spirits">Spirits</option>
+                    <option value="cocktails">Cocktails</option>
+                    <option value="non-alcoholic">Non-Alcoholic</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Add Item</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>New Kitchen Order</h3>
+            <form id="orderForm">
+                <select id="orderCustomer" required title="Select Customer">
+                    <option value="">Select Customer</option>
+                </select>
+                <select id="orderRoom" title="Select Room (Optional)">
+                    <option value="">Room (optional)</option>
+                </select>
+                <textarea id="orderItems" placeholder="Order Items" required></textarea>
+                <select id="orderType" required title="Select Order Type">
+                    <option value="">Order Type</option>
+                    <option value="room-service">Room Service</option>
+                    <option value="restaurant">Restaurant</option>
+                    <option value="takeaway">Takeaway</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Create Order</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Police Report Modal -->
+    <div id="policeReportModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>New Police Report</h3>
+            <form id="policeReportForm">
+                <div class="form-row">
+                    <input type="text" id="incidentType" placeholder="Incident Type" required>
+                    <input type="datetime-local" id="incidentDateTime" required title="Date and Time of Incident">
+                </div>
+                <select id="reportRoom" title="Select Room (if applicable)">
+                    <option value="">Room (if applicable)</option>
+                </select>
+                <select id="reportCustomer" title="Select Customer (if involved)">
+                    <option value="">Customer (if involved)</option>
+                </select>
+                <textarea id="incidentDescription" placeholder="Detailed description of the incident" required rows="4"></textarea>
+                <div class="form-row">
+                    <input type="text" id="reportingOfficer" placeholder="Reporting Staff Member" required>
+                    <input type="text" id="policeContactNumber" placeholder="Police Contact Number">
+                </div>
+                <div class="form-row">
+                    <select id="severity" required title="Incident Severity">
+                        <option value="">Severity Level</option>
+                        <option value="low">Low - Minor incident</option>
+                        <option value="medium">Medium - Requires attention</option>
+                        <option value="high">High - Serious incident</option>
+                        <option value="critical">Critical - Emergency response</option>
+                    </select>
+                    <select id="status" required title="Report Status">
+                        <option value="">Status</option>
+                        <option value="reported">Reported</option>
+                        <option value="investigating">Under Investigation</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <textarea id="actionsTaken" placeholder="Actions taken (optional)" rows="3"></textarea>
+                <button type="submit" class="btn btn-primary">Submit Report</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Process Payment</h3>
+            <form id="paymentForm">
+                <div class="payment-details">
+                    <div class="form-row">
+                        <select id="paymentCustomer" required title="Select Customer">
+                            <option value="">Select Customer</option>
+                        </select>
+                        <select id="paymentRoom" title="Select Room (if applicable)">
+                            <option value="">Room (if applicable)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="paymentAmount" placeholder="Amount" step="0.01" min="0" required>
+                        <select id="paymentType" required title="Payment Type">
+                            <option value="">Payment Type</option>
+                            <option value="room">Room Charge</option>
+                            <option value="food">Food & Beverage</option>
+                            <option value="service">Additional Services</option>
+                            <option value="deposit">Security Deposit</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <select id="paymentMethod" required title="Payment Method">
+                            <option value="">Payment Method</option>
+                            <option value="cash">Cash</option>
+                            <option value="credit">Credit Card</option>
+                            <option value="debit">Debit Card</option>
+                            <option value="mobile">Mobile Payment</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                        </select>
+                        <input type="text" id="referenceNumber" placeholder="Reference/Transaction Number">
+                    </div>
+                    <textarea id="paymentNotes" placeholder="Payment notes (optional)" rows="2"></textarea>
+                    
+                    <!-- Card Payment Section -->
+                    <div id="cardPaymentSection" class="card-payment" style="display: none;">
+                        <h4>Card Payment Details</h4>
+                        <div class="form-row">
+                            <input type="text" id="cardNumber" placeholder="Card Number" maxlength="19">
+                            <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="cardCVV" placeholder="CVV" maxlength="4">
+                            <input type="text" id="cardHolderName" placeholder="Cardholder Name">
+                        </div>
+                    </div>
+                </div>
+                <div class="payment-summary">
+                    <div class="total-amount">
+                        <strong>Total: ₦<span id="totalAmount">0.00</span></strong>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Process Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Refund Modal -->
+    <div id="refundModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Process Refund</h3>
+            <form id="refundForm">
+                <select id="refundTransaction" required title="Select Transaction">
+                    <option value="">Select Original Transaction</option>
+                </select>
+                <div class="form-row">
+                    <input type="number" id="refundAmount" placeholder="Refund Amount" step="0.01" min="0" required>
+                    <select id="refundReason" required title="Refund Reason">
+                        <option value="">Refund Reason</option>
+                        <option value="cancellation">Booking Cancellation</option>
+                        <option value="overcharge">Overcharge</option>
+                        <option value="service_issue">Service Issue</option>
+                        <option value="duplicate">Duplicate Payment</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <textarea id="refundNotes" placeholder="Refund notes" rows="3" required></textarea>
+                <button type="submit" class="btn btn-warning">Process Refund</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Feature Modals -->
+    
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Send Notification</h3>
+            <form id="notificationForm">
+                <select id="notificationRecipient" required title="Select Recipient">
+                    <option value="">Select Recipient</option>
+                    <option value="all">All Staff</option>
+                    <option value="front-desk">Front Desk</option>
+                    <option value="housekeeping">Housekeeping</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="management">Management</option>
+                </select>
+                <select id="notificationPriority" required title="Select Priority">
+                    <option value="">Priority Level</option>
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+                <input type="text" id="notificationTitle" placeholder="Notification Title" required>
+                <textarea id="notificationMessage" placeholder="Message" required rows="4"></textarea>
+                <button type="submit" class="btn btn-primary">Send Notification</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Staff Modal -->
+    <div id="staffModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Staff Member</h3>
+            <form id="staffForm">
+                <div class="form-row">
+                    <input type="text" id="staffPersonalId" placeholder="Personal ID (e.g., EMP001)" required>
+                    <input type="text" id="staffName" placeholder="Full Name" required>
+                </div>
+                <div class="form-row">
+                    <input type="email" id="staffEmail" placeholder="Email" required>
+                    <input type="tel" id="staffPhone" placeholder="Phone" required>
+                </div>
+                <div class="form-row">
+                    <select id="staffPosition" required title="Select Position">
+                        <option value="">Position</option>
+                        <option value="front-desk">Front Desk</option>
+                        <option value="housekeeping">Housekeeping</option>
+                        <option value="kitchen">Kitchen Staff</option>
+                        <option value="bar">Bar Staff</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="management">Management</option>
+                        <option value="security">Security</option>
+                    </select>
+                    <select id="staffShift" required title="Select Shift">
+                        <option value="">Shift</option>
+                        <option value="morning">Morning (6AM-2PM)</option>
+                        <option value="afternoon">Afternoon (2PM-10PM)</option>
+                        <option value="night">Night (10PM-6AM)</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="staffSalary" placeholder="Hourly Rate" step="0.01" min="0">
+                    <input type="date" id="staffStartDate" title="Start Date" required>
+                </div>
+                <textarea id="staffNotes" placeholder="Notes (optional)" rows="2"></textarea>
+                <button type="submit" class="btn btn-primary">Add Staff</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Create Schedule</h3>
+            <form id="scheduleForm">
+                <select id="scheduleStaff" required title="Select Staff">
+                    <option value="">Select Staff Member</option>
+                </select>
+                <div class="form-row">
+                    <input type="date" id="scheduleDate" required title="Schedule Date">
+                    <select id="scheduleShift" required title="Select Shift">
+                        <option value="">Shift</option>
+                        <option value="morning">Morning (6AM-2PM)</option>
+                        <option value="afternoon">Afternoon (2PM-10PM)</option>
+                        <option value="night">Night (10PM-6AM)</option>
+                    </select>
+                </div>
+                <textarea id="scheduleNotes" placeholder="Schedule notes (optional)" rows="2"></textarea>
+                <button type="submit" class="btn btn-success">Create Schedule</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Clock In/Out Modal -->
+    <div id="clockInModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Staff Clock In/Out</h3>
+            <form id="clockInForm">
+                <select id="clockStaff" required title="Select Staff">
+                    <option value="">Select Staff Member</option>
+                </select>
+                <div class="form-row">
+                    <select id="clockAction" required title="Select Action">
+                        <option value="">Action</option>
+                        <option value="clock-in">Clock In</option>
+                        <option value="clock-out">Clock Out</option>
+                        <option value="break-start">Start Break</option>
+                        <option value="break-end">End Break</option>
+                    </select>
+                    <input type="datetime-local" id="clockTime" required title="Time">
+                </div>
+                <textarea id="clockNotes" placeholder="Notes (optional)" rows="2"></textarea>
+                <button type="submit" class="btn btn-info">Record Time</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Maintenance Modal -->
+    <div id="maintenanceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Maintenance Request</h3>
+            <form id="maintenanceForm">
+                <div class="form-row">
+                    <select id="maintenanceRoom" title="Select Room">
+                        <option value="">Room (if applicable)</option>
+                    </select>
+                    <select id="maintenanceCategory" required title="Select Category">
+                        <option value="">Category</option>
+                        <option value="plumbing">Plumbing</option>
+                        <option value="electrical">Electrical</option>
+                        <option value="hvac">HVAC</option>
+                        <option value="furniture">Furniture</option>
+                        <option value="appliances">Appliances</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <select id="maintenancePriority" required title="Select Priority">
+                        <option value="">Priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="emergency">Emergency</option>
+                    </select>
+                    <input type="text" id="maintenanceReporter" placeholder="Reported By" required>
+                </div>
+                <textarea id="maintenanceDescription" placeholder="Description of issue" required rows="4"></textarea>
+                <button type="submit" class="btn btn-primary">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supply Modal -->
+    <div id="supplyModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Supply Management</h3>
+            <form id="supplyForm">
+                <div class="form-row">
+                    <input type="text" id="supplyName" placeholder="Supply Name" required>
+                    <select id="supplyCategory" required title="Select Category">
+                        <option value="">Category</option>
+                        <option value="cleaning">Cleaning Supplies</option>
+                        <option value="toiletries">Toiletries</option>
+                        <option value="linens">Linens & Towels</option>
+                        <option value="maintenance">Maintenance Tools</option>
+                        <option value="office">Office Supplies</option>
+                        <option value="kitchen">Kitchen Supplies</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="supplyStock" placeholder="Current Stock" required min="0">
+                    <input type="number" id="supplyMinimum" placeholder="Minimum Level" required min="0">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="supplySupplier" placeholder="Supplier">
+                    <input type="number" id="supplyCost" placeholder="Unit Cost" step="0.01" min="0">
+                </div>
+                <button type="submit" class="btn btn-success">Add/Update Supply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cleaning Task Modal -->
+    <div id="cleaningModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Cleaning Task</h3>
+            <form id="cleaningForm">
+                <div class="form-row">
+                    <select id="cleaningRoom" required title="Select Room">
+                        <option value="">Select Room</option>
+                    </select>
+                    <select id="cleaningType" required title="Select Cleaning Type">
+                        <option value="">Cleaning Type</option>
+                        <option value="checkout">Checkout Cleaning</option>
+                        <option value="maintenance">Maintenance Cleaning</option>
+                        <option value="deep">Deep Cleaning</option>
+                        <option value="inspection">Room Inspection</option>
+                    </select>
+                </div>
+                <select id="cleaningAssignee" title="Assign To">
+                    <option value="">Assign to Staff (optional)</option>
+                </select>
+                <textarea id="cleaningInstructions" placeholder="Special instructions" rows="3"></textarea>
+                <button type="submit" class="btn btn-info">Create Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Service Request Modal -->
+    <div id="serviceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Guest Service Request</h3>
+            <form id="serviceForm">
+                <div class="form-row">
+                    <select id="serviceCustomer" required title="Select Customer">
+                        <option value="">Select Customer</option>
+                    </select>
+                    <select id="serviceType" required title="Select Service Type">
+                        <option value="">Service Type</option>
+                        <option value="spa">Spa Booking</option>
+                        <option value="event">Event Booking</option>
+                        <option value="concierge">Concierge Service</option>
+                        <option value="transport">Transportation</option>
+                        <option value="dining">Dining Reservation</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="datetime-local" id="serviceDateTime" required title="Service Date/Time">
+                    <input type="number" id="serviceGuests" placeholder="Number of Guests" min="1" value="1">
+                </div>
+                <textarea id="serviceDetails" placeholder="Service details and special requests" required rows="4"></textarea>
+                <button type="submit" class="btn btn-primary">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Guest Feedback</h3>
+            <form id="feedbackForm">
+                <select id="feedbackCustomer" required title="Select Customer">
+                    <option value="">Select Customer</option>
+                </select>
+                <div class="form-row">
+                    <select id="feedbackCategory" required title="Select Category">
+                        <option value="">Feedback Category</option>
+                        <option value="room">Room Quality</option>
+                        <option value="service">Service Quality</option>
+                        <option value="food">Food & Beverage</option>
+                        <option value="facilities">Facilities</option>
+                        <option value="staff">Staff Performance</option>
+                        <option value="overall">Overall Experience</option>
+                    </select>
+                    <select id="feedbackRating" required title="Select Rating">
+                        <option value="">Rating</option>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Very Poor</option>
+                    </select>
+                </div>
+                <textarea id="feedbackComments" placeholder="Comments and suggestions" required rows="4"></textarea>
+                <button type="submit" class="btn btn-success">Submit Feedback</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lost & Found Modal -->
+    <div id="lostFoundModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Lost & Found Item</h3>
+            <form id="lostFoundForm">
+                <div class="form-row">
+                    <select id="lostFoundType" required title="Select Type">
+                        <option value="">Item Status</option>
+                        <option value="found">Found Item</option>
+                        <option value="lost">Lost Item Report</option>
+                    </select>
+                    <input type="text" id="lostFoundItem" placeholder="Item Description" required>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="lostFoundLocation" placeholder="Location Found/Lost">
+                    <input type="datetime-local" id="lostFoundDateTime" title="Date/Time">
+                </div>
+                <select id="lostFoundCustomer" title="Related Customer">
+                    <option value="">Related Customer (if known)</option>
+                </select>
+                <textarea id="lostFoundNotes" placeholder="Additional details" rows="3"></textarea>
+                <button type="submit" class="btn btn-info">Record Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Send Internal Message</h3>
+            <form id="messageForm">
+                <div class="form-row">
+                    <select id="messageRecipient" required title="Select Recipient">
+                        <option value="">Select Recipient</option>
+                        <option value="all">All Staff</option>
+                        <option value="management">Management</option>
+                        <option value="front-desk">Front Desk</option>
+                        <option value="housekeeping">Housekeeping</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                    <select id="messagePriority" required title="Select Priority">
+                        <option value="">Priority</option>
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <input type="text" id="messageSubject" placeholder="Subject" required>
+                <textarea id="messageContent" placeholder="Message content" required rows="4"></textarea>
+                <button type="submit" class="btn btn-primary">Send Message</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Call Log Modal -->
+    <div id="callLogModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Log Phone Call</h3>
+            <form id="callLogForm">
+                <div class="form-row">
+                    <select id="callType" required title="Select Call Type">
+                        <option value="">Call Type</option>
+                        <option value="incoming">Incoming</option>
+                        <option value="outgoing">Outgoing</option>
+                    </select>
+                    <input type="tel" id="callNumber" placeholder="Phone Number" required>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="callContact" placeholder="Contact Name">
+                    <input type="datetime-local" id="callDateTime" required title="Call Date/Time">
+                </div>
+                <select id="callPurpose" required title="Select Purpose">
+                    <option value="">Call Purpose</option>
+                    <option value="reservation">Reservation</option>
+                    <option value="complaint">Complaint</option>
+                    <option value="inquiry">General Inquiry</option>
+                    <option value="emergency">Emergency</option>
+                    <option value="vendor">Vendor/Supplier</option>
+                    <option value="other">Other</option>
+                </select>
+                <textarea id="callNotes" placeholder="Call summary and notes" required rows="4"></textarea>
+                <button type="submit" class="btn btn-success">Log Call</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Emergency Modal -->
+    <div id="emergencyModal" class="modal">
+        <div class="modal-content emergency-modal">
+            <span class="close">&times;</span>
+            <h3 class="emergency-title">🚨 Emergency Alert</h3>
+            <form id="emergencyForm">
+                <select id="emergencyType" required title="Select Emergency Type">
+                    <option value="">Emergency Type</option>
+                    <option value="fire">Fire</option>
+                    <option value="medical">Medical Emergency</option>
+                    <option value="security">Security Threat</option>
+                    <option value="evacuation">Evacuation</option>
+                    <option value="utilities">Utilities Failure</option>
+                    <option value="other">Other Emergency</option>
+                </select>
+                <div class="form-row">
+                    <input type="text" id="emergencyLocation" placeholder="Location" required>
+                    <select id="emergencyPriority" required title="Select Priority">
+                        <option value="">Severity</option>
+                        <option value="critical">Critical - Life Threatening</option>
+                        <option value="high">High - Immediate Action</option>
+                        <option value="medium">Medium - Urgent</option>
+                    </select>
+                </div>
+                <textarea id="emergencyDescription" placeholder="Emergency details" required rows="4"></textarea>
+                <div class="emergency-actions">
+                    <button type="submit" class="btn btn-danger">🚨 ALERT ALL STAFF</button>
+                    <button type="button" class="btn btn-warning" onclick="callEmergencyServices()">📞 CALL 911</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Clock In/Out Modal -->
+    <div id="clockInModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Staff Clock In/Out</h3>
+            <form id="clockInForm">
+                <div class="form-row">
+                    <input type="text" id="clockPersonalId" placeholder="Personal ID (e.g., EMP001)" required>
+                    <select id="clockAction" required title="Select Action">
+                        <option value="">Action</option>
+                        <option value="clock-in">Clock In</option>
+                        <option value="clock-out">Clock Out</option>
+                        <option value="break-start">Start Break</option>
+                        <option value="break-end">End Break</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="clockLocation" placeholder="Location (optional)">
+                    <input type="datetime-local" id="clockTime" title="Time (leave empty for current time)">
+                </div>
+                <textarea id="clockNotes" placeholder="Notes (optional)" rows="2"></textarea>
+                <button type="submit" class="btn btn-info">Record Time</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Timesheet Modal -->
+    <div id="timesheetModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close">&times;</span>
+            <h3>Staff Timesheet</h3>
+            <div class="timesheet-controls">
+                <div class="form-row">
+                    <input type="text" id="timesheetPersonalId" placeholder="Personal ID (e.g., EMP001)" required>
+                    <input type="date" id="timesheetDate" title="Select Date">
+                    <button type="button" class="btn btn-primary" onclick="loadTimesheet()">Load Timesheet</button>
+                </div>
+            </div>
+            <div class="timesheet-content" id="timesheetContent">
+                <!-- Timesheet data will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff ID Scanner Modal -->
+    <div id="scannerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Quick Clock Action</h3>
+            <div class="scanner-interface">
+                <div class="scanner-result">
+                    <h4>Staff Information</h4>
+                    <div id="scannedStaffInfo">
+                        <!-- Staff info will be displayed here -->
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <button class="btn btn-success btn-large" onclick="quickClock('clock-in')">
+                        <i class="fas fa-sign-in-alt"></i><br>Clock In
+                    </button>
+                    <button class="btn btn-warning btn-large" onclick="quickClock('break-start')">
+                        <i class="fas fa-coffee"></i><br>Start Break
+                    </button>
+                    <button class="btn btn-info btn-large" onclick="quickClock('break-end')">
+                        <i class="fas fa-play"></i><br>End Break
+                    </button>
+                    <button class="btn btn-danger btn-large" onclick="quickClock('clock-out')">
+                        <i class="fas fa-sign-out-alt"></i><br>Clock Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Status Modal -->
+    <div id="roomStatusModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Change Room Status</h3>
+            <form id="roomStatusForm">
+                <div class="form-row">
+                    <label for="roomStatusSelect">New Status:</label>
+                    <select id="roomStatusSelect" required>
+                        <option value="">Select Status</option>
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="cleaning">Cleaning</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('roomStatusModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Status Modal -->
+    <div id="orderStatusModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Change Order Status</h3>
+            <form id="orderStatusForm">
+                <div class="form-row">
+                    <label for="orderStatusSelect">New Status:</label>
+                    <select id="orderStatusSelect" required>
+                        <option value="">Select Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready</option>
+                        <option value="delivered">Delivered</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('orderStatusModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Status Modal -->
+    <div id="reportStatusModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Change Report Status</h3>
+            <form id="reportStatusForm">
+                <div class="form-row">
+                    <label for="reportStatusSelect">New Status:</label>
+                    <select id="reportStatusSelect" required>
+                        <option value="">Select Status</option>
+                        <option value="reported">Reported</option>
+                        <option value="investigating">Investigating</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('reportStatusModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Staff Status Modal -->
+    <div id="staffStatusModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Change Staff Status</h3>
+            <form id="staffStatusForm">
+                <div class="form-row">
+                    <label for="staffStatusSelect">New Status:</label>
+                    <select id="staffStatusSelect" required>
+                        <option value="">Select Status</option>
+                        <option value="on-duty">On Duty</option>
+                        <option value="off-duty">Off Duty</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('staffStatusModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Laundry Task Modal -->
+    <div id="laundryTaskModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>New Laundry Task</h3>
+            <form id="laundryTaskForm">
+                <div class="form-row">
+                    <input type="text" id="laundryTaskTitle" name="title" placeholder="Task Title" required>
+                    <select id="laundryTaskType" name="type" required>
+                        <option value="">Select Type</option>
+                        <option value="washing">Washing</option>
+                        <option value="drying">Drying</option>
+                        <option value="pressing">Pressing</option>
+                        <option value="folding">Folding</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <select id="laundryTaskRoom" name="roomNumber" required>
+                        <option value="">Select Room</option>
+                        <option value="101">Room 101</option>
+                        <option value="102">Room 102</option>
+                        <option value="103">Room 103</option>
+                        <option value="104">Room 104</option>
+                        <option value="105">Room 105</option>
+                        <option value="106">Room 106</option>
+                        <option value="107">Room 107</option>
+                        <option value="108">Room 108</option>
+                        <option value="109">Room 109</option>
+                        <option value="110">Room 110</option>
+                        <option value="111">Room 111</option>
+                    </select>
+                    <select id="laundryTaskPriority" name="priority" required>
+                        <option value="">Select Priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <textarea id="laundryTaskNotes" name="notes" placeholder="Additional notes" rows="3"></textarea>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('laundryTaskModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kitchen Item Modal -->
+    <div id="kitchenItemModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Kitchen Item</h3>
+            <form id="kitchenItemForm">
+                <div class="form-row">
+                    <input type="text" id="kitchenItemName" name="name" placeholder="Item Name" required>
+                    <select id="kitchenItemCategory" name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="vegetables">Vegetables</option>
+                        <option value="fruits">Fruits</option>
+                        <option value="meat">Meat & Poultry</option>
+                        <option value="seafood">Seafood</option>
+                        <option value="dairy">Dairy</option>
+                        <option value="grains">Grains & Cereals</option>
+                        <option value="spices">Spices & Seasonings</option>
+                        <option value="beverages">Beverages</option>
+                        <option value="frozen">Frozen Items</option>
+                        <option value="canned">Canned Goods</option>
+                        <option value="cleaning">Cleaning Supplies</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="kitchenItemStock" name="currentStock" placeholder="Current Stock" step="0.01" required>
+                    <input type="text" id="kitchenItemUnit" name="unit" placeholder="Unit (kg, pcs, liters)" required>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="kitchenItemCost" name="costPerUnit" placeholder="Cost per Unit (₦)" step="0.01" required>
+                    <input type="number" id="kitchenItemMinStock" name="minStock" placeholder="Minimum Stock Level" step="0.01" required>
+                </div>
+                <textarea id="kitchenItemNotes" name="notes" placeholder="Additional notes" rows="2"></textarea>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('kitchenItemModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="purchaseModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close">&times;</span>
+            <h3>Record Purchase</h3>
+            <form id="purchaseForm">
+                <div class="form-row">
+                    <input type="text" id="purchaseSupplier" name="supplier" placeholder="Supplier Name" required>
+                    <input type="date" id="purchaseDate" name="date" required>
+                </div>
+                <div class="form-row">
+                    <select id="purchasePaymentMethod" name="paymentMethod" required>
+                        <option value="">Payment Method</option>
+                        <option value="cash">Cash</option>
+                        <option value="bank-transfer">Bank Transfer</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="credit">Credit</option>
+                    </select>
+                    <input type="text" id="purchaseInvoice" name="invoiceNumber" placeholder="Invoice Number">
+                </div>
+                
+                <!-- Purchase Items List -->
+                <div class="purchase-items-section">
+                    <h4>Purchase Items</h4>
+                    <div id="purchaseItemsList">
+                        <div class="purchase-item-row">
+                            <select name="itemName[]" required>
+                                <option value="">Select Item</option>
+                            </select>
+                            <input type="number" name="quantity[]" placeholder="Quantity" step="0.01" required>
+                            <input type="number" name="unitCost[]" placeholder="Cost per Unit" step="0.01" required>
+                            <input type="number" name="total[]" placeholder="Total" step="0.01" readonly>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removePurchaseItem(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addPurchaseItem()">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+                
+                <div class="purchase-total">
+                    <h4>Total Purchase Amount: ₦<span id="purchaseTotalAmount">0.00</span></h4>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Record Purchase</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('purchaseModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Stock Modal -->
+    <div id="updateStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('updateStockModal')">&times;</span>
+            <h2><i class="fas fa-edit"></i> Update Stock</h2>
+            <form id="updateStockForm">
+                <div class="form-group">
+                    <label for="updateStockItemName">Item:</label>
+                    <input type="text" id="updateStockItemName" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateStockCurrentStock">Current Stock:</label>
+                    <input type="text" id="updateStockCurrentStock" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateStockNewStock">New Stock Quantity:</label>
+                    <input type="number" id="updateStockNewStock" min="0" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Stock</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('updateStockModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

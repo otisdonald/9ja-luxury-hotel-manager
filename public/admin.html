@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9JA LUXURY life hotel - Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Login Form (shown when not authenticated) -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-form">
+            <div class="login-header">
+                <i class="fas fa-shield-alt"></i>
+                <h2>Admin Login</h2>
+                <p>Enter your credentials to access the admin dashboard</p>
+            </div>
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label for="adminPassword"><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </div>
+                <div id="loginError" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard (shown when authenticated) -->
+    <div id="adminDashboard" class="admin-container hidden">
+        <header class="admin-header">
+            <div class="header-left">
+                <h1><i class="fas fa-crown"></i> Hotel Owner Executive Dashboard</h1>
+                <p class="date-display" id="currentDate"></p>
+                <p class="subtitle">Complete Hotel Management & Daily Reports</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+                <button class="btn btn-primary" onclick="refreshAllData()">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
+                <button class="btn btn-secondary" onclick="exportDailyReport()">
+                    <i class="fas fa-download"></i> Daily Report
+                </button>
+                <button class="btn btn-info" onclick="exportWeeklyReport()">
+                    <i class="fas fa-calendar-week"></i> Weekly Report
+                </button>
+                <button class="btn btn-success" onclick="window.location.href='/'">
+                    <i class="fas fa-home"></i> Staff Dashboard
+                </button>
+            </div>
+        </header>
+
+        <!-- Admin Navigation Tabs -->
+        <nav class="admin-nav">
+            <button class="tab-btn active" onclick="showTab('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> Executive Dashboard
+            </button>
+            <button class="tab-btn" onclick="showTab('daily-reports')">
+                <i class="fas fa-file-alt"></i> Daily Reports
+            </button>
+            <button class="tab-btn" onclick="showTab('hotel-sections')">
+                <i class="fas fa-th-large"></i> Hotel Management
+            </button>
+            <button class="tab-btn" onclick="showTab('analytics')">
+                <i class="fas fa-chart-line"></i> Advanced Analytics
+            </button>
+            <button class="tab-btn" onclick="showTab('financial')">
+                <i class="fas fa-dollar-sign"></i> Financial Overview
+            </button>
+        </nav>
+
+        <div class="admin-content">
+            <!-- Executive Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <!-- Key Metrics Overview -->
+                <section class="metrics-overview">
+                    <div class="metric-card revenue">
+                        <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
+                        <div class="metric-details">
+                            <h3>Daily Revenue</h3>
+                            <div class="metric-value" id="dailyRevenue">₦0</div>
+                            <div class="metric-change" id="revenueChange">+0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card occupancy">
+                        <div class="metric-icon"><i class="fas fa-bed"></i></div>
+                        <div class="metric-details">
+                            <h3>Occupancy Rate</h3>
+                            <div class="metric-value" id="occupancyRate">0%</div>
+                            <div class="metric-change" id="occupancyChange">+0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card customers">
+                        <div class="metric-icon"><i class="fas fa-users"></i></div>
+                        <div class="metric-details">
+                            <h3>Active Guests</h3>
+                            <div class="metric-value" id="activeGuests">0</div>
+                            <div class="metric-change" id="guestsChange">+0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card orders">
+                        <div class="metric-icon"><i class="fas fa-utensils"></i></div>
+                        <div class="metric-details">
+                            <h3>Kitchen Revenue</h3>
+                            <div class="metric-value" id="kitchenRevenue">₦0</div>
+                            <div class="metric-change" id="kitchenChange">+0%</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card staff">
+                        <div class="metric-icon"><i class="fas fa-users-cog"></i></div>
+                        <div class="metric-details">
+                            <h3>Staff On Duty</h3>
+                            <div class="metric-value" id="staffOnDutyCount">0</div>
+                            <div class="metric-change" id="staffChange">of 4 total</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card profit">
+                        <div class="metric-icon"><i class="fas fa-chart-pie"></i></div>
+                        <div class="metric-details">
+                            <h3>Daily Profit</h3>
+                            <div class="metric-value" id="dailyProfit">₦0</div>
+                            <div class="metric-change" id="profitMargin">0% margin</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Executive Summary Charts -->
+                <section class="executive-charts">
+                    <div class="chart-container large">
+                        <h3><i class="fas fa-chart-line"></i> Revenue & Occupancy Trends (7 Days)</h3>
+                        <canvas id="executiveChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-pie-chart"></i> Revenue Breakdown</h3>
+                        <canvas id="revenueBreakdownChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-bed"></i> Room Status Distribution</h3>
+                        <canvas id="roomStatusChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-bar"></i> Daily Revenue</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Quick Hotel Status -->
+                <section class="hotel-status-overview">
+                    <div class="status-card">
+                        <h3><i class="fas fa-hotel"></i> Hotel Overview</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">Available Rooms:</span>
+                                <span class="status-value" id="quickAvailableRooms">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Kitchen Orders:</span>
+                                <span class="status-value" id="quickKitchenOrders">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Bar Revenue:</span>
+                                <span class="status-value" id="quickBarRevenue">₦0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Pending Issues:</span>
+                                <span class="status-value warning" id="quickPendingIssues">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Critical Alerts</h3>
+                        <div class="alerts-summary" id="criticalAlertsSummary">
+                            <p>No critical alerts</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Daily Reports Tab -->
+            <div id="daily-reports-tab" class="tab-content">
+                <section class="daily-reports">
+                    <div class="report-header">
+                        <h2><i class="fas fa-calendar-day"></i> Daily Operations Report</h2>
+                        <div class="report-controls">
+                            <input type="date" id="reportDate" value="" onchange="loadDailyReport()">
+                            <button class="btn btn-primary" onclick="generatePDFReport()">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                            <button class="btn btn-success" onclick="emailReport()">
+                                <i class="fas fa-envelope"></i> Email Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Financial Summary -->
+                    <div class="daily-report-section">
+                        <h3><i class="fas fa-money-bill-wave"></i> Financial Summary</h3>
+                        <div class="financial-grid">
+                            <div class="financial-item">
+                                <h4>Room Revenue</h4>
+                                <div class="amount" id="dailyRoomRevenue">₦0</div>
+                                <div class="transactions" id="dailyRoomTransactions">0 bookings</div>
+                            </div>
+                            <div class="financial-item">
+                                <h4>Food & Beverage</h4>
+                                <div class="amount" id="dailyFBRevenue">₦0</div>
+                                <div class="transactions" id="dailyFBTransactions">0 orders</div>
+                            </div>
+                            <div class="financial-item">
+                                <h4>Bar Revenue</h4>
+                                <div class="amount" id="dailyBarRevenue">₦0</div>
+                                <div class="transactions" id="dailyBarTransactions">0 items sold</div>
+                            </div>
+                            <div class="financial-item">
+                                <h4>Total Revenue</h4>
+                                <div class="amount total" id="dailyTotalRevenue">₦0</div>
+                                <div class="transactions" id="dailyTotalTransactions">0 transactions</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operational Summary -->
+                    <div class="daily-report-section">
+                        <h3><i class="fas fa-cogs"></i> Operational Summary</h3>
+                        <div class="operational-grid">
+                            <div class="operational-card">
+                                <h4><i class="fas fa-bed"></i> Room Operations</h4>
+                                <ul id="dailyRoomOps">
+                                    <li>Check-ins: <span id="dailyCheckins">0</span></li>
+                                    <li>Check-outs: <span id="dailyCheckouts">0</span></li>
+                                    <li>Room changes: <span id="dailyRoomChanges">0</span></li>
+                                    <li>Cleaning completed: <span id="dailyCleaningCompleted">0</span></li>
+                                </ul>
+                            </div>
+                            <div class="operational-card">
+                                <h4><i class="fas fa-utensils"></i> Kitchen Operations</h4>
+                                <ul id="dailyKitchenOps">
+                                    <li>Orders processed: <span id="dailyOrdersProcessed">0</span></li>
+                                    <li>Average prep time: <span id="dailyAvgPrepTime">0 min</span></li>
+                                    <li>Food cost: <span id="dailyFoodCost">₦0</span></li>
+                                    <li>Waste cost: <span id="dailyWasteCost">₦0</span></li>
+                                </ul>
+                            </div>
+                            <div class="operational-card">
+                                <h4><i class="fas fa-users-cog"></i> Staff Performance</h4>
+                                <ul id="dailyStaffPerf">
+                                    <li>Total hours worked: <span id="dailyTotalHours">0</span></li>
+                                    <li>Overtime hours: <span id="dailyOvertimeHours">0</span></li>
+                                    <li>Staff efficiency: <span id="dailyStaffEfficiency">0%</span></li>
+                                    <li>Late arrivals: <span id="dailyLateArrivals">0</span></li>
+                                </ul>
+                            </div>
+                            <div class="operational-card">
+                                <h4><i class="fas fa-tools"></i> Maintenance & Issues</h4>
+                                <ul id="dailyMaintenanceOps">
+                                    <li>Issues reported: <span id="dailyIssuesReported">0</span></li>
+                                    <li>Issues resolved: <span id="dailyIssuesResolved">0</span></li>
+                                    <li>Maintenance costs: <span id="dailyMaintenanceCosts">₦0</span></li>
+                                    <li>Emergency calls: <span id="dailyEmergencyCalls">0</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Insights -->
+                    <div class="daily-report-section">
+                        <h3><i class="fas fa-users"></i> Customer Insights</h3>
+                        <div class="insights-grid">
+                            <div class="insight-card">
+                                <h4>Customer Satisfaction</h4>
+                                <div class="satisfaction-score" id="dailySatisfactionScore">0.0</div>
+                                <div class="satisfaction-reviews" id="dailyReviewsCount">0 reviews</div>
+                            </div>
+                            <div class="insight-card">
+                                <h4>Repeat Customers</h4>
+                                <div class="repeat-rate" id="dailyRepeatRate">0%</div>
+                                <div class="repeat-count" id="dailyRepeatCount">0 of 0 guests</div>
+                            </div>
+                            <div class="insight-card">
+                                <h4>Average Stay</h4>
+                                <div class="avg-stay" id="dailyAvgStay">0.0 days</div>
+                                <div class="stay-range" id="dailyStayRange">1-7 days range</div>
+                            </div>
+                            <div class="insight-card">
+                                <h4>Revenue per Guest</h4>
+                                <div class="revenue-per-guest" id="dailyRevenuePerGuest">₦0</div>
+                                <div class="guest-spending" id="dailyGuestSpending">avg spending</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Hotel Management Sections Tab -->
+            <div id="hotel-sections-tab" class="tab-content">
+                <section class="hotel-sections">
+                    <div class="sections-header">
+                        <h2><i class="fas fa-th-large"></i> Complete Hotel Management</h2>
+                        <p>Access all hotel operations from one central location</p>
+                    </div>
+
+                    <div class="sections-grid">
+                        <!-- Room Management -->
+                        <div class="section-card" onclick="openSection('rooms')">
+                            <div class="section-icon"><i class="fas fa-bed"></i></div>
+                            <h3>Room Management</h3>
+                            <p>Manage all 11 rooms, bookings, and availability</p>
+                            <div class="section-stats">
+                                <span class="stat">Occupied: <span id="sectionOccupiedRooms">0</span></span>
+                                <span class="stat">Available: <span id="sectionAvailableRooms">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Customer Management -->
+                        <div class="section-card" onclick="openSection('customers')">
+                            <div class="section-icon"><i class="fas fa-users"></i></div>
+                            <h3>Customer Management</h3>
+                            <p>Customer database and service history</p>
+                            <div class="section-stats">
+                                <span class="stat">Total: <span id="sectionTotalCustomers">0</span></span>
+                                <span class="stat">Active: <span id="sectionActiveCustomers">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Kitchen Management -->
+                        <div class="section-card" onclick="openSection('kitchen')">
+                            <div class="section-icon"><i class="fas fa-utensils"></i></div>
+                            <h3>Kitchen Management</h3>
+                            <p>Orders, inventory, costs, and kitchen operations</p>
+                            <div class="section-stats">
+                                <span class="stat">Orders: <span id="sectionKitchenOrders">0</span></span>
+                                <span class="stat">Cost: <span id="sectionKitchenCost">₦0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Bar Management -->
+                        <div class="section-card" onclick="openSection('bar')">
+                            <div class="section-icon"><i class="fas fa-wine-glass"></i></div>
+                            <h3>Bar Management</h3>
+                            <p>Bar inventory, sales, and beverage operations</p>
+                            <div class="section-stats">
+                                <span class="stat">Items: <span id="sectionBarItems">0</span></span>
+                                <span class="stat">Revenue: <span id="sectionBarRevenue">₦0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Staff Management -->
+                        <div class="section-card" onclick="openSection('staff')">
+                            <div class="section-icon"><i class="fas fa-users-cog"></i></div>
+                            <h3>Staff Management</h3>
+                            <p>Staff schedules, attendance, and performance</p>
+                            <div class="section-stats">
+                                <span class="stat">On Duty: <span id="sectionStaffOnDuty">0</span></span>
+                                <span class="stat">Total: <span id="sectionTotalStaff">4</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Housekeeping -->
+                        <div class="section-card" onclick="openSection('housekeeping')">
+                            <div class="section-icon"><i class="fas fa-broom"></i></div>
+                            <h3>Housekeeping</h3>
+                            <p>Cleaning tasks, maintenance, and supplies</p>
+                            <div class="section-stats">
+                                <span class="stat">Tasks: <span id="sectionCleaningTasks">0</span></span>
+                                <span class="stat">Issues: <span id="sectionMaintenanceIssues">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Payments & Billing -->
+                        <div class="section-card" onclick="openSection('payments')">
+                            <div class="section-icon"><i class="fas fa-credit-card"></i></div>
+                            <h3>Payments & Billing</h3>
+                            <p>Financial transactions and payment processing</p>
+                            <div class="section-stats">
+                                <span class="stat">Today: <span id="sectionDailyPayments">₦0</span></span>
+                                <span class="stat">Pending: <span id="sectionPendingPayments">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Security & Reports -->
+                        <div class="section-card" onclick="openSection('security')">
+                            <div class="section-icon"><i class="fas fa-shield-alt"></i></div>
+                            <h3>Security & Reports</h3>
+                            <p>Police reports and security incidents</p>
+                            <div class="section-stats">
+                                <span class="stat">Reports: <span id="sectionPoliceReports">0</span></span>
+                                <span class="stat">Open: <span id="sectionOpenCases">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Customer Service -->
+                        <div class="section-card" onclick="openSection('service')">
+                            <div class="section-icon"><i class="fas fa-concierge-bell"></i></div>
+                            <h3>Customer Service</h3>
+                            <p>Service requests, feedback, and lost & found</p>
+                            <div class="section-stats">
+                                <span class="stat">Requests: <span id="sectionServiceRequests">0</span></span>
+                                <span class="stat">Feedback: <span id="sectionFeedbackCount">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Communications -->
+                        <div class="section-card" onclick="openSection('communications')">
+                            <div class="section-icon"><i class="fas fa-comments"></i></div>
+                            <h3>Communications</h3>
+                            <p>Messages, call logs, and emergency contacts</p>
+                            <div class="section-stats">
+                                <span class="stat">Messages: <span id="sectionMessages">0</span></span>
+                                <span class="stat">Calls: <span id="sectionCallLogs">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Analytics -->
+                        <div class="section-card" onclick="openSection('analytics')">
+                            <div class="section-icon"><i class="fas fa-chart-bar"></i></div>
+                            <h3>Analytics & Reports</h3>
+                            <p>Business intelligence and performance metrics</p>
+                            <div class="section-stats">
+                                <span class="stat">Revenue: <span id="sectionAnalyticsRevenue">₦0</span></span>
+                                <span class="stat">Growth: <span id="sectionGrowthRate">0%</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Additional Modules -->
+                        <div class="section-card" onclick="openSection('modules')">
+                            <div class="section-icon"><i class="fas fa-puzzle-piece"></i></div>
+                            <h3>Additional Modules</h3>
+                            <p>Laundry, HR, Stock, Scanpay, and other tools</p>
+                            <div class="section-stats">
+                                <span class="stat">Active: <span id="sectionActiveModules">7</span></span>
+                                <span class="stat">Available: <span id="sectionTotalModules">7</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Advanced Analytics Tab -->
+            <div id="analytics-tab" class="tab-content">
+                <section class="advanced-analytics">
+                    <div class="analytics-header">
+                        <h2><i class="fas fa-chart-line"></i> Advanced Business Analytics</h2>
+                        <div class="analytics-controls">
+                            <select id="analyticsTimeframe" onchange="updateAnalytics()">
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                                <option value="90d">Last 3 Months</option>
+                                <option value="1y">Last Year</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="exportAnalytics()">
+                                <i class="fas fa-download"></i> Export Analytics
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <!-- Revenue Analytics -->
+                        <div class="analytics-card large">
+                            <h3><i class="fas fa-money-bill-trend-up"></i> Revenue Analytics</h3>
+                            <canvas id="revenueAnalyticsChart"></canvas>
+                            <div class="analytics-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Revenue:</span>
+                                    <span class="stat-value" id="totalRevenue">₦0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Average Daily:</span>
+                                    <span class="stat-value" id="avgDailyRevenue">₦0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Growth Rate:</span>
+                                    <span class="stat-value" id="revenueGrowthRate">0%</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Best Day:</span>
+                                    <span class="stat-value" id="bestRevenueDay">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Occupancy Analytics -->
+                        <div class="analytics-card">
+                            <h3><i class="fas fa-chart-area"></i> Occupancy Trends</h3>
+                            <canvas id="occupancyAnalyticsChart"></canvas>
+                            <div class="occupancy-insights">
+                                <p><strong>Peak Days:</strong> <span id="peakOccupancyDays">Weekend</span></p>
+                                <p><strong>Average Rate:</strong> <span id="avgOccupancyRate">0%</span></p>
+                                <p><strong>Room Turnover:</strong> <span id="roomTurnoverRate">0%</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Customer Analytics -->
+                        <div class="analytics-card">
+                            <h3><i class="fas fa-users-line"></i> Customer Analytics</h3>
+                            <canvas id="customerAnalyticsChart"></canvas>
+                            <div class="customer-insights">
+                                <p><strong>New vs Returning:</strong> <span id="newVsReturning">0% / 0%</span></p>
+                                <p><strong>Avg Stay Duration:</strong> <span id="avgStayDuration">0 days</span></p>
+                                <p><strong>Customer Lifetime Value:</strong> <span id="customerLTV">₦0</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Operational Efficiency -->
+                        <div class="analytics-card">
+                            <h3><i class="fas fa-cogs"></i> Operational Efficiency</h3>
+                            <div class="efficiency-metrics">
+                                <div class="efficiency-item">
+                                    <h4>Kitchen Performance</h4>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="kitchenEfficiency" style="width: 0%"></div>
+                                    </div>
+                                    <span id="kitchenEfficiencyText">0%</span>
+                                </div>
+                                <div class="efficiency-item">
+                                    <h4>Staff Productivity</h4>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="staffProductivity" style="width: 0%"></div>
+                                    </div>
+                                    <span id="staffProductivityText">0%</span>
+                                </div>
+                                <div class="efficiency-item">
+                                    <h4>Customer Satisfaction</h4>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="customerSatisfaction" style="width: 0%"></div>
+                                    </div>
+                                    <span id="customerSatisfactionText">0%</span>
+                                </div>
+                                <div class="efficiency-item">
+                                    <h4>Cost Efficiency</h4>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="costEfficiency" style="width: 0%"></div>
+                                    </div>
+                                    <span id="costEfficiencyText">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Predictive Analytics -->
+                        <div class="analytics-card large">
+                            <h3><i class="fas fa-crystal-ball"></i> Predictive Analytics</h3>
+                            <canvas id="predictiveChart"></canvas>
+                            <div class="predictions">
+                                <div class="prediction-item">
+                                    <h4>Next 7 Days Revenue Forecast</h4>
+                                    <div class="forecast-value" id="revenueForecast">₦0</div>
+                                    <div class="confidence">Confidence: <span id="revenueConfidence">0%</span></div>
+                                </div>
+                                <div class="prediction-item">
+                                    <h4>Expected Occupancy</h4>
+                                    <div class="forecast-value" id="occupancyForecast">0%</div>
+                                    <div class="confidence">Confidence: <span id="occupancyConfidence">0%</span></div>
+                                </div>
+                                <div class="prediction-item">
+                                    <h4>Recommended Actions</h4>
+                                    <ul id="recommendedActions">
+                                        <li>Loading recommendations...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Financial Overview Tab -->
+            <div id="financial-tab" class="tab-content">
+                <section class="financial-overview">
+                    <div class="financial-header">
+                        <h2><i class="fas fa-dollar-sign"></i> Financial Overview</h2>
+                        <div class="financial-controls">
+                            <select id="financialPeriod" onchange="updateFinancials()">
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="quarter">This Quarter</option>
+                                <option value="year">This Year</option>
+                            </select>
+                            <button class="btn btn-success" onclick="exportFinancialReport()">
+                                <i class="fas fa-file-excel"></i> Export Financial Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Financial KPIs -->
+                    <div class="financial-kpis">
+                        <div class="kpi-card">
+                            <h3>Total Revenue</h3>
+                            <div class="kpi-value" id="financialTotalRevenue">₦0</div>
+                            <div class="kpi-change positive" id="financialRevenueChange">+0%</div>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Total Costs</h3>
+                            <div class="kpi-value" id="financialTotalCosts">₦0</div>
+                            <div class="kpi-change" id="financialCostsChange">+0%</div>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Net Profit</h3>
+                            <div class="kpi-value" id="financialNetProfit">₦0</div>
+                            <div class="kpi-change" id="financialProfitChange">+0%</div>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Profit Margin</h3>
+                            <div class="kpi-value" id="financialProfitMargin">0%</div>
+                            <div class="kpi-change" id="financialMarginChange">+0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Revenue Breakdown -->
+                    <div class="financial-section">
+                        <h3><i class="fas fa-chart-pie"></i> Revenue Breakdown</h3>
+                        <div class="revenue-breakdown">
+                            <div class="breakdown-chart">
+                                <canvas id="revenueBreakdownDetailChart"></canvas>
+                            </div>
+                            <div class="breakdown-details">
+                                <div class="breakdown-item">
+                                    <span class="category">Room Revenue:</span>
+                                    <span class="amount" id="roomRevenueAmount">₦0</span>
+                                    <span class="percentage" id="roomRevenuePercentage">0%</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="category">Food & Beverage:</span>
+                                    <span class="amount" id="fbRevenueAmount">₦0</span>
+                                    <span class="percentage" id="fbRevenuePercentage">0%</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="category">Bar Revenue:</span>
+                                    <span class="amount" id="barRevenueAmount">₦0</span>
+                                    <span class="percentage" id="barRevenuePercentage">0%</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="category">Other Services:</span>
+                                    <span class="amount" id="otherRevenueAmount">₦0</span>
+                                    <span class="percentage" id="otherRevenuePercentage">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Analysis -->
+                    <div class="financial-section">
+                        <h3><i class="fas fa-chart-bar"></i> Cost Analysis</h3>
+                        <div class="cost-analysis">
+                            <div class="cost-categories">
+                                <div class="cost-category">
+                                    <h4>Staff Costs</h4>
+                                    <div class="cost-amount" id="staffCosts">₦0</div>
+                                    <div class="cost-percentage" id="staffCostsPercent">0% of total</div>
+                                </div>
+                                <div class="cost-category">
+                                    <h4>Food & Beverage Costs</h4>
+                                    <div class="cost-amount" id="fbCosts">₦0</div>
+                                    <div class="cost-percentage" id="fbCostsPercent">0% of total</div>
+                                </div>
+                                <div class="cost-category">
+                                    <h4>Maintenance Costs</h4>
+                                    <div class="cost-amount" id="maintenanceCosts">₦0</div>
+                                    <div class="cost-percentage" id="maintenanceCostsPercent">0% of total</div>
+                                </div>
+                                <div class="cost-category">
+                                    <h4>Operational Costs</h4>
+                                    <div class="cost-amount" id="operationalCosts">₦0</div>
+                                    <div class="cost-percentage" id="operationalCostsPercent">0% of total</div>
+                                </div>
+                            </div>
+                            <div class="cost-chart">
+                                <canvas id="costAnalysisChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cash Flow -->
+                    <div class="financial-section">
+                        <h3><i class="fas fa-money-bill-transfer"></i> Cash Flow Analysis</h3>
+                        <div class="cash-flow">
+                            <canvas id="cashFlowChart"></canvas>
+                            <div class="cash-flow-summary">
+                                <div class="flow-item positive">
+                                    <h4>Cash Inflow</h4>
+                                    <div class="flow-amount" id="cashInflow">₦0</div>
+                                </div>
+                                <div class="flow-item negative">
+                                    <h4>Cash Outflow</h4>
+                                    <div class="flow-amount" id="cashOutflow">₦0</div>
+                                </div>
+                                <div class="flow-item">
+                                    <h4>Net Cash Flow</h4>
+                                    <div class="flow-amount" id="netCashFlow">₦0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Detailed Reports Section - Keep existing content but update -->
+            <section class="detailed-reports" style="display: none;">
+                <!-- This section is hidden as it's been replaced by the new tab structure -->
+            </section>
+                <!-- Staff Management Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-users-cog"></i> Staff Management Overview</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Staff On Duty:</span>
+                                <span class="stat-value" id="staffOnDuty">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">On Break:</span>
+                                <span class="stat-value" id="staffOnBreak">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Off Duty:</span>
+                                <span class="stat-value" id="staffOffDuty">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total Staff:</span>
+                                <span class="stat-value" id="totalStaff">0</span>
+                            </div>
+                        </div>
+                        <div class="staff-breakdown" id="staffBreakdown"></div>
+                        <div class="recent-clock-actions" id="recentClockActions"></div>
+                    </div>
+                </div>
+
+                <!-- Room Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-bed"></i> Room Operations Report</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Available Rooms:</span>
+                                <span class="stat-value" id="availableRooms">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Occupied Rooms:</span>
+                                <span class="stat-value" id="occupiedRooms">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Cleaning Required:</span>
+                                <span class="stat-value" id="cleaningRooms">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Maintenance:</span>
+                                <span class="stat-value" id="maintenanceRooms">0</span>
+                            </div>
+                        </div>
+                        <div class="room-breakdown" id="roomBreakdown"></div>
+                    </div>
+                </div>
+
+                <!-- Customer Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-users"></i> Customer Analytics</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Customers:</span>
+                                <span class="stat-value" id="totalCustomers">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">New Today:</span>
+                                <span class="stat-value" id="newCustomers">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Check-ins Today:</span>
+                                <span class="stat-value" id="todayCheckins">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Check-outs Today:</span>
+                                <span class="stat-value" id="todayCheckouts">0</span>
+                            </div>
+                        </div>
+                        <div class="bookings-breakdown" id="bookingsBreakdown"></div>
+                    </div>
+                </div>
+
+                <!-- Bar Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-wine-glass"></i> Bar Operations</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Items:</span>
+                                <span class="stat-value" id="totalBarItems">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Low Stock Items:</span>
+                                <span class="stat-value warning" id="lowStockItems">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Bar Revenue:</span>
+                                <span class="stat-value" id="barRevenue">$0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Top Category:</span>
+                                <span class="stat-value" id="topCategory">-</span>
+                            </div>
+                        </div>
+                        <div class="low-stock-alert" id="lowStockAlert"></div>
+                    </div>
+                </div>
+
+                <!-- Kitchen Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-utensils"></i> Kitchen Operations</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Orders:</span>
+                                <span class="stat-value" id="totalOrders">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Pending Orders:</span>
+                                <span class="stat-value warning" id="pendingOrders">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Completed Today:</span>
+                                <span class="stat-value" id="completedOrders">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Average Time:</span>
+                                <span class="stat-value" id="averageTime">0 min</span>
+                            </div>
+                        </div>
+                        <div class="orders-breakdown">
+                            <h4>Order Status Breakdown</h4>
+                            <div class="status-bars" id="orderStatusBars"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payments & Financial Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-credit-card"></i> Financial Overview</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Today's Revenue:</span>
+                                <span class="stat-value" id="todayRevenue">₦0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total Transactions:</span>
+                                <span class="stat-value" id="totalTransactions">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Avg Transaction:</span>
+                                <span class="stat-value" id="avgTransaction">₦0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Pending Payments:</span>
+                                <span class="stat-value warning" id="pendingPayments">₦0</span>
+                            </div>
+                        </div>
+                        <div class="payment-methods" id="paymentMethods"></div>
+                    </div>
+                </div>
+
+                <!-- Security & Reports -->
+                <div class="report-card">
+                    <h3><i class="fas fa-shield-alt"></i> Security Reports</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Reports:</span>
+                                <span class="stat-value" id="totalReports">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Open Cases:</span>
+                                <span class="stat-value warning" id="openCases">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">High Priority:</span>
+                                <span class="stat-value danger" id="highPriority">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Resolved Today:</span>
+                                <span class="stat-value" id="resolvedToday">0</span>
+                            </div>
+                        </div>
+                        <div class="recent-reports" id="recentReports"></div>
+                    </div>
+                </div>
+
+                <!-- Housekeeping Report -->
+                <div class="report-card">
+                    <h3><i class="fas fa-broom"></i> Housekeeping Operations</h3>
+                    <div class="report-content">
+                        <div class="report-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Cleaning Tasks:</span>
+                                <span class="stat-value" id="cleaningTasks">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Maintenance Requests:</span>
+                                <span class="stat-value" id="maintenanceRequests">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Supply Alerts:</span>
+                                <span class="stat-value warning" id="supplyAlerts">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Completed Today:</span>
+                                <span class="stat-value" id="completedTasks">0</span>
+                            </div>
+                        </div>
+                        <div class="housekeeping-breakdown" id="housekeepingBreakdown"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section class="activity-section">
+                <div class="activity-card">
+                    <h3><i class="fas fa-clock"></i> Live Activity Feed</h3>
+                    <div class="activity-controls">
+                        <button class="btn btn-sm btn-primary" onclick="refreshActivity()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                        <select id="activityFilter" onchange="filterActivity()" title="Filter activities by type">
+                            <option value="all">All Activities</option>
+                            <option value="bookings">Bookings</option>
+                            <option value="orders">Orders</option>
+                            <option value="staff">Staff Actions</option>
+                            <option value="payments">Payments</option>
+                            <option value="reports">Reports</option>
+                        </select>
+                    </div>
+                    <div class="activity-list" id="recentActivity">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Admin Controls -->
+                <div class="controls-card">
+                    <h3><i class="fas fa-cogs"></i> Admin Controls</h3>
+                    <div class="control-buttons">
+                        <button class="btn btn-warning" onclick="showMaintenanceMode()">
+                            <i class="fas fa-tools"></i> Maintenance Mode
+                        </button>
+                        <button class="btn btn-info" onclick="generateComprehensiveReport()">
+                            <i class="fas fa-file-alt"></i> Full Report
+                        </button>
+                        <button class="btn btn-success" onclick="backupData()">
+                            <i class="fas fa-database"></i> Backup Data
+                        </button>
+                        <button class="btn btn-secondary" onclick="systemHealthCheck()">
+                            <i class="fas fa-heartbeat"></i> System Health
+                        </button>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <h4>Quick Actions</h4>
+                        <div class="action-grid">
+                            <button class="action-btn" onclick="emergencyAlert()">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Emergency Alert
+                            </button>
+                            <button class="action-btn" onclick="broadcastMessage()">
+                                <i class="fas fa-bullhorn"></i>
+                                Broadcast Message
+                            </button>
+                            <button class="action-btn" onclick="lockdownSystem()">
+                                <i class="fas fa-lock"></i>
+                                System Lockdown
+                            </button>
+                            <button class="action-btn" onclick="clearAllAlerts()">
+                                <i class="fas fa-broom"></i>
+                                Clear Alerts
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts & Notifications -->
+                <div class="alerts-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> System Alerts</h3>
+                    <div class="alert-controls">
+                        <button class="btn btn-sm btn-danger" onclick="clearCriticalAlerts()">
+                            <i class="fas fa-times"></i> Clear Critical
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="acknowledgeAlerts()">
+                            <i class="fas fa-check"></i> Acknowledge All
+                        </button>
+                    </div>
+                    <div class="alerts-list" id="alertsList">
+                        <!-- Alerts will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Performance Monitoring -->
+            <section class="performance-section">
+                <div class="performance-card">
+                    <h3><i class="fas fa-tachometer-alt"></i> System Performance</h3>
+                    <div class="performance-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">Server Uptime:</span>
+                            <span class="metric-value" id="serverUptime">0h 0m</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Database Status:</span>
+                            <span class="metric-value status" id="dbStatus">Connected</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Active Sessions:</span>
+                            <span class="metric-value" id="activeSessions">0</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">API Calls/min:</span>
+                            <span class="metric-value" id="apiCalls">0</span>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- Hotel Section Modal for detailed management -->
+            <div id="hotelSectionModal" class="modal" style="display: none;">
+                <div class="modal-content large">
+                    <div class="modal-header">
+                        <h2 id="sectionModalTitle">Hotel Section</h2>
+                        <span class="close" onclick="closeHotelSectionModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div id="sectionModalContent">
+                            <!-- Section content will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Controls and Quick Actions -->
+            <section class="admin-controls-section">
+                <div class="controls-grid">
+                    <div class="control-card">
+                        <h3><i class="fas fa-cogs"></i> System Controls</h3>
+                        <div class="control-buttons">
+                            <button class="btn btn-warning" onclick="showMaintenanceMode()">
+                                <i class="fas fa-tools"></i> Maintenance Mode
+                            </button>
+                            <button class="btn btn-info" onclick="generateComprehensiveReport()">
+                                <i class="fas fa-file-alt"></i> Comprehensive Report
+                            </button>
+                            <button class="btn btn-success" onclick="backupData()">
+                                <i class="fas fa-database"></i> Backup Data
+                            </button>
+                            <button class="btn btn-secondary" onclick="systemHealthCheck()">
+                                <i class="fas fa-heartbeat"></i> System Health
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Emergency Controls</h3>
+                        <div class="emergency-buttons">
+                            <button class="btn btn-danger" onclick="emergencyAlert()">
+                                <i class="fas fa-exclamation-triangle"></i> Emergency Alert
+                            </button>
+                            <button class="btn btn-warning" onclick="broadcastMessage()">
+                                <i class="fas fa-bullhorn"></i> Broadcast Message
+                            </button>
+                            <button class="btn btn-dark" onclick="lockdownSystem()">
+                                <i class="fas fa-lock"></i> System Lockdown
+                            </button>
+                            <button class="btn btn-info" onclick="clearAllAlerts()">
+                                <i class="fas fa-broom"></i> Clear All Alerts
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <h3><i class="fas fa-bell"></i> Active Alerts</h3>
+                        <div class="alerts-summary" id="adminAlertsSummary">
+                            <div class="alert-item">
+                                <span class="alert-type critical">Critical:</span>
+                                <span class="alert-count" id="criticalAlertsCount">0</span>
+                            </div>
+                            <div class="alert-item">
+                                <span class="alert-type warning">Warning:</span>
+                                <span class="alert-count" id="warningAlertsCount">0</span>
+                            </div>
+                            <div class="alert-item">
+                                <span class="alert-type info">Info:</span>
+                                <span class="alert-count" id="infoAlertsCount">0</span>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="btn btn-sm btn-primary" onclick="viewAllAlerts()">
+                                <i class="fas fa-eye"></i> View All
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="acknowledgeAllAlerts()">
+                                <i class="fas fa-check"></i> Acknowledge
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="control-card">
+                        <h3><i class="fas fa-tachometer-alt"></i> System Status</h3>
+                        <div class="system-status">
+                            <div class="status-item">
+                                <span class="status-label">Server:</span>
+                                <span class="status-indicator online" id="serverStatus">Online</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Database:</span>
+                                <span class="status-indicator online" id="databaseStatus">Connected</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Active Sessions:</span>
+                                <span class="status-value" id="activeSessionsCount">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Uptime:</span>
+                                <span class="status-value" id="systemUptime">0h 0m</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div> <!-- End of adminDashboard -->
+
+    <script src="admin-script.js"></script>
+</body>
+</html>
