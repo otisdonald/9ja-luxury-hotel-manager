@@ -27,7 +27,46 @@ app.use((req, res, next) => {
 });
 
 // Session management for staff authentication
-const sessions = new Map();
+const crypto = require('crypto');
+
+// Simple JWT-like token system for serverless compatibility
+function createToken(staff) {
+  const payload = {
+    id: staff.id,
+    name: staff.name,
+    position: staff.position,
+    permissions: staff.permissions,
+    exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+  };
+  const secret = process.env.JWT_SECRET || 'hotel-manager-secret-key';
+  const token = Buffer.from(JSON.stringify(payload)).toString('base64') + '.' + 
+                crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+  return token;
+}
+
+function verifyToken(token) {
+  try {
+    const [payloadB64, signature] = token.split('.');
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
+    
+    // Check expiration
+    if (payload.exp < Date.now()) {
+      return null;
+    }
+    
+    // Verify signature
+    const secret = process.env.JWT_SECRET || 'hotel-manager-secret-key';
+    const expectedSignature = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+    
+    if (signature !== expectedSignature) {
+      return null;
+    }
+    
+    return payload;
+  } catch (err) {
+    return null;
+  }
+}
 
 // Authentication middleware
 function requireStaffAuth(req, res, next) {
@@ -47,17 +86,15 @@ function requireStaffAuth(req, res, next) {
     console.warn('Auth failed: malformed Authorization header', authHeader);
     return res.status(401).json({ error: 'Authentication required' });
   }
-  const session = sessions.get(token);
-  if (!session) {
-    console.warn('Auth failed: token not in session map');
+  
+  const payload = verifyToken(token);
+  if (!payload) {
+    console.warn('Auth failed: invalid or expired token');
     return res.status(401).json({ error: 'Authentication required' });
   }
-  if (session.expires < Date.now()) {
-    console.warn('Auth failed: session expired for token');
-    sessions.delete(token);
-    return res.status(401).json({ error: 'Session expired' });
-  }
-  req.staff = session.staff;
+  
+  req.staff = payload;
+  console.log('Token verified successfully for:', payload.name);
   next();
 }
 
@@ -1203,14 +1240,8 @@ app.post('/api/staff/authenticate', (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Generate session token
-    const token = Buffer.from(`${personalId}-${Date.now()}-${Math.random()}`).toString('base64');
-    
-    // Store session (expires in 8 hours)
-    sessions.set(token, {
-        staff: staff,
-        expires: Date.now() + (8 * 60 * 60 * 1000)
-    });
+    // Generate JWT token
+    const token = createToken(staff);
     
     const responseData = {
         success: true,
@@ -1229,11 +1260,8 @@ app.post('/api/staff/authenticate', (req, res) => {
 });
 
 app.post('/api/staff/logout', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-        sessions.delete(token);
-    }
+    // With JWT tokens, logout is handled client-side by removing the token
+    // No server-side session to clean up
     res.json({ success: true });
 });
 
@@ -1252,28 +1280,22 @@ app.get('/api/staff/verify', (req, res) => {
     const token = authHeader.substring(7);
     console.log('[DEBUG] Extracted token:', token);
     
-    const session = sessions.get(token);
-    console.log('[DEBUG] Session found:', session ? 'yes' : 'no');
+    const payload = verifyToken(token);
+    console.log('[DEBUG] Token payload:', payload ? 'valid' : 'invalid');
     
-    if (!session) {
-        console.log('[DEBUG] Invalid token - session not found');
+    if (!payload) {
+        console.log('[DEBUG] Invalid token - verification failed');
         return res.json({ valid: false, error: 'Invalid token' });
     }
     
-    if (session.expiresAt < Date.now()) {
-        console.log('[DEBUG] Token expired');
-        sessions.delete(token);
-        return res.json({ valid: false, error: 'Token expired' });
-    }
-    
-    console.log('[DEBUG] Token verified successfully for:', session.staff.personalId);
+    console.log('[DEBUG] Token verified successfully for:', payload.name);
     res.json({
         valid: true,
         staff: {
-            name: session.staff.name,
-            personalId: session.staff.personalId,
-            position: session.staff.position,
-            department: session.staff.department
+            name: payload.name,
+            personalId: payload.id,
+            position: payload.position,
+            department: payload.department || 'General'
         }
     });
 });
