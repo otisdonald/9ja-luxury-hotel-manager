@@ -1119,9 +1119,8 @@ emergencyContacts.push(
 // Database (optional MongoDB) - attempt connection and load models
 const connectDB = require('./src/db');
 let dbConnected = false;
-connectDB().then(() => { dbConnected = true; }).catch(() => { dbConnected = false; });
 
-// Load models (may be undefined if Mongo not connected yet)
+// Load models immediately (they handle their own mongoose connection)
 let Room, Customer, BarItem, KitchenOrder, Booking, Payment;
 try {
   Room = require('./src/models/Room');
@@ -1130,9 +1129,25 @@ try {
   KitchenOrder = require('./src/models/KitchenOrder');
   Booking = require('./src/models/Booking');
   Payment = require('./src/models/Payment');
+  console.log('✅ Models loaded successfully');
 } catch (err) {
-  // models may not be available until mongoose connects; fallbacks will be used
+  console.warn('⚠️ Models not available:', err.message);
 }
+
+// Initialize database connection
+async function initializeDatabase() {
+  try {
+    await connectDB();
+    dbConnected = true;
+    console.log('✅ Database connected and ready');
+  } catch (err) {
+    dbConnected = false;
+    console.warn('⚠️ Database connection failed, using fallback data:', err.message);
+  }
+}
+
+// Initialize DB when server starts
+initializeDatabase();
 
 // Admin route
 app.get('/admin', (req, res) => {
@@ -1462,16 +1477,22 @@ function calculateDailyRevenue() {
 
 // Room Management Routes
 app.get('/api/rooms', requireStaffAuth, async (req, res) => {
+  console.log('🏠 Fetching rooms - DB connected:', dbConnected, '- Room model:', !!Room);
+  
   if (dbConnected && Room) {
     try {
       const docs = await Room.find().lean();
+      console.log('✅ Fetched', docs.length, 'rooms from MongoDB');
       return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId })));
     } catch (err) {
-      console.error('Error fetching rooms from DB:', err);
-      return res.status(500).json({ error: 'DB error' });
+      console.error('❌ Error fetching rooms from DB:', err);
+      // Fall back to in-memory data if DB fails
     }
   }
-  return res.status(503).json({ error: 'Database not available' });
+  
+  // Fallback to in-memory rooms data
+  console.log('⚠️ Using fallback rooms data');
+  return res.json(rooms.map(room => ({ ...room, id: room.id || room.legacyId })));
 });
 
 app.put('/api/rooms/:id', requireStaffAuth, async (req, res) => {
