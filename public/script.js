@@ -101,16 +101,28 @@ if (!staffToken) {
 // Add authorization header to all API requests
 const originalFetch = window.fetch;
 window.fetch = function(url, options = {}) {
-    if (url.startsWith('/api/') && !url.includes('/authenticate')) {
-        // Get fresh token from localStorage each time
+    // Always add auth headers for API calls (except authenticate)
+    if (url.startsWith('/api/') && !url.includes('/authenticate') && !url.includes('/clock')) {
         const currentToken = localStorage.getItem('staffToken');
-        console.debug('API request:', url, 'with token:', currentToken ? 'present' : 'missing');
-        options.headers = {
-            ...options.headers,
-            'Authorization': `Bearer ${currentToken}`
-        };
-        // Also attach x-auth-token as fallback
-        options.headers['x-auth-token'] = currentToken;
+        console.debug('🔐 API request:', url, 'with token:', currentToken ? 'present' : 'missing');
+        
+        if (!currentToken) {
+            console.warn('⚠️ No auth token found for API call:', url);
+        }
+        
+        // Ensure headers object exists
+        options.headers = options.headers || {};
+        
+        // Add authorization headers
+        if (currentToken) {
+            options.headers['Authorization'] = `Bearer ${currentToken}`;
+            options.headers['x-auth-token'] = currentToken;
+        }
+        
+        // Ensure content-type for POST/PUT requests
+        if (options.method && ['POST', 'PUT', 'PATCH'].includes(options.method.toUpperCase())) {
+            options.headers['Content-Type'] = options.headers['Content-Type'] || 'application/json';
+        }
     }
     return originalFetch(url, options);
 };
@@ -379,8 +391,25 @@ async function loadTabContent(tab) {
 // Enhanced Rooms Management
 async function loadRooms() {
     try {
-        const response = await fetch('/api/rooms');
+        console.log('🏠 Loading rooms...');
+        const token = localStorage.getItem('staffToken');
+        console.log('🔑 Auth token available:', !!token);
+        
+        const response = await fetch('/api/rooms', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('📡 Rooms API response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const rooms = await response.json();
+        console.log('✅ Loaded rooms:', rooms.length);
         
         const roomsGrid = document.getElementById('roomsGrid');
         roomsGrid.innerHTML = '';
@@ -477,8 +506,22 @@ function showNotification(message, type = 'info') {
 // Enhanced Customer Management
 async function loadCustomers() {
     try {
-        const response = await fetch('/api/customers');
+        console.log('👥 Loading customers...');
+        const token = localStorage.getItem('staffToken');
+        
+        const response = await fetch('/api/customers', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const customers = await response.json();
+        console.log('✅ Loaded customers:', customers.length);
         
         const tableBody = document.querySelector('#customersTable tbody');
         tableBody.innerHTML = '';
