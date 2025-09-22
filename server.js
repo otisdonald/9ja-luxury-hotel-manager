@@ -2142,10 +2142,13 @@ app.get('/api/payments', requireStaffAuth, async (req, res) => {
       return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId, customerName: d.customerId ? d.customerId.name : null })));
     } catch (err) {
       console.error('Error fetching payments from DB:', err);
-      return res.status(500).json({ error: 'DB error' });
+      // Fall back to in-memory data if DB fails
     }
   }
-  return res.status(503).json({ error: 'Database not available' });
+  
+  // Fallback to in-memory payments data
+  console.log('⚠️ Using fallback payments data');
+  return res.json(payments.map(payment => ({ ...payment, id: payment.id })));
 });
 
 app.post('/api/payments', requireStaffAuth, async (req, res) => {
