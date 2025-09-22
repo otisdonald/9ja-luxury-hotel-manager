@@ -691,208 +691,236 @@
     <!-- Modals -->
     <div id="bookingModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>New Booking</h3>
-            <form id="bookingForm">
-                <select id="roomSelect" name="roomId" required>
-                    <option value="">Select Room</option>
-                </select>
-                <select id="customerSelect" name="customerId" required>
-                    <option value="">Select Customer</option>
-                </select>
-                <input type="date" id="checkIn" name="checkIn" required>
-                <input type="date" id="checkOut" name="checkOut" required>
-                <button type="submit" class="btn btn-primary">Create Booking</button>
-            </form>
+            <div class="modal-header">
+                <h3>New Booking</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="bookingForm">
+                    <select id="roomSelect" name="roomId" required>
+                        <option value="">Select Room</option>
+                    </select>
+                    <select id="customerSelect" name="customerId" required>
+                        <option value="">Select Customer</option>
+                    </select>
+                    <input type="date" id="checkIn" name="checkIn" required>
+                    <input type="date" id="checkOut" name="checkOut" required>
+                    <button type="submit" class="btn btn-primary">Create Booking</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <div id="customerModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Add Customer</h3>
-            <form id="customerForm">
-                <input type="text" id="customerName" name="name" placeholder="Full Name" required>
-                <input type="email" id="customerEmail" name="email" placeholder="Email" required>
-                <input type="tel" id="customerPhone" name="phone" placeholder="Phone" required>
-                <textarea id="customerNotes" name="notes" placeholder="Notes (optional)"></textarea>
-                <button type="submit" class="btn btn-primary">Add Customer</button>
-            </form>
+            <div class="modal-header">
+                <h3>Add Customer</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="customerForm">
+                    <input type="text" id="customerName" name="name" placeholder="Full Name" required>
+                    <input type="email" id="customerEmail" name="email" placeholder="Email" required>
+                    <input type="tel" id="customerPhone" name="phone" placeholder="Phone" required>
+                    <textarea id="customerNotes" name="notes" placeholder="Notes (optional)"></textarea>
+                    <button type="submit" class="btn btn-primary">Add Customer</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <div id="barItemModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Add Bar Item</h3>
-            <form id="barItemForm">
-                <input type="text" id="itemName" name="name" placeholder="Item Name" required>
-                <input type="number" id="itemPrice" name="price" placeholder="Price" step="0.01" required>
-                <input type="number" id="itemStock" name="stock" placeholder="Stock Quantity" required>
-                <select id="itemCategory" name="category" required>
-                    <option value="">Select Category</option>
-                    <option value="beer">Beer</option>
-                    <option value="wine">Wine</option>
-                    <option value="spirits">Spirits</option>
-                    <option value="cocktails">Cocktails</option>
-                    <option value="non-alcoholic">Non-Alcoholic</option>
-                </select>
-                <button type="submit" class="btn btn-primary">Add Item</button>
-            </form>
+            <div class="modal-header">
+                <h3>Add Bar Item</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="barItemForm">
+                    <input type="text" id="itemName" name="name" placeholder="Item Name" required>
+                    <input type="number" id="itemPrice" name="price" placeholder="Price" step="0.01" required>
+                    <input type="number" id="itemStock" name="stock" placeholder="Stock Quantity" required>
+                    <select id="itemCategory" name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="beer">Beer</option>
+                        <option value="wine">Wine</option>
+                        <option value="spirits">Spirits</option>
+                        <option value="cocktails">Cocktails</option>
+                        <option value="non-alcoholic">Non-Alcoholic</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <div id="orderModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>New Kitchen Order</h3>
-            <form id="orderForm">
-                <select id="orderCustomer" required title="Select Customer">
-                    <option value="">Select Customer</option>
-                </select>
-                <select id="orderRoom" title="Select Room (Optional)">
-                    <option value="">Room (optional)</option>
-                </select>
-                <textarea id="orderItems" placeholder="Order Items" required></textarea>
-                <select id="orderType" required title="Select Order Type">
-                    <option value="">Order Type</option>
-                    <option value="room-service">Room Service</option>
-                    <option value="restaurant">Restaurant</option>
-                    <option value="takeaway">Takeaway</option>
-                </select>
-                <button type="submit" class="btn btn-primary">Create Order</button>
-            </form>
+            <div class="modal-header">
+                <h3>New Kitchen Order</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="orderForm">
+                    <select id="orderCustomer" required title="Select Customer">
+                        <option value="">Select Customer</option>
+                    </select>
+                    <select id="orderRoom" title="Select Room (Optional)">
+                        <option value="">Room (optional)</option>
+                    </select>
+                    <textarea id="orderItems" placeholder="Order Items" required></textarea>
+                    <select id="orderType" required title="Select Order Type">
+                        <option value="">Order Type</option>
+                        <option value="room-service">Room Service</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="takeaway">Takeaway</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Create Order</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Police Report Modal -->
     <div id="policeReportModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>New Police Report</h3>
-            <form id="policeReportForm">
-                <div class="form-row">
-                    <input type="text" id="incidentType" placeholder="Incident Type" required>
-                    <input type="datetime-local" id="incidentDateTime" required title="Date and Time of Incident">
-                </div>
-                <select id="reportRoom" title="Select Room (if applicable)">
-                    <option value="">Room (if applicable)</option>
-                </select>
-                <select id="reportCustomer" title="Select Customer (if involved)">
-                    <option value="">Customer (if involved)</option>
-                </select>
-                <textarea id="incidentDescription" placeholder="Detailed description of the incident" required rows="4"></textarea>
-                <div class="form-row">
-                    <input type="text" id="reportingOfficer" placeholder="Reporting Staff Member" required>
-                    <input type="text" id="policeContactNumber" placeholder="Police Contact Number">
-                </div>
-                <div class="form-row">
-                    <select id="severity" required title="Incident Severity">
-                        <option value="">Severity Level</option>
-                        <option value="low">Low - Minor incident</option>
-                        <option value="medium">Medium - Requires attention</option>
-                        <option value="high">High - Serious incident</option>
-                        <option value="critical">Critical - Emergency response</option>
+            <div class="modal-header">
+                <h3>New Police Report</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="policeReportForm">
+                    <div class="form-row">
+                        <input type="text" id="incidentType" placeholder="Incident Type" required>
+                        <input type="datetime-local" id="incidentDateTime" required title="Date and Time of Incident">
+                    </div>
+                    <select id="reportRoom" title="Select Room (if applicable)">
+                        <option value="">Room (if applicable)</option>
                     </select>
-                    <select id="status" required title="Report Status">
-                        <option value="">Status</option>
-                        <option value="reported">Reported</option>
-                        <option value="investigating">Under Investigation</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
+                    <select id="reportCustomer" title="Select Customer (if involved)">
+                        <option value="">Customer (if involved)</option>
                     </select>
-                </div>
-                <textarea id="actionsTaken" placeholder="Actions taken (optional)" rows="3"></textarea>
-                <button type="submit" class="btn btn-primary">Submit Report</button>
-            </form>
+                    <textarea id="incidentDescription" placeholder="Detailed description of the incident" required rows="4"></textarea>
+                    <div class="form-row">
+                        <input type="text" id="reportingOfficer" placeholder="Reporting Staff Member" required>
+                        <input type="text" id="policeContactNumber" placeholder="Police Contact Number">
+                    </div>
+                    <div class="form-row">
+                        <select id="severity" required title="Incident Severity">
+                            <option value="">Severity Level</option>
+                            <option value="low">Low - Minor incident</option>
+                            <option value="medium">Medium - Requires attention</option>
+                            <option value="high">High - Serious incident</option>
+                            <option value="critical">Critical - Emergency response</option>
+                        </select>
+                        <select id="status" required title="Report Status">
+                            <option value="">Status</option>
+                            <option value="reported">Reported</option>
+                            <option value="investigating">Under Investigation</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                    <textarea id="actionsTaken" placeholder="Actions taken (optional)" rows="3"></textarea>
+                    <button type="submit" class="btn btn-primary">Submit Report</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Payment Modal -->
     <div id="paymentModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Process Payment</h3>
-            <form id="paymentForm">
-                <div class="payment-details">
-                    <div class="form-row">
-                        <select id="paymentCustomer" required title="Select Customer">
-                            <option value="">Select Customer</option>
-                        </select>
-                        <select id="paymentRoom" title="Select Room (if applicable)">
-                            <option value="">Room (if applicable)</option>
-                        </select>
-                    </div>
-                    <div class="form-row">
-                        <input type="number" id="paymentAmount" placeholder="Amount" step="0.01" min="0" required>
-                        <select id="paymentType" required title="Payment Type">
-                            <option value="">Payment Type</option>
-                            <option value="room">Room Charge</option>
-                            <option value="food">Food & Beverage</option>
-                            <option value="service">Additional Services</option>
-                            <option value="deposit">Security Deposit</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-row">
-                        <select id="paymentMethod" required title="Payment Method">
-                            <option value="">Payment Method</option>
-                            <option value="cash">Cash</option>
-                            <option value="credit">Credit Card</option>
-                            <option value="debit">Debit Card</option>
-                            <option value="mobile">Mobile Payment</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                        </select>
-                        <input type="text" id="referenceNumber" placeholder="Reference/Transaction Number">
-                    </div>
-                    <textarea id="paymentNotes" placeholder="Payment notes (optional)" rows="2"></textarea>
-                    
-                    <!-- Card Payment Section -->
-                    <div id="cardPaymentSection" class="card-payment" style="display: none;">
-                        <h4>Card Payment Details</h4>
+            <div class="modal-header">
+                <h3>Process Payment</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <div class="payment-details">
                         <div class="form-row">
-                            <input type="text" id="cardNumber" placeholder="Card Number" maxlength="19">
-                            <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+                            <select id="paymentCustomer" required title="Select Customer">
+                                <option value="">Select Customer</option>
+                            </select>
+                            <select id="paymentRoom" title="Select Room (if applicable)">
+                                <option value="">Room (if applicable)</option>
+                            </select>
                         </div>
                         <div class="form-row">
-                            <input type="text" id="cardCVV" placeholder="CVV" maxlength="4">
-                            <input type="text" id="cardHolderName" placeholder="Cardholder Name">
+                            <input type="number" id="paymentAmount" placeholder="Amount" step="0.01" min="0" required>
+                            <select id="paymentType" required title="Payment Type">
+                                <option value="">Payment Type</option>
+                                <option value="room">Room Charge</option>
+                                <option value="food">Food & Beverage</option>
+                                <option value="service">Additional Services</option>
+                                <option value="deposit">Security Deposit</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <select id="paymentMethod" required title="Payment Method">
+                                <option value="">Payment Method</option>
+                                <option value="cash">Cash</option>
+                                <option value="credit">Credit Card</option>
+                                <option value="debit">Debit Card</option>
+                                <option value="mobile">Mobile Payment</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                            <input type="text" id="referenceNumber" placeholder="Reference/Transaction Number">
+                        </div>
+                        <textarea id="paymentNotes" placeholder="Payment notes (optional)" rows="2"></textarea>
+                        
+                        <!-- Card Payment Section -->
+                        <div id="cardPaymentSection" class="card-payment" style="display: none;">
+                            <h4>Card Payment Details</h4>
+                            <div class="form-row">
+                                <input type="text" id="cardNumber" placeholder="Card Number" maxlength="19">
+                                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+                            </div>
+                            <div class="form-row">
+                                <input type="text" id="cardCVV" placeholder="CVV" maxlength="4">
+                                <input type="text" id="cardHolderName" placeholder="Cardholder Name">
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="payment-summary">
-                    <div class="total-amount">
-                        <strong>Total: ₦<span id="totalAmount">0.00</span></strong>
+                    <div class="payment-summary">
+                        <div class="total-amount">
+                            <strong>Total: ₦<span id="totalAmount">0.00</span></strong>
+                        </div>
                     </div>
-                </div>
-                <button type="submit" class="btn btn-success">Process Payment</button>
-            </form>
+                    <button type="submit" class="btn btn-success">Process Payment</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Refund Modal -->
     <div id="refundModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Process Refund</h3>
-            <form id="refundForm">
-                <select id="refundTransaction" required title="Select Transaction">
-                    <option value="">Select Original Transaction</option>
-                </select>
-                <div class="form-row">
-                    <input type="number" id="refundAmount" placeholder="Refund Amount" step="0.01" min="0" required>
-                    <select id="refundReason" required title="Refund Reason">
-                        <option value="">Refund Reason</option>
-                        <option value="cancellation">Booking Cancellation</option>
-                        <option value="overcharge">Overcharge</option>
-                        <option value="service_issue">Service Issue</option>
-                        <option value="duplicate">Duplicate Payment</option>
-                        <option value="other">Other</option>
+            <div class="modal-header">
+                <h3>Process Refund</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="refundForm">
+                    <select id="refundTransaction" required title="Select Transaction">
+                        <option value="">Select Original Transaction</option>
                     </select>
-                </div>
-                <textarea id="refundNotes" placeholder="Refund notes" rows="3" required></textarea>
-                <button type="submit" class="btn btn-warning">Process Refund</button>
-            </form>
+                    <div class="form-row">
+                        <input type="number" id="refundAmount" placeholder="Refund Amount" step="0.01" min="0" required>
+                        <select id="refundReason" required title="Refund Reason">
+                            <option value="">Refund Reason</option>
+                            <option value="cancellation">Booking Cancellation</option>
+                            <option value="overcharge">Overcharge</option>
+                            <option value="service_issue">Service Issue</option>
+                            <option value="duplicate">Duplicate Payment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <textarea id="refundNotes" placeholder="Refund notes" rows="3" required></textarea>
+                    <button type="submit" class="btn btn-warning">Process Refund</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -901,94 +929,106 @@
     <!-- Notification Modal -->
     <div id="notificationModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Send Notification</h3>
-            <form id="notificationForm">
-                <select id="notificationRecipient" required title="Select Recipient">
-                    <option value="">Select Recipient</option>
-                    <option value="all">All Staff</option>
-                    <option value="front-desk">Front Desk</option>
-                    <option value="housekeeping">Housekeeping</option>
-                    <option value="kitchen">Kitchen</option>
-                    <option value="management">Management</option>
-                </select>
-                <select id="notificationPriority" required title="Select Priority">
-                    <option value="">Priority Level</option>
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                </select>
-                <input type="text" id="notificationTitle" placeholder="Notification Title" required>
-                <textarea id="notificationMessage" placeholder="Message" required rows="4"></textarea>
-                <button type="submit" class="btn btn-primary">Send Notification</button>
-            </form>
+            <div class="modal-header">
+                <h3>Send Notification</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="notificationForm">
+                    <select id="notificationRecipient" required title="Select Recipient">
+                        <option value="">Select Recipient</option>
+                        <option value="all">All Staff</option>
+                        <option value="front-desk">Front Desk</option>
+                        <option value="housekeeping">Housekeeping</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="management">Management</option>
+                    </select>
+                    <select id="notificationPriority" required title="Select Priority">
+                        <option value="">Priority Level</option>
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                    <input type="text" id="notificationTitle" placeholder="Notification Title" required>
+                    <textarea id="notificationMessage" placeholder="Message" required rows="4"></textarea>
+                    <button type="submit" class="btn btn-primary">Send Notification</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Staff Modal -->
     <div id="staffModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Add Staff Member</h3>
-            <form id="staffForm">
-                <div class="form-row">
-                    <input type="text" id="staffPersonalId" placeholder="Personal ID (e.g., EMP001)" required>
-                    <input type="text" id="staffName" placeholder="Full Name" required>
-                </div>
-                <div class="form-row">
-                    <input type="email" id="staffEmail" placeholder="Email" required>
-                    <input type="tel" id="staffPhone" placeholder="Phone" required>
-                </div>
-                <div class="form-row">
-                    <select id="staffPosition" required title="Select Position">
-                        <option value="">Position</option>
-                        <option value="front-desk">Front Desk</option>
-                        <option value="housekeeping">Housekeeping</option>
-                        <option value="kitchen">Kitchen Staff</option>
-                        <option value="bar">Bar Staff</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="management">Management</option>
-                        <option value="security">Security</option>
-                    </select>
-                    <select id="staffShift" required title="Select Shift">
-                        <option value="">Shift</option>
-                        <option value="morning">Morning (6AM-2PM)</option>
-                        <option value="afternoon">Afternoon (2PM-10PM)</option>
-                        <option value="night">Night (10PM-6AM)</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <input type="number" id="staffSalary" placeholder="Hourly Rate" step="0.01" min="0">
-                    <input type="date" id="staffStartDate" title="Start Date" required>
-                </div>
-                <textarea id="staffNotes" placeholder="Notes (optional)" rows="2"></textarea>
-                <button type="submit" class="btn btn-primary">Add Staff</button>
-            </form>
+            <div class="modal-header">
+                <h3>Add Staff Member</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="staffForm">
+                    <div class="form-row">
+                        <input type="text" id="staffPersonalId" placeholder="Personal ID (e.g., EMP001)" required>
+                        <input type="text" id="staffName" placeholder="Full Name" required>
+                    </div>
+                    <div class="form-row">
+                        <input type="email" id="staffEmail" placeholder="Email" required>
+                        <input type="tel" id="staffPhone" placeholder="Phone" required>
+                    </div>
+                    <div class="form-row">
+                        <select id="staffPosition" required title="Select Position">
+                            <option value="">Position</option>
+                            <option value="front-desk">Front Desk</option>
+                            <option value="housekeeping">Housekeeping</option>
+                            <option value="kitchen">Kitchen Staff</option>
+                            <option value="bar">Bar Staff</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="management">Management</option>
+                            <option value="security">Security</option>
+                        </select>
+                        <select id="staffShift" required title="Select Shift">
+                            <option value="">Shift</option>
+                            <option value="morning">Morning (6AM-2PM)</option>
+                            <option value="afternoon">Afternoon (2PM-10PM)</option>
+                            <option value="night">Night (10PM-6AM)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="staffSalary" placeholder="Hourly Rate" step="0.01" min="0">
+                        <input type="date" id="staffStartDate" title="Start Date" required>
+                    </div>
+                    <textarea id="staffNotes" placeholder="Notes (optional)" rows="2"></textarea>
+                    <button type="submit" class="btn btn-primary">Add Staff</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Schedule Modal -->
     <div id="scheduleModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Create Schedule</h3>
-            <form id="scheduleForm">
-                <select id="scheduleStaff" required title="Select Staff">
-                    <option value="">Select Staff Member</option>
-                </select>
-                <div class="form-row">
-                    <input type="date" id="scheduleDate" required title="Schedule Date">
-                    <select id="scheduleShift" required title="Select Shift">
-                        <option value="">Shift</option>
-                        <option value="morning">Morning (6AM-2PM)</option>
-                        <option value="afternoon">Afternoon (2PM-10PM)</option>
-                        <option value="night">Night (10PM-6AM)</option>
+            <div class="modal-header">
+                <h3>Create Schedule</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm">
+                    <select id="scheduleStaff" required title="Select Staff">
+                        <option value="">Select Staff Member</option>
                     </select>
-                </div>
-                <textarea id="scheduleNotes" placeholder="Schedule notes (optional)" rows="2"></textarea>
-                <button type="submit" class="btn btn-success">Create Schedule</button>
-            </form>
+                    <div class="form-row">
+                        <input type="date" id="scheduleDate" required title="Schedule Date">
+                        <select id="scheduleShift" required title="Select Shift">
+                            <option value="">Shift</option>
+                            <option value="morning">Morning (6AM-2PM)</option>
+                            <option value="afternoon">Afternoon (2PM-10PM)</option>
+                            <option value="night">Night (10PM-6AM)</option>
+                        </select>
+                    </div>
+                    <textarea id="scheduleNotes" placeholder="Schedule notes (optional)" rows="2"></textarea>
+                    <button type="submit" class="btn btn-success">Create Schedule</button>
+                </form>
+            </div>
         </div>
     </div>
 

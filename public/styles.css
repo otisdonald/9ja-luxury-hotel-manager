@@ -1358,12 +1358,28 @@ tr:last-child td {
 .modal-content {
     max-height: 90vh;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body {
+    padding: 32px;
+    flex: 1;
+    overflow-y: auto;
 }
 
 .modal form {
     display: flex;
     flex-direction: column;
     gap: 15px;
+}
+
+.modal form button[type="submit"] {
+    margin-top: 20px;
+    position: sticky;
+    bottom: 0;
+    background: inherit;
+    z-index: 10;
 }
 
 .modal input,
