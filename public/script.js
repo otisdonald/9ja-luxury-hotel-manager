@@ -1028,12 +1028,12 @@ async function handleKitchenItemSubmit(e) {
         category: formData.get('category'),
         unit: formData.get('unit'),
         minimumStock: parseInt(formData.get('minimumStock')),
-        currentStock: parseInt(formData.get('currentStock')) || 0,
+        quantity: parseInt(formData.get('currentStock')) || 0,
         costPerUnit: parseFloat(formData.get('costPerUnit')) || 0
     };
     
     try {
-        const response = await fetch('/api/kitchen/items', {
+        const response = await fetch('/api/kitchen/inventory', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1043,17 +1043,17 @@ async function handleKitchenItemSubmit(e) {
         });
         
         if (response.ok) {
-            showMessage('Kitchen item added successfully!', 'success');
-            closeModal();
+            showAlert('Kitchen item added successfully!', 'success');
+            closeModal('kitchenItemModal');
             loadKitchenInventory();
             e.target.reset();
         } else {
             const error = await response.json();
-            showMessage(error.message || 'Failed to add kitchen item', 'error');
+            showAlert(error.message || 'Failed to add kitchen item', 'error');
         }
     } catch (error) {
         console.error('Error adding kitchen item:', error);
-        showMessage('Error adding kitchen item', 'error');
+        showAlert('Error adding kitchen item', 'error');
     }
 }
 
@@ -1082,7 +1082,7 @@ async function handlePurchaseSubmit(e) {
     }
     
     if (items.length === 0) {
-        showMessage('Please add at least one item to the purchase', 'error');
+        showAlert('Please add at least one item to the purchase', 'error');
         return;
     }
     
@@ -1106,8 +1106,8 @@ async function handlePurchaseSubmit(e) {
         });
         
         if (response.ok) {
-            showMessage('Purchase recorded successfully!', 'success');
-            closeModal();
+            showAlert('Purchase recorded successfully!', 'success');
+            closeModal('purchaseModal');
             loadKitchenInventory();
             e.target.reset();
             
@@ -1122,11 +1122,11 @@ async function handlePurchaseSubmit(e) {
             calculatePurchaseTotal();
         } else {
             const error = await response.json();
-            showMessage(error.message || 'Failed to record purchase', 'error');
+            showAlert(error.message || 'Failed to record purchase', 'error');
         }
     } catch (error) {
         console.error('Error recording purchase:', error);
-        showMessage('Error recording purchase', 'error');
+        showAlert('Error recording purchase', 'error');
     }
 }
 
