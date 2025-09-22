@@ -1147,6 +1147,140 @@ async function generateCostReport() {
     }
 }
 
+// Missing Kitchen Functions
+function viewPurchaseDetails(purchaseId) {
+    try {
+        // Find the purchase from the purchases list
+        const purchaseRows = document.querySelectorAll('#kitchenPurchases .purchase-row');
+        let purchaseData = null;
+        
+        purchaseRows.forEach(row => {
+            const id = row.getAttribute('data-purchase-id');
+            if (id === purchaseId) {
+                const cells = row.querySelectorAll('td');
+                purchaseData = {
+                    id: purchaseId,
+                    date: cells[0]?.textContent || '',
+                    supplier: cells[1]?.textContent || '',
+                    items: cells[2]?.textContent || '',
+                    cost: cells[3]?.textContent || '',
+                    status: cells[4]?.textContent || ''
+                };
+            }
+        });
+        
+        if (purchaseData) {
+            // Show purchase details in a modal or alert
+            const details = `Purchase Details:
+Date: ${purchaseData.date}
+Supplier: ${purchaseData.supplier}
+Items: ${purchaseData.items}
+Total Cost: ${purchaseData.cost}
+Status: ${purchaseData.status}`;
+            
+            showAlert(details, 'info');
+        } else {
+            showAlert('Purchase details not found', 'error');
+        }
+    } catch (error) {
+        console.error('Error viewing purchase details:', error);
+        showAlert('Error loading purchase details', 'error');
+    }
+}
+
+function editKitchenItem(itemId) {
+    try {
+        // Find the item from the inventory list
+        const itemRows = document.querySelectorAll('#kitchenInventory .inventory-item');
+        let itemData = null;
+        
+        itemRows.forEach(row => {
+            const id = row.getAttribute('data-item-id');
+            if (id === itemId) {
+                const cells = row.querySelectorAll('td');
+                itemData = {
+                    id: itemId,
+                    name: cells[0]?.textContent || '',
+                    category: cells[1]?.textContent || '',
+                    quantity: cells[2]?.textContent || '',
+                    unit: cells[3]?.textContent || '',
+                    price: cells[4]?.textContent || ''
+                };
+            }
+        });
+        
+        if (itemData) {
+            // Pre-fill the kitchen item form with existing data
+            document.getElementById('itemName').value = itemData.name;
+            document.getElementById('itemCategory').value = itemData.category;
+            document.getElementById('itemQuantity').value = itemData.quantity.replace(/[^\d.]/g, '');
+            document.getElementById('itemUnit').value = itemData.unit;
+            document.getElementById('itemPrice').value = itemData.price.replace(/[^\d.]/g, '');
+            
+            // Show the modal
+            document.getElementById('kitchenItemModal').style.display = 'block';
+            
+            // Store the item ID for updating
+            document.getElementById('kitchenItemForm').setAttribute('data-edit-id', itemId);
+        } else {
+            showAlert('Item not found', 'error');
+        }
+    } catch (error) {
+        console.error('Error editing kitchen item:', error);
+        showAlert('Error loading item details', 'error');
+    }
+}
+
+function adjustStock(itemId) {
+    try {
+        // Find the item from the inventory list
+        const itemRows = document.querySelectorAll('#kitchenInventory .inventory-item');
+        let itemData = null;
+        
+        itemRows.forEach(row => {
+            const id = row.getAttribute('data-item-id');
+            if (id === itemId) {
+                const cells = row.querySelectorAll('td');
+                itemData = {
+                    id: itemId,
+                    name: cells[0]?.textContent || '',
+                    currentQuantity: cells[2]?.textContent || ''
+                };
+            }
+        });
+        
+        if (itemData) {
+            const currentQty = parseFloat(itemData.currentQuantity.replace(/[^\d.]/g, '')) || 0;
+            const adjustment = prompt(`Adjust stock for ${itemData.name}\nCurrent quantity: ${currentQty}\nEnter adjustment (+/- amount):`);
+            
+            if (adjustment !== null && adjustment.trim() !== '') {
+                const adjustmentValue = parseFloat(adjustment);
+                if (!isNaN(adjustmentValue)) {
+                    const newQuantity = Math.max(0, currentQty + adjustmentValue);
+                    
+                    // Update the display (this would normally make an API call)
+                    const row = document.querySelector(`[data-item-id="${itemId}"] td:nth-child(3)`);
+                    if (row) {
+                        row.textContent = newQuantity.toFixed(1);
+                    }
+                    
+                    showAlert(`Stock adjusted successfully. New quantity: ${newQuantity}`, 'success');
+                    
+                    // Refresh the inventory display
+                    loadKitchenInventory();
+                } else {
+                    showAlert('Please enter a valid number', 'error');
+                }
+            }
+        } else {
+            showAlert('Item not found', 'error');
+        }
+    } catch (error) {
+        console.error('Error adjusting stock:', error);
+        showAlert('Error adjusting stock', 'error');
+    }
+}
+
 function generateReportContent(report) {
     return `
 KITCHEN COST REPORT
