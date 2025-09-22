@@ -1558,64 +1558,68 @@
     <!-- Kitchen Item Modal -->
     <div id="kitchenItemModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Add Kitchen Item</h3>
-            <form id="kitchenItemForm">
-                <div class="form-row">
-                    <input type="text" id="kitchenItemName" name="name" placeholder="Item Name" required>
-                    <select id="kitchenItemCategory" name="category" required>
-                        <option value="">Select Category</option>
-                        <option value="vegetables">Vegetables</option>
-                        <option value="fruits">Fruits</option>
-                        <option value="meat">Meat & Poultry</option>
-                        <option value="seafood">Seafood</option>
-                        <option value="dairy">Dairy</option>
-                        <option value="grains">Grains & Cereals</option>
-                        <option value="spices">Spices & Seasonings</option>
-                        <option value="beverages">Beverages</option>
-                        <option value="frozen">Frozen Items</option>
-                        <option value="canned">Canned Goods</option>
-                        <option value="cleaning">Cleaning Supplies</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <input type="number" id="kitchenItemStock" name="currentStock" placeholder="Current Stock" step="0.01" required>
-                    <input type="text" id="kitchenItemUnit" name="unit" placeholder="Unit (kg, pcs, liters)" required>
-                </div>
-                <div class="form-row">
-                    <input type="number" id="kitchenItemCost" name="costPerUnit" placeholder="Cost per Unit (₦)" step="0.01" required>
-                    <input type="number" id="kitchenItemMinStock" name="minStock" placeholder="Minimum Stock Level" step="0.01" required>
-                </div>
-                <textarea id="kitchenItemNotes" name="notes" placeholder="Additional notes" rows="2"></textarea>
-                <div class="form-actions">
+            <div class="modal-header">
+                <h3>Add Kitchen Item</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="kitchenItemForm">
+                    <div class="form-row">
+                        <input type="text" id="kitchenItemName" name="name" placeholder="Item Name" required>
+                        <select id="kitchenItemCategory" name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="fruits">Fruits</option>
+                            <option value="meat">Meat & Poultry</option>
+                            <option value="seafood">Seafood</option>
+                            <option value="dairy">Dairy</option>
+                            <option value="grains">Grains & Cereals</option>
+                            <option value="spices">Spices & Seasonings</option>
+                            <option value="beverages">Beverages</option>
+                            <option value="frozen">Frozen Items</option>
+                            <option value="canned">Canned Goods</option>
+                            <option value="cleaning">Cleaning Supplies</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="kitchenItemStock" name="currentStock" placeholder="Current Stock" step="0.01" required>
+                        <input type="text" id="kitchenItemUnit" name="unit" placeholder="Unit (kg, pcs, liters)" required>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="kitchenItemCost" name="costPerUnit" placeholder="Cost per Unit (₦)" step="0.01" required>
+                        <input type="number" id="kitchenItemMinStock" name="minStock" placeholder="Minimum Stock Level" step="0.01" required>
+                    </div>
+                    <textarea id="kitchenItemNotes" name="notes" placeholder="Additional notes" rows="2"></textarea>
                     <button type="submit" class="btn btn-primary">Add Item</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('kitchenItemModal')">Cancel</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Purchase Modal -->
     <div id="purchaseModal" class="modal">
         <div class="modal-content large-modal">
-            <span class="close">&times;</span>
-            <h3>Record Purchase</h3>
-            <form id="purchaseForm">
-                <div class="form-row">
-                    <input type="text" id="purchaseSupplier" name="supplier" placeholder="Supplier Name" required>
-                    <input type="date" id="purchaseDate" name="date" required>
-                </div>
-                <div class="form-row">
-                    <select id="purchasePaymentMethod" name="paymentMethod" required>
-                        <option value="">Payment Method</option>
-                        <option value="cash">Cash</option>
-                        <option value="bank-transfer">Bank Transfer</option>
-                        <option value="cheque">Cheque</option>
-                        <option value="credit">Credit</option>
-                    </select>
-                    <input type="text" id="purchaseInvoice" name="invoiceNumber" placeholder="Invoice Number">
-                </div>
+            <div class="modal-header">
+                <h3>Record Purchase</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="purchaseForm">
+                    <div class="form-row">
+                        <input type="text" id="purchaseSupplier" name="supplier" placeholder="Supplier Name" required>
+                        <input type="date" id="purchaseDate" name="date" required>
+                    </div>
+                    <div class="form-row">
+                        <select id="purchasePaymentMethod" name="paymentMethod" required>
+                            <option value="">Payment Method</option>
+                            <option value="cash">Cash</option>
+                            <option value="bank-transfer">Bank Transfer</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="credit">Credit</option>
+                        </select>
+                        <input type="text" id="purchaseInvoice" name="invoiceNumber" placeholder="Invoice Number">
+                    </div>
                 
                 <!-- Purchase Items List -->
                 <div class="purchase-items-section">
@@ -1638,15 +1642,13 @@
                     </button>
                 </div>
                 
-                <div class="purchase-total">
-                    <h4>Total Purchase Amount: ₦<span id="purchaseTotalAmount">0.00</span></h4>
-                </div>
-                
-                <div class="form-actions">
+                    <div class="purchase-total">
+                        <h4>Total Purchase Amount: ₦<span id="purchaseTotalAmount">0.00</span></h4>
+                    </div>
+                    
                     <button type="submit" class="btn btn-primary">Record Purchase</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('purchaseModal')">Cancel</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 

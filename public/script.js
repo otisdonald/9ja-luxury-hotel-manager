@@ -271,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Loading initial content...');
     loadTabContent('rooms');
     setupModalEventListeners();
+    setupKitchenTabs(); // Add kitchen tab functionality
     updateBadgeCounts();
     
     // Debug: Check if elements exist
@@ -340,7 +341,9 @@ async function loadTabContent(tab) {
             await loadBarInventory();
             break;
         case 'kitchen':
+            await loadKitchenInventory();
             await loadKitchenOrders();
+            await updateKitchenOverview();
             break;
         case 'reports':
             await loadPoliceReports();

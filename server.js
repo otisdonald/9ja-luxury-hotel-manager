@@ -1991,6 +1991,75 @@ app.get('/api/kitchen/cost-analysis', requireStaffAuth, (req, res) => {
   });
 });
 
+// Kitchen costs and budget endpoints
+app.get('/api/kitchen/costs/today', requireStaffAuth, (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const todayPurchases = kitchenPurchases.filter(p => 
+    p.purchaseDate === today
+  );
+  const totalCost = todayPurchases.reduce((sum, p) => sum + p.totalCost, 0);
+  res.json({ totalCost });
+});
+
+app.get('/api/kitchen/budget/month', requireStaffAuth, (req, res) => {
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const monthlyPurchases = kitchenPurchases.filter(p => {
+    const purchaseDate = new Date(p.purchaseDate);
+    return purchaseDate.getMonth() === currentMonth && purchaseDate.getFullYear() === currentYear;
+  });
+  
+  const spentThisMonth = monthlyPurchases.reduce((sum, p) => sum + p.totalCost, 0);
+  const budgetLimit = 500000; // Monthly budget of 500,000 NGN
+  const remainingBudget = budgetLimit - spentThisMonth;
+  
+  res.json({ 
+    budget: budgetLimit,
+    spent: spentThisMonth,
+    remaining: remainingBudget,
+    percentage: (spentThisMonth / budgetLimit) * 100
+  });
+});
+
+app.get('/api/kitchen/analysis/:period', requireStaffAuth, (req, res) => {
+  const { period } = req.params;
+  const days = parseInt(period) || 30;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  
+  const recentPurchases = kitchenPurchases.filter(p => 
+    new Date(p.purchaseDate) >= cutoffDate
+  );
+  
+  const totalCost = recentPurchases.reduce((sum, p) => sum + p.totalCost, 0);
+  const averageDailyCost = totalCost / days;
+  
+  // Group by day for chart data
+  const dailyCosts = {};
+  recentPurchases.forEach(p => {
+    const date = p.purchaseDate;
+    dailyCosts[date] = (dailyCosts[date] || 0) + p.totalCost;
+  });
+  
+  // Category breakdown
+  const categoryBreakdown = recentPurchases.reduce((acc, p) => {
+    const inventoryItem = kitchenInventory.find(i => i.name === p.itemName);
+    const category = inventoryItem ? inventoryItem.category : 'Other';
+    acc[category] = (acc[category] || 0) + p.totalCost;
+    return acc;
+  }, {});
+  
+  res.json({
+    period: days,
+    totalCost,
+    averageDailyCost,
+    dailyCosts,
+    categoryBreakdown,
+    purchaseCount: recentPurchases.length
+  });
+});
+
 // Police Reports Routes
 app.get('/api/police-reports', (req, res) => {
   res.json(policeReports);
