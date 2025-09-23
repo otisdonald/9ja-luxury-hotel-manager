@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+</head>
+<body>
+    <canvas id="iconCanvas" width="192" height="192" style="border: 1px solid #ccc;"></canvas>
+    <br>
+    <button onclick="downloadIcon(192)">Download 192x192</button>
+    <button onclick="downloadIcon(512)">Download 512x512</button>
+    <button onclick="generateAllSizes()">Generate All Sizes</button>
+    
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Background
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Hotel building
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(size * 0.2, size * 0.3, size * 0.6, size * 0.5);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(size * 0.25, size * 0.35, size * 0.5, size * 0.45);
+            
+            // Windows
+            ctx.fillStyle = '#f39c12';
+            const windowSize = size * 0.06;
+            const spacing = size * 0.12;
+            const startX = size * 0.3;
+            const startY = size * 0.4;
+            
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    if (!(row === 2 && col === 1)) { // Skip door area
+                        const x = startX + (col * spacing);
+                        const y = startY + (row * spacing);
+                        ctx.fillRect(x, y, windowSize, windowSize);
+                    }
+                }
+            }
+            
+            // Door
+            ctx.fillStyle = '#e67e22';
+            ctx.fillRect(size * 0.4, size * 0.65, size * 0.2, size * 0.15);
+            
+            // Crown
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            const centerX = size / 2;
+            const centerY = size * 0.25;
+            ctx.moveTo(centerX - size * 0.06, centerY - size * 0.03);
+            ctx.lineTo(centerX - size * 0.03, centerY + size * 0.03);
+            ctx.lineTo(centerX, centerY - size * 0.015);
+            ctx.lineTo(centerX + size * 0.03, centerY + size * 0.03);
+            ctx.lineTo(centerX + size * 0.06, centerY - size * 0.03);
+            ctx.lineTo(centerX + size * 0.04, centerY + size * 0.06);
+            ctx.lineTo(centerX - size * 0.04, centerY + size * 0.06);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.08}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('HOTEL', centerX, size * 0.18);
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById('iconCanvas');
+            drawIcon(canvas, size);
+            
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `icon-${size}x${size}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        function generateAllSizes() {
+            const sizes = [16, 32, 72, 96, 128, 144, 152, 180, 192, 384, 512];
+            let index = 0;
+            
+            function downloadNext() {
+                if (index < sizes.length) {
+                    setTimeout(() => {
+                        downloadIcon(sizes[index]);
+                        index++;
+                        downloadNext();
+                    }, 500);
+                }
+            }
+            
+            downloadNext();
+        }
+        
+        // Draw initial icon
+        const canvas = document.getElementById('iconCanvas');
+        drawIcon(canvas, 192);
+    </script>
+</body>
+</html>
