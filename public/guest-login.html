@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Portal - Hotel Management System</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Guest login for hotel management system">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Guest Login Specific Styles */
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .guest-login-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .guest-login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .guest-login-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="guest-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23guest-grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .guest-login-header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .guest-login-header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .guest-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .guest-login-form {
+            padding: 40px 30px;
+            background: var(--card-bg);
+            position: relative;
+        }
+        
+        .guest-login-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .welcome-section {
+            background: linear-gradient(145deg, var(--light-bg), var(--card-bg));
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+        
+        .welcome-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .welcome-section p {
+            color: var(--text-secondary);
+            font-size: 0.95em;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 1.1rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .guest-login-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .guest-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .guest-login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message, .success-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-align: center;
+            display: none;
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .back-link a:hover {
+            color: #764ba2;
+        }
+        
+        .customer-id-example {
+            background: var(--info-bg);
+            color: var(--info-color);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-top: 8px;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .customer-id-input {
+            text-transform: uppercase;
+        }
+        
+        @media (max-width: 768px) {
+            .guest-login-container {
+                margin: 10px;
+                max-width: none;
+            }
+            
+            .guest-login-header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle-btn guest-theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Theme">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
+
+    <div class="guest-login-container">
+        <div class="guest-login-header">
+            <div class="guest-icon">👥</div>
+            <h1>Guest Portal</h1>
+            <p>Welcome to Your Stay</p>
+        </div>
+        
+        <div class="guest-login-form">
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            
+            <!-- Welcome Section -->
+            <div class="welcome-section">
+                <h3>🏨 Welcome Dear Guest!</h3>
+                <p>Access your room services, place orders, and manage your stay using your Customer ID provided during check-in.</p>
+            </div>
+            
+            <form id="guestLoginForm">
+                <div class="form-group">
+                    <label for="customerId">Customer ID</label>
+                    <input type="text" 
+                           id="customerId" 
+                           name="customerId" 
+                           class="customer-id-input"
+                           placeholder="Enter your Customer ID (e.g., CUST001)" 
+                           required 
+                           maxlength="10">
+                    <div class="customer-id-example">
+                        💡 Your Customer ID was provided at check-in or registration
+                    </div>
+                </div>
+                
+                <button type="submit" class="guest-login-btn" id="loginButton">
+                    <i class="fas fa-sign-in-alt"></i> Access Guest Portal
+                </button>
+            </form>
+            
+            <div class="back-link">
+                <p><a href="staff-login.html"><i class="fas fa-arrow-left"></i> Back to Staff Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        // Theme Management System
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon) {
+                if (theme === 'dark') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeIcon.title = 'Switch to Light Theme';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeIcon.title = 'Switch to Dark Theme';
+                }
+            }
+            
+            const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+            if (metaThemeColor) {
+                metaThemeColor.content = theme === 'dark' ? '#1e293b' : '#2c3e50';
+            }
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            document.getElementById('customerId').focus();
+        });
+        
+        // Guest Login Function
+        document.getElementById('guestLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const customerId = document.getElementById('customerId').value.trim().toUpperCase();
+            const loginButton = document.getElementById('loginButton');
+            
+            if (!customerId) {
+                showError('Please enter your Customer ID');
+                return;
+            }
+            
+            // Disable button during login attempt
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/guest/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ customerId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Store guest token and info
+                    localStorage.setItem('guestToken', data.token);
+                    localStorage.setItem('guestInfo', JSON.stringify(data.customer));
+                    
+                    showSuccess(`Welcome ${data.customer.name}! Redirecting to your portal...`);
+                    
+                    // Redirect to guest dashboard
+                    setTimeout(() => {
+                        window.location.href = 'guest-dashboard.html';
+                    }, 1500);
+                } else {
+                    showError(data.error || 'Invalid Customer ID. Please check and try again.');
+                }
+            } catch (error) {
+                console.error('Guest login error:', error);
+                showError('Network error. Please try again.');
+            } finally {
+                // Re-enable button
+                loginButton.disabled = false;
+                loginButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Access Guest Portal';
+            }
+        });
+        
+        // Auto-format Customer ID input
+        document.getElementById('customerId').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            e.target.value = value;
+        });
+        
+        // Utility Functions
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            successDiv.style.display = 'none';
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            errorDiv.style.display = 'none';
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

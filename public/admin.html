@@ -80,6 +80,9 @@
             <button class="tab-btn" onclick="showTab('financial')">
                 <i class="fas fa-dollar-sign"></i> Financial Overview
             </button>
+            <button class="tab-btn" onclick="showTab('guest-portal')">
+                <i class="fas fa-user-friends"></i> Guest Portal
+            </button>
         </nav>
 
         <div class="admin-content">
@@ -708,6 +711,150 @@
                                 <div class="flow-item">
                                     <h4>Net Cash Flow</h4>
                                     <div class="flow-amount" id="netCashFlow">₦0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Guest Portal Management Tab -->
+            <div id="guest-portal-tab" class="tab-content">
+                <section class="guest-portal-management">
+                    <div class="guest-portal-header">
+                        <h2><i class="fas fa-user-friends"></i> Guest Portal Management</h2>
+                        <div class="guest-portal-controls">
+                            <button class="btn btn-primary" onclick="refreshGuestData()">
+                                <i class="fas fa-sync"></i> Refresh Data
+                            </button>
+                            <button class="btn btn-success" onclick="exportGuestReport()">
+                                <i class="fas fa-file-export"></i> Export Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Guest Portal Overview Cards -->
+                    <div class="guest-portal-overview">
+                        <div class="guest-card">
+                            <div class="guest-card-icon"><i class="fas fa-users"></i></div>
+                            <div class="guest-card-content">
+                                <h3>Active Guests</h3>
+                                <div class="guest-card-value" id="activeGuests">0</div>
+                                <div class="guest-card-subtitle">Currently logged in</div>
+                            </div>
+                        </div>
+                        <div class="guest-card">
+                            <div class="guest-card-icon"><i class="fas fa-shopping-cart"></i></div>
+                            <div class="guest-card-content">
+                                <h3>Pending Orders</h3>
+                                <div class="guest-card-value" id="pendingGuestOrders">0</div>
+                                <div class="guest-card-subtitle">Awaiting processing</div>
+                            </div>
+                        </div>
+                        <div class="guest-card">
+                            <div class="guest-card-icon"><i class="fas fa-user-plus"></i></div>
+                            <div class="guest-card-content">
+                                <h3>Visitor Requests</h3>
+                                <div class="guest-card-value" id="pendingVisitors">0</div>
+                                <div class="guest-card-subtitle">Need approval</div>
+                            </div>
+                        </div>
+                        <div class="guest-card">
+                            <div class="guest-card-icon"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="guest-card-content">
+                                <h3>Guest Revenue</h3>
+                                <div class="guest-card-value" id="guestRevenue">₦0</div>
+                                <div class="guest-card-subtitle">From guest orders</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Guest Portal Tabs -->
+                    <div class="guest-portal-tabs">
+                        <button class="guest-portal-tab-btn active" onclick="showGuestPortalTab('orders')">
+                            <i class="fas fa-shopping-cart"></i> Guest Orders
+                        </button>
+                        <button class="guest-portal-tab-btn" onclick="showGuestPortalTab('visitors')">
+                            <i class="fas fa-user-plus"></i> Visitor Management
+                        </button>
+                        <button class="guest-portal-tab-btn" onclick="showGuestPortalTab('analytics')">
+                            <i class="fas fa-chart-bar"></i> Guest Analytics
+                        </button>
+                    </div>
+
+                    <!-- Guest Orders Management -->
+                    <div id="guest-orders-content" class="guest-portal-tab-content active">
+                        <div class="guest-orders-header">
+                            <h3>Guest Orders Management</h3>
+                            <div class="orders-filters">
+                                <select id="orderStatusFilter" onchange="filterGuestOrders()">
+                                    <option value="all">All Orders</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="preparing">Preparing</option>
+                                    <option value="ready">Ready</option>
+                                    <option value="delivered">Delivered</option>
+                                </select>
+                                <select id="orderTypeFilter" onchange="filterGuestOrders()">
+                                    <option value="all">All Types</option>
+                                    <option value="kitchen">Kitchen Orders</option>
+                                    <option value="service">Room Service</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="guest-orders-list" id="guestOrdersList">
+                            <!-- Guest orders will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Visitor Management -->
+                    <div id="guest-visitors-content" class="guest-portal-tab-content">
+                        <div class="visitors-header">
+                            <h3>Visitor Approval Management</h3>
+                            <div class="visitors-filters">
+                                <select id="visitorStatusFilter" onchange="filterVisitors()">
+                                    <option value="pending">Pending Approval</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                    <option value="all">All Visitors</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="visitors-list" id="visitorsList">
+                            <!-- Visitor requests will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Guest Analytics -->
+                    <div id="guest-analytics-content" class="guest-portal-tab-content">
+                        <div class="guest-analytics-grid">
+                            <div class="analytics-section">
+                                <h3>Order Analytics</h3>
+                                <div class="order-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Average Order Value</span>
+                                        <span class="stat-value" id="avgOrderValue">₦0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Most Popular Item</span>
+                                        <span class="stat-value" id="popularItem">-</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Peak Order Time</span>
+                                        <span class="stat-value" id="peakOrderTime">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="analytics-section">
+                                <h3>Visitor Analytics</h3>
+                                <div class="visitor-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Approval Rate</span>
+                                        <span class="stat-value" id="approvalRate">0%</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Average Processing Time</span>
+                                        <span class="stat-value" id="avgProcessingTime">0 min</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -246,6 +246,97 @@
             color: var(--primary-dark);
         }
         
+        .admin-access p:not(:first-child) {
+            margin-top: 15px;
+        }
+        
+        .guest-portal-link {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white !important;
+            padding: 12px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .guest-portal-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            color: white !important;
+        }
+        
+        /* Guest Access Section */
+        .guest-access-section {
+            margin: 30px 0 20px 0;
+            text-align: center;
+        }
+        
+        .access-divider {
+            position: relative;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .access-divider:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+        
+        .access-divider span {
+            background: var(--card-bg);
+            padding: 0 15px;
+            color: var(--text-secondary);
+            position: relative;
+            z-index: 2;
+            font-size: 0.9rem;
+        }
+        
+        .guest-access-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            text-decoration: none;
+            padding: 20px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+            margin: 10px 0;
+        }
+        
+        .guest-access-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .guest-access-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .guest-access-btn span {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .guest-access-btn small {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
         @media (max-width: 768px) {
             .staff-login-container {
                 margin: 10px;
@@ -319,8 +410,21 @@
                 </button>
             </form>
             
+            <!-- Guest Access Section -->
+            <div class="guest-access-section">
+                <div class="access-divider">
+                    <span>or</span>
+                </div>
+                <a href="guest-login.html" class="guest-access-btn">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Guest Portal Access</span>
+                    <small>Login with your Customer ID</small>
+                </a>
+            </div>
+            
             <div class="admin-access">
                 <p><a href="admin.html" class="admin-link"><i class="fas fa-crown"></i> Admin Dashboard</a></p>
+                <p><a href="guest-login.html" class="admin-link guest-portal-link"><i class="fas fa-user-friends"></i> Guest Portal</a></p>
             </div>
         </div>
     </div>

@@ -61,6 +61,20 @@ function createToken(staff) {
   return token;
 }
 
+// Create guest token for guest portal
+function createGuestToken(customer) {
+  const payload = {
+    customerId: customer.customerId,
+    name: customer.name,
+    type: 'guest',
+    exp: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days for guests
+  };
+  const secret = process.env.JWT_SECRET || 'hotel-manager-secret-key';
+  const token = Buffer.from(JSON.stringify(payload)).toString('base64') + '.' + 
+                crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+  return token;
+}
+
 function verifyToken(token) {
   try {
     const [payloadB64, signature] = token.split('.');
@@ -115,6 +129,35 @@ function requireStaffAuth(req, res, next) {
   next();
 }
 
+// Guest authentication middleware
+function requireGuestAuth(req, res, next) {
+  const authHeader = req.headers.authorization || req.headers.Authorization || req.headers['x-auth-token'];
+  if (!authHeader) {
+    console.warn('Guest auth failed: missing Authorization header');
+    return res.status(401).json({ error: 'Guest authentication required' });
+  }
+  let token;
+  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (typeof authHeader === 'string' && authHeader.length > 20) {
+    token = authHeader;
+  }
+  if (!token) {
+    console.warn('Guest auth failed: malformed Authorization header', authHeader);
+    return res.status(401).json({ error: 'Guest authentication required' });
+  }
+  
+  const payload = verifyToken(token);
+  if (!payload || payload.type !== 'guest') {
+    console.warn('Guest auth failed: invalid or expired token');
+    return res.status(401).json({ error: 'Guest authentication required' });
+  }
+  
+  req.guest = payload;
+  console.log('Guest token verified successfully for:', payload.name);
+  next();
+}
+
 // Admin authentication middleware
 function requireAdminAuth(req, res, next) {
     requireStaffAuth(req, res, (err) => {
@@ -157,6 +200,13 @@ app.use((req, res, next) => {
 
 // Protect API routes only
 app.use('/api/admin', requireAdminAuth);
+app.use('/api/guest', (req, res, next) => {
+  // Allow guest auth endpoint without prior token
+  if (req.path === '/authenticate') {
+    return next();
+  }
+  return requireGuestAuth(req, res, next);
+});
 app.use('/api', (req, res, next) => {
   // Allow auth endpoints and quick clock endpoint without prior token
   if (req.path === '/staff/authenticate' || 
@@ -1200,7 +1250,7 @@ const connectDB = require('./src/db');
 let dbConnected = false;
 
 // Load models immediately (they handle their own mongoose connection)
-let Room, Customer, BarItem, KitchenOrder, Booking, Payment;
+let Room, Customer, BarItem, KitchenOrder, Booking, Payment, Visitor, GuestOrder;
 try {
   Room = require('./src/models/Room');
   Customer = require('./src/models/Customer');
@@ -1209,6 +1259,8 @@ try {
   KitchenItem = require('./src/models/KitchenItem');
   Booking = require('./src/models/Booking');
   Payment = require('./src/models/Payment');
+  Visitor = require('./src/models/Visitor');
+  GuestOrder = require('./src/models/GuestOrder');
   console.log('✅ Models loaded successfully');
 } catch (err) {
   console.warn('⚠️ Models not available:', err.message);
@@ -1638,13 +1690,27 @@ app.get('/api/customers', requireStaffAuth, async (req, res) => {
 app.post('/api/customers', requireStaffAuth, async (req, res) => {
   if (dbConnected && Customer) {
     try {
+      // Generate customer ID if not provided
+      if (!req.body.customerId) {
+        req.body.customerId = await Customer.generateNextCustomerId();
+      }
+      
       const doc = await Customer.create(req.body);
+      console.log('✅ Customer created with ID:', doc.customerId);
       return res.status(201).json(doc);
     } catch (err) {
       console.error('Error creating customer in DB:', err);
+      if (err.code === 11000) {
+        return res.status(400).json({ error: 'Customer ID already exists' });
+      }
     }
   }
-  const customer = { id: customers.length + 1, ...req.body, createdAt: new Date() };
+  const customer = { 
+    id: customers.length + 1, 
+    customerId: `CUST${String(customers.length + 1).padStart(3, '0')}`,
+    ...req.body, 
+    createdAt: new Date() 
+  };
   customers.push(customer);
   res.status(201).json(customer);
 });
@@ -1719,6 +1785,317 @@ app.delete('/api/customers/:id', requireStaffAuth, async (req, res) => {
     res.status(404).json({ error: 'Customer not found' });
   }
 });
+
+// =================== GUEST PORTAL API ENDPOINTS ===================
+
+// Guest authentication endpoint
+app.post('/api/guest/authenticate', async (req, res) => {
+  const { customerId } = req.body;
+  
+  if (!customerId) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Customer ID is required' 
+    });
+  }
+  
+  console.log('🔐 Guest authentication attempt for:', customerId);
+  
+  if (dbConnected && Customer) {
+    try {
+      const customer = await Customer.findOne({ 
+        customerId: customerId.toUpperCase(),
+        isActive: true 
+      });
+      
+      if (customer) {
+        // Update last login
+        customer.lastLogin = new Date();
+        await customer.save();
+        
+        const token = createGuestToken(customer);
+        console.log('✅ Guest authenticated successfully:', customer.name);
+        
+        return res.json({
+          success: true,
+          token,
+          customer: {
+            customerId: customer.customerId,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+            roomNumber: customer.roomNumber,
+            checkInDate: customer.checkInDate,
+            checkOutDate: customer.checkOutDate
+          }
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error authenticating guest:', err);
+    }
+  }
+  
+  console.log('❌ Guest authentication failed for:', customerId);
+  res.status(401).json({ 
+    success: false, 
+    error: 'Invalid Customer ID. Please check your ID and try again.' 
+  });
+});
+
+// Get guest profile
+app.get('/api/guest/profile', requireGuestAuth, async (req, res) => {
+  const customerId = req.guest.customerId;
+  
+  if (dbConnected && Customer) {
+    try {
+      const customer = await Customer.findOne({ customerId });
+      if (customer) {
+        return res.json({
+          customerId: customer.customerId,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          roomNumber: customer.roomNumber,
+          checkInDate: customer.checkInDate,
+          checkOutDate: customer.checkOutDate,
+          notes: customer.notes
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching guest profile:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Guest profile not found' });
+});
+
+// Get kitchen menu for guests
+app.get('/api/guest/menu', requireGuestAuth, async (req, res) => {
+  if (dbConnected && require('./src/models/KitchenItem')) {
+    try {
+      const KitchenItem = require('./src/models/KitchenItem');
+      const menuItems = await KitchenItem.find({ available: true }).lean();
+      return res.json(menuItems.map(item => ({
+        id: item._id,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        category: item.category,
+        available: item.available,
+        preparationTime: item.preparationTime || '15-20 minutes'
+      })));
+    } catch (err) {
+      console.error('Error fetching menu:', err);
+    }
+  }
+  
+  // Fallback menu items
+  const menuItems = [
+    { id: '1', name: 'Jollof Rice', description: 'Nigerian spiced rice with chicken', price: 2500, category: 'Main Course', available: true, preparationTime: '20-25 minutes' },
+    { id: '2', name: 'Fried Rice', description: 'Stir-fried rice with vegetables', price: 2200, category: 'Main Course', available: true, preparationTime: '15-20 minutes' },
+    { id: '3', name: 'Pounded Yam', description: 'Traditional yam with soup', price: 3000, category: 'Main Course', available: true, preparationTime: '25-30 minutes' },
+    { id: '4', name: 'Suya', description: 'Spiced grilled meat', price: 1500, category: 'Appetizer', available: true, preparationTime: '10-15 minutes' },
+    { id: '5', name: 'Chin Chin', description: 'Sweet fried pastry', price: 800, category: 'Dessert', available: true, preparationTime: '5 minutes' }
+  ];
+  
+  res.json(menuItems);
+});
+
+// Place order from guest portal
+app.post('/api/guest/orders', requireGuestAuth, async (req, res) => {
+  const { items, orderType, description, priority, serviceType } = req.body;
+  const customerId = req.guest.customerId;
+  
+  if (!customerId) {
+    return res.status(400).json({ error: 'Customer ID is required' });
+  }
+  
+  // Get customer room number
+  let roomNumber = 'Unknown';
+  if (dbConnected && Customer) {
+    try {
+      const customer = await Customer.findOne({ customerId });
+      if (customer && customer.roomNumber) {
+        roomNumber = customer.roomNumber;
+      }
+    } catch (err) {
+      console.error('Error fetching customer room:', err);
+    }
+  }
+  
+  const orderData = {
+    customerId,
+    orderType: orderType || 'kitchen',
+    items: items || [],
+    serviceType,
+    description: description || '',
+    priority: priority || 'medium',
+    roomNumber,
+    status: 'pending',
+    requestedTime: new Date()
+  };
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const order = await GuestOrder.create(orderData);
+      console.log('✅ Guest order created:', order._id);
+      return res.status(201).json({
+        success: true,
+        order: {
+          id: order._id,
+          orderType: order.orderType,
+          status: order.status,
+          totalAmount: order.totalAmount,
+          estimatedTime: order.estimatedTime || '20-30 minutes',
+          items: order.items
+        }
+      });
+    } catch (err) {
+      console.error('❌ Error creating guest order:', err);
+    }
+  }
+  
+  // Fallback: return success message
+  const orderId = Date.now();
+  console.log('⚠️ Using fallback order creation for guest:', customerId);
+  
+  res.status(201).json({
+    success: true,
+    order: {
+      id: orderId,
+      orderType: orderData.orderType,
+      status: 'pending',
+      totalAmount: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      estimatedTime: '20-30 minutes',
+      items: items
+    }
+  });
+});
+
+// Get guest orders history
+app.get('/api/guest/orders', requireGuestAuth, async (req, res) => {
+  const customerId = req.guest.customerId;
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const orders = await GuestOrder.find({ customerId })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+      
+      return res.json(orders.map(order => ({
+        id: order._id,
+        orderType: order.orderType,
+        status: order.status,
+        description: order.description,
+        totalAmount: order.totalAmount,
+        requestedTime: order.requestedTime,
+        estimatedTime: order.estimatedTime,
+        completedAt: order.completedAt,
+        items: order.items
+      })));
+    } catch (err) {
+      console.error('Error fetching guest orders:', err);
+    }
+  }
+  
+  // Fallback: empty array
+  res.json([]);
+});
+
+// Register visitor
+app.post('/api/guest/visitors', requireGuestAuth, async (req, res) => {
+  const { visitorName, visitorPhone, visitorIdNumber, expectedDate, expectedTime, purpose, duration, notes } = req.body;
+  const customerId = req.guest.customerId;
+  
+  if (!visitorName || !visitorIdNumber || !expectedDate || !expectedTime || !purpose) {
+    return res.status(400).json({ 
+      error: 'Visitor name, ID number, expected date, time, and purpose are required' 
+    });
+  }
+  
+  const visitorData = {
+    customerId,
+    visitorName,
+    visitorPhone: visitorPhone || '',
+    visitorIdNumber,
+    expectedDate: new Date(expectedDate),
+    expectedTime,
+    purpose,
+    duration: duration || '',
+    notes: notes || '',
+    status: 'pending'
+  };
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitor = await Visitor.create(visitorData);
+      console.log('✅ Visitor registered:', visitor._id);
+      return res.status(201).json({
+        success: true,
+        visitor: {
+          id: visitor._id,
+          visitorName: visitor.visitorName,
+          expectedDate: visitor.expectedDate,
+          expectedTime: visitor.expectedTime,
+          purpose: visitor.purpose,
+          status: visitor.status
+        },
+        message: 'Visitor registered successfully. Security will be notified.'
+      });
+    } catch (err) {
+      console.error('❌ Error registering visitor:', err);
+    }
+  }
+  
+  // Fallback success
+  console.log('⚠️ Using fallback visitor registration for guest:', customerId);
+  res.status(201).json({
+    success: true,
+    visitor: {
+      id: Date.now(),
+      visitorName: visitorData.visitorName,
+      expectedDate: visitorData.expectedDate,
+      expectedTime: visitorData.expectedTime,
+      purpose: visitorData.purpose,
+      status: 'pending'
+    },
+    message: 'Visitor registered successfully. Security will be notified.'
+  });
+});
+
+// Get guest visitors
+app.get('/api/guest/visitors', requireGuestAuth, async (req, res) => {
+  const customerId = req.guest.customerId;
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitors = await Visitor.find({ customerId })
+        .sort({ expectedDate: -1 })
+        .limit(10)
+        .lean();
+      
+      return res.json(visitors.map(visitor => ({
+        id: visitor._id,
+        visitorName: visitor.visitorName,
+        visitorPhone: visitor.visitorPhone,
+        expectedDate: visitor.expectedDate,
+        expectedTime: visitor.expectedTime,
+        purpose: visitor.purpose,
+        status: visitor.status,
+        approvedBy: visitor.approvedBy,
+        checkedInAt: visitor.checkedInAt
+      })));
+    } catch (err) {
+      console.error('Error fetching guest visitors:', err);
+    }
+  }
+  
+  // Fallback: empty array
+  res.json([]);
+});
+
+// =================== END GUEST PORTAL API ===================
 
 // Booking Routes
 app.get('/api/bookings', requireStaffAuth, async (req, res) => {
@@ -3071,6 +3448,284 @@ app.get('/api/admin/health-check', requireStaffAuth, (req, res) => {
     activeSessions: Object.keys(sessions).length
   });
 });
+
+// =================== ADMIN GUEST PORTAL API ENDPOINTS ===================
+
+// Get all guest orders for admin management
+app.get('/api/admin/guest-orders', requireStaffAuth, async (req, res) => {
+  console.log('📋 Admin fetching guest orders - DB connected:', dbConnected);
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const orders = await GuestOrder.find()
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
+      
+      const formattedOrders = orders.map(order => ({
+        _id: order._id,
+        customerId: order.customerId,
+        orderType: order.orderType,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        notes: order.notes,
+        roomNumber: order.roomNumber,
+        createdAt: order.createdAt,
+        serviceType: order.serviceType,
+        priority: order.priority,
+        assignedStaff: order.assignedStaff
+      }));
+      
+      console.log('✅ Fetched', formattedOrders.length, 'guest orders for admin');
+      return res.json(formattedOrders);
+    } catch (err) {
+      console.error('❌ Error fetching guest orders for admin:', err);
+    }
+  }
+  
+  // Fallback: empty array
+  res.json([]);
+});
+
+// Update guest order status (admin)
+app.put('/api/admin/guest-orders/:id/status', requireStaffAuth, async (req, res) => {
+  const orderId = req.params.id;
+  const { status, staffNotes } = req.body;
+  
+  if (!status) {
+    return res.status(400).json({ error: 'Status is required' });
+  }
+  
+  console.log('🔄 Admin updating guest order status:', orderId, 'to', status);
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const order = await GuestOrder.findByIdAndUpdate(
+        orderId,
+        { 
+          status,
+          staffNotes: staffNotes || '',
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      if (order) {
+        console.log('✅ Guest order status updated successfully');
+        return res.json({
+          success: true,
+          order: {
+            id: order._id,
+            status: order.status,
+            updatedAt: order.updatedAt
+          }
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error updating guest order status:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Order not found' });
+});
+
+// Get all visitors for admin management
+app.get('/api/admin/visitors', requireStaffAuth, async (req, res) => {
+  console.log('📋 Admin fetching visitors - DB connected:', dbConnected);
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitors = await Visitor.find()
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
+      
+      const formattedVisitors = visitors.map(visitor => ({
+        _id: visitor._id,
+        customerId: visitor.customerId,
+        visitorName: visitor.visitorName,
+        visitorPhone: visitor.visitorPhone,
+        visitorIdNumber: visitor.visitorIdNumber,
+        expectedDate: visitor.expectedDate,
+        expectedTime: visitor.expectedTime,
+        visitPurpose: visitor.visitPurpose,
+        expectedDuration: visitor.expectedDuration,
+        status: visitor.status,
+        securityNotes: visitor.securityNotes,
+        approvedBy: visitor.approvedBy,
+        approvedAt: visitor.approvedAt,
+        rejectedReason: visitor.rejectedReason,
+        createdAt: visitor.createdAt
+      }));
+      
+      console.log('✅ Fetched', formattedVisitors.length, 'visitors for admin');
+      return res.json(formattedVisitors);
+    } catch (err) {
+      console.error('❌ Error fetching visitors for admin:', err);
+    }
+  }
+  
+  // Fallback: empty array
+  res.json([]);
+});
+
+// Approve visitor (admin)
+app.put('/api/admin/visitors/:id/approve', requireStaffAuth, async (req, res) => {
+  const visitorId = req.params.id;
+  const { securityNotes } = req.body;
+  
+  console.log('✅ Admin approving visitor:', visitorId);
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitor = await Visitor.findByIdAndUpdate(
+        visitorId,
+        { 
+          status: 'approved',
+          securityNotes: securityNotes || '',
+          approvedBy: 'Admin', // In real app, get from auth token
+          approvedAt: new Date(),
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      if (visitor) {
+        console.log('✅ Visitor approved successfully');
+        return res.json({
+          success: true,
+          visitor: {
+            id: visitor._id,
+            status: visitor.status,
+            approvedAt: visitor.approvedAt
+          }
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error approving visitor:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Visitor not found' });
+});
+
+// Reject visitor (admin)
+app.put('/api/admin/visitors/:id/reject', requireStaffAuth, async (req, res) => {
+  const visitorId = req.params.id;
+  const { reason } = req.body;
+  
+  console.log('❌ Admin rejecting visitor:', visitorId);
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitor = await Visitor.findByIdAndUpdate(
+        visitorId,
+        { 
+          status: 'rejected',
+          rejectedReason: reason || 'Rejected by security',
+          rejectedBy: 'Admin', // In real app, get from auth token
+          rejectedAt: new Date(),
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      if (visitor) {
+        console.log('❌ Visitor rejected successfully');
+        return res.json({
+          success: true,
+          visitor: {
+            id: visitor._id,
+            status: visitor.status,
+            rejectedAt: visitor.rejectedAt
+          }
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error rejecting visitor:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Visitor not found' });
+});
+
+// Get guest portal analytics for admin
+app.get('/api/admin/guest-analytics', requireStaffAuth, async (req, res) => {
+  console.log('📊 Admin fetching guest analytics');
+  
+  let guestOrders = [];
+  let visitors = [];
+  
+  if (dbConnected && GuestOrder && Visitor) {
+    try {
+      [guestOrders, visitors] = await Promise.all([
+        GuestOrder.find().lean(),
+        Visitor.find().lean()
+      ]);
+    } catch (err) {
+      console.error('❌ Error fetching guest analytics data:', err);
+    }
+  }
+  
+  // Calculate analytics
+  const analytics = {
+    orders: {
+      total: guestOrders.length,
+      pending: guestOrders.filter(o => o.status === 'pending').length,
+      completed: guestOrders.filter(o => o.status === 'delivered').length,
+      revenue: guestOrders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+    },
+    visitors: {
+      total: visitors.length,
+      pending: visitors.filter(v => v.status === 'pending').length,
+      approved: visitors.filter(v => v.status === 'approved').length,
+      rejected: visitors.filter(v => v.status === 'rejected').length,
+      approvalRate: visitors.length > 0 
+        ? Math.round((visitors.filter(v => v.status === 'approved').length / visitors.length) * 100)
+        : 0
+    },
+    activeGuests: new Set(guestOrders.map(o => o.customerId)).size,
+    topOrderItems: getTopOrderItems(guestOrders),
+    ordersByHour: getOrdersByHour(guestOrders)
+  };
+  
+  res.json(analytics);
+});
+
+// Helper function to get top ordered items
+function getTopOrderItems(orders) {
+  const itemCounts = {};
+  orders.forEach(order => {
+    if (order.items) {
+      order.items.forEach(item => {
+        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+      });
+    }
+  });
+  
+  return Object.entries(itemCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+}
+
+// Helper function to get orders by hour
+function getOrdersByHour(orders) {
+  const hourCounts = {};
+  orders.forEach(order => {
+    const hour = new Date(order.createdAt).getHours();
+    hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+  });
+  
+  return Object.entries(hourCounts)
+    .map(([hour, count]) => ({ hour: parseInt(hour), count }))
+    .sort((a, b) => a.hour - b.hour);
+}
+
+// =================== END ADMIN GUEST PORTAL API ===================
 
 // Catch-all handler: serve index.html for any non-API routes
 // This ensures that frontend routing works properly

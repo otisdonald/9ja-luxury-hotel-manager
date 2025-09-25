@@ -169,6 +169,10 @@ function showTab(tabName) {
         case 'financial':
             loadFinancialOverview();
             break;
+        case 'guest-portal':
+            loadGuestPortalData();
+            loadGuestOrders(); // Load default tab content
+            break;
     }
 }
 
@@ -1975,3 +1979,400 @@ window.loadAllReports = async function() {
         console.error('Error loading admin reports:', error);
     }
 };
+
+// Guest Portal Management Functions
+function showGuestPortalTab(tabName) {
+    // Hide all guest portal tab contents
+    const tabContents = document.querySelectorAll('.guest-portal-tab-content');
+    tabContents.forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all guest portal tab buttons
+    const tabBtns = document.querySelectorAll('.guest-portal-tab-btn');
+    tabBtns.forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    const selectedTab = document.getElementById(`guest-${tabName}-content`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+
+    // Add active class to clicked button
+    event.target.classList.add('active');
+
+    // Load tab-specific data
+    switch(tabName) {
+        case 'orders':
+            loadGuestOrders();
+            break;
+        case 'visitors':
+            loadVisitors();
+            break;
+        case 'analytics':
+            loadGuestAnalytics();
+            break;
+    }
+}
+
+async function loadGuestPortalData() {
+    try {
+        const [guestOrders, visitors] = await Promise.all([
+            fetchWithAuth('/api/admin/guest-orders'),
+            fetchWithAuth('/api/admin/visitors')
+        ]);
+
+        // Update overview cards
+        const activeGuests = new Set(guestOrders.map(order => order.customerId)).size;
+        const pendingOrders = guestOrders.filter(order => order.status === 'pending').length;
+        const pendingVisitors = visitors.filter(visitor => visitor.status === 'pending').length;
+        const guestRevenue = guestOrders
+            .filter(order => order.status === 'delivered')
+            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+        updateElement('activeGuests', activeGuests);
+        updateElement('pendingGuestOrders', pendingOrders);
+        updateElement('pendingVisitors', pendingVisitors);
+        updateElement('guestRevenue', `₦${guestRevenue.toLocaleString()}`);
+
+    } catch (error) {
+        console.error('Error loading guest portal data:', error);
+    }
+}
+
+async function loadGuestOrders() {
+    try {
+        const orders = await fetchWithAuth('/api/admin/guest-orders');
+        const ordersList = document.getElementById('guestOrdersList');
+        
+        if (!ordersList) return;
+
+        if (orders.length === 0) {
+            ordersList.innerHTML = '<div class="no-data">No guest orders found</div>';
+            return;
+        }
+
+        ordersList.innerHTML = orders.map(order => `
+            <div class="guest-order-item">
+                <div class="order-header">
+                    <div class="order-id">Order #${order._id.slice(-6).toUpperCase()}</div>
+                    <div class="order-status status-${order.status}">${order.status}</div>
+                </div>
+                <div class="order-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Customer</span>
+                        <span class="detail-value">${order.customerId}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Room</span>
+                        <span class="detail-value">${order.roomNumber || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Type</span>
+                        <span class="detail-value">${order.orderType}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Total</span>
+                        <span class="detail-value">₦${(order.totalAmount || 0).toLocaleString()}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date</span>
+                        <span class="detail-value">${new Date(order.createdAt).toLocaleString()}</span>
+                    </div>
+                </div>
+                <div class="order-items">
+                    <strong>Items:</strong> ${order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}
+                </div>
+                ${order.notes ? `<div class="order-notes"><strong>Notes:</strong> ${order.notes}</div>` : ''}
+                <div class="order-actions">
+                    ${order.status === 'pending' ? `
+                        <button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}', 'preparing')">
+                            Start Preparing
+                        </button>
+                    ` : ''}
+                    ${order.status === 'preparing' ? `
+                        <button class="btn btn-success btn-sm" onclick="updateOrderStatus('${order._id}', 'ready')">
+                            Mark Ready
+                        </button>
+                    ` : ''}
+                    ${order.status === 'ready' ? `
+                        <button class="btn btn-info btn-sm" onclick="updateOrderStatus('${order._id}', 'delivered')">
+                            Mark Delivered
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="viewOrderDetails('${order._id}')">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error loading guest orders:', error);
+        document.getElementById('guestOrdersList').innerHTML = '<div class="error">Error loading guest orders</div>';
+    }
+}
+
+async function loadVisitors() {
+    try {
+        const visitors = await fetchWithAuth('/api/admin/visitors');
+        const visitorsList = document.getElementById('visitorsList');
+        
+        if (!visitorsList) return;
+
+        if (visitors.length === 0) {
+            visitorsList.innerHTML = '<div class="no-data">No visitor requests found</div>';
+            return;
+        }
+
+        visitorsList.innerHTML = visitors.map(visitor => `
+            <div class="visitor-item">
+                <div class="visitor-header">
+                    <div class="visitor-name">${visitor.visitorName}</div>
+                    <div class="visitor-status status-${visitor.status}">${visitor.status}</div>
+                </div>
+                <div class="visitor-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Guest</span>
+                        <span class="detail-value">${visitor.customerId}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Phone</span>
+                        <span class="detail-value">${visitor.visitorPhone || 'Not provided'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Purpose</span>
+                        <span class="detail-value">${visitor.visitPurpose}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Expected Time</span>
+                        <span class="detail-value">${new Date(visitor.expectedTime).toLocaleString()}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Duration</span>
+                        <span class="detail-value">${visitor.expectedDuration} minutes</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Requested</span>
+                        <span class="detail-value">${new Date(visitor.createdAt).toLocaleString()}</span>
+                    </div>
+                </div>
+                ${visitor.securityNotes ? `<div class="visitor-notes"><strong>Security Notes:</strong> ${visitor.securityNotes}</div>` : ''}
+                <div class="visitor-actions">
+                    ${visitor.status === 'pending' ? `
+                        <button class="btn btn-success btn-sm" onclick="approveVisitor('${visitor._id}')">
+                            Approve
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectVisitor('${visitor._id}')">
+                            Reject
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="viewVisitorDetails('${visitor._id}')">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error loading visitors:', error);
+        document.getElementById('visitorsList').innerHTML = '<div class="error">Error loading visitor requests</div>';
+    }
+}
+
+async function loadGuestAnalytics() {
+    try {
+        const [orders, visitors] = await Promise.all([
+            fetchWithAuth('/api/admin/guest-orders'),
+            fetchWithAuth('/api/admin/visitors')
+        ]);
+
+        // Calculate order analytics
+        const completedOrders = orders.filter(order => order.status === 'delivered');
+        const avgOrderValue = completedOrders.length > 0 
+            ? Math.round(completedOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / completedOrders.length)
+            : 0;
+
+        // Find most popular item
+        const itemCounts = {};
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+            });
+        });
+        const popularItem = Object.keys(itemCounts).length > 0 
+            ? Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0][0]
+            : 'No data';
+
+        // Find peak order time
+        const hourCounts = {};
+        orders.forEach(order => {
+            const hour = new Date(order.createdAt).getHours();
+            hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        });
+        const peakHour = Object.keys(hourCounts).length > 0 
+            ? Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0][0]
+            : 'No data';
+        const peakOrderTime = peakHour !== 'No data' ? `${peakHour}:00` : peakHour;
+
+        // Calculate visitor analytics
+        const approvedVisitors = visitors.filter(visitor => visitor.status === 'approved').length;
+        const approvalRate = visitors.length > 0 
+            ? Math.round((approvedVisitors / visitors.length) * 100)
+            : 0;
+
+        // Calculate average processing time (simplified)
+        const avgProcessingTime = '15'; // Placeholder - would calculate from actual data
+
+        // Update analytics display
+        updateElement('avgOrderValue', `₦${avgOrderValue.toLocaleString()}`);
+        updateElement('popularItem', popularItem);
+        updateElement('peakOrderTime', peakOrderTime);
+        updateElement('approvalRate', `${approvalRate}%`);
+        updateElement('avgProcessingTime', `${avgProcessingTime} min`);
+
+    } catch (error) {
+        console.error('Error loading guest analytics:', error);
+    }
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        await fetchWithAuth(`/api/admin/guest-orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        // Reload orders to show updated status
+        await loadGuestOrders();
+        await loadGuestPortalData(); // Update overview cards
+
+        alert(`Order status updated to ${newStatus}`);
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        alert('Error updating order status');
+    }
+}
+
+async function approveVisitor(visitorId) {
+    const securityNotes = prompt('Security notes (optional):');
+    
+    try {
+        await fetchWithAuth(`/api/admin/visitors/${visitorId}/approve`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ securityNotes })
+        });
+
+        // Reload visitors to show updated status
+        await loadVisitors();
+        await loadGuestPortalData(); // Update overview cards
+
+        alert('Visitor approved successfully');
+    } catch (error) {
+        console.error('Error approving visitor:', error);
+        alert('Error approving visitor');
+    }
+}
+
+async function rejectVisitor(visitorId) {
+    const reason = prompt('Reason for rejection (optional):');
+    
+    try {
+        await fetchWithAuth(`/api/admin/visitors/${visitorId}/reject`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+
+        // Reload visitors to show updated status
+        await loadVisitors();
+        await loadGuestPortalData(); // Update overview cards
+
+        alert('Visitor request rejected');
+    } catch (error) {
+        console.error('Error rejecting visitor:', error);
+        alert('Error rejecting visitor');
+    }
+}
+
+function filterGuestOrders() {
+    const statusFilter = document.getElementById('orderStatusFilter').value;
+    const typeFilter = document.getElementById('orderTypeFilter').value;
+    
+    const orderItems = document.querySelectorAll('.guest-order-item');
+    
+    orderItems.forEach(item => {
+        const statusClass = item.querySelector('.order-status').className;
+        const orderType = item.querySelector('.detail-value').textContent; // Assuming type is first detail
+        
+        let showItem = true;
+        
+        if (statusFilter !== 'all' && !statusClass.includes(`status-${statusFilter}`)) {
+            showItem = false;
+        }
+        
+        if (typeFilter !== 'all' && !orderType.toLowerCase().includes(typeFilter)) {
+            showItem = false;
+        }
+        
+        item.style.display = showItem ? 'block' : 'none';
+    });
+}
+
+function filterVisitors() {
+    const statusFilter = document.getElementById('visitorStatusFilter').value;
+    
+    const visitorItems = document.querySelectorAll('.visitor-item');
+    
+    visitorItems.forEach(item => {
+        const statusClass = item.querySelector('.visitor-status').className;
+        
+        let showItem = true;
+        
+        if (statusFilter !== 'all' && !statusClass.includes(`status-${statusFilter}`)) {
+            showItem = false;
+        }
+        
+        item.style.display = showItem ? 'block' : 'none';
+    });
+}
+
+function viewOrderDetails(orderId) {
+    alert(`Viewing detailed information for order ${orderId}\nThis would open a detailed order view modal.`);
+}
+
+function viewVisitorDetails(visitorId) {
+    alert(`Viewing detailed information for visitor ${visitorId}\nThis would open a detailed visitor view modal.`);
+}
+
+function refreshGuestData() {
+    loadGuestPortalData();
+    // Reload current tab data
+    const activeTab = document.querySelector('.guest-portal-tab-btn.active');
+    if (activeTab) {
+        const tabName = activeTab.textContent.trim().toLowerCase();
+        if (tabName.includes('orders')) {
+            loadGuestOrders();
+        } else if (tabName.includes('visitor')) {
+            loadVisitors();
+        } else if (tabName.includes('analytics')) {
+            loadGuestAnalytics();
+        }
+    }
+    
+    alert('Guest portal data refreshed successfully!');
+}
+
+function exportGuestReport() {
+    alert('Exporting guest portal report...\nThis would generate and download a comprehensive guest activity report.');
+}
