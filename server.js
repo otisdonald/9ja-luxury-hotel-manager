@@ -15,13 +15,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Content Security Policy for Electron packaged apps
 app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy', 
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "img-src 'self' data: blob: http://localhost:*; " +
-        "connect-src 'self' http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-        "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com;"
+        "connect-src 'self' http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+        "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com https://fonts.googleapis.com;"
     );
     next();
 });
@@ -103,9 +103,18 @@ function requireAdminAuth(req, res, next) {
     requireStaffAuth(req, res, (err) => {
         if (err) return next(err);
         
-        if (req.staff.position !== 'management' && req.staff.position !== 'admin') {
-            return res.status(403).json({ error: 'Admin access required' });
+        // Only Director (position: 'director') has admin access for staff management
+        if (req.staff.position !== 'director') {
+            console.log('Access denied for position:', req.staff.position, 'User:', req.staff.personalId);
+            return res.status(403).json({ 
+                error: 'Director access required',
+                message: 'Only the Hotel Director can manage staff members',
+                currentPosition: req.staff.position,
+                requiredPosition: 'director'
+            });
         }
+        
+        console.log('Admin access granted for Director:', req.staff.personalId);
         next();
     });
 }
@@ -170,19 +179,7 @@ app.response.json = function (body) {
 
 // In-memory storage (replace with database in production)
 // Core hotel data arrays with sample data
-let rooms = [
-    { id: 1, number: 101, type: 'Standard', status: 'available', price: 25000, currentGuest: null, floor: 1 },
-    { id: 2, number: 102, type: 'Standard', status: 'occupied', price: 25000, currentGuest: 1, floor: 1 },
-    { id: 3, number: 103, type: 'Deluxe', status: 'available', price: 35000, currentGuest: null, floor: 1 },
-    { id: 4, number: 201, type: 'Standard', status: 'maintenance', price: 25000, currentGuest: null, floor: 2 },
-    { id: 5, number: 202, type: 'Deluxe', status: 'occupied', price: 35000, currentGuest: 2, floor: 2 },
-    { id: 6, number: 203, type: 'Deluxe', status: 'available', price: 35000, currentGuest: null, floor: 2 },
-    { id: 7, number: 204, type: 'Standard', status: 'cleaning', price: 25000, currentGuest: null, floor: 2 },
-    { id: 8, number: 205, type: 'Suite', status: 'available', price: 55000, currentGuest: null, floor: 2 },
-    { id: 9, number: 301, type: 'Deluxe', status: 'occupied', price: 35000, currentGuest: 3, floor: 3 },
-    { id: 10, number: 302, type: 'Suite', status: 'available', price: 55000, currentGuest: null, floor: 3 },
-    { id: 11, number: 303, type: 'Presidential', status: 'available', price: 85000, currentGuest: null, floor: 3 }
-];
+let rooms = [];
 
 let customers = [
     { 
@@ -193,8 +190,8 @@ let customers = [
         address: '123 Victoria Island, Lagos',
         checkIn: '2025-09-19',
         checkOut: '2025-09-22',
-        roomNumber: 102,
-        totalAmount: 75000,
+        roomName: 'Berlin',
+        totalAmount: 120000,
         status: 'Checked In'
     },
     { 
@@ -205,8 +202,8 @@ let customers = [
         address: '456 Lekki Phase 1, Lagos',
         checkIn: '2025-09-20',
         checkOut: '2025-09-23',
-        roomNumber: 202,
-        totalAmount: 105000,
+        roomName: 'Amsterdam',
+        totalAmount: 120000,
         status: 'Checked In'
     },
     { 
@@ -217,8 +214,8 @@ let customers = [
         address: '789 Ikeja GRA, Lagos',
         checkIn: '2025-09-18',
         checkOut: '2025-09-21',
-        roomNumber: 301,
-        totalAmount: 105000,
+        roomName: 'New York',
+        totalAmount: 180000,
         status: 'Checked In'
     },
     { 
@@ -292,12 +289,84 @@ let kitchenOrders = [
 
 // Kitchen inventory management
 let kitchenInventory = [
-    { id: 1, name: 'Rice (25kg bag)', category: 'Grains', quantity: 5, unit: 'bags', costPerUnit: 15000, totalCost: 75000, minStock: 2, supplier: 'Rice Mills Ltd', lastPurchased: '2025-01-10', expiryDate: '2025-12-31' },
-    { id: 2, name: 'Chicken (whole)', category: 'Meat', quantity: 20, unit: 'pcs', costPerUnit: 3500, totalCost: 70000, minStock: 5, supplier: 'Fresh Farm Poultry', lastPurchased: '2025-01-15', expiryDate: '2025-01-20' },
-    { id: 3, name: 'Tomatoes', category: 'Vegetables', quantity: 30, unit: 'kg', costPerUnit: 800, totalCost: 24000, minStock: 10, supplier: 'Green Valley Farms', lastPurchased: '2025-01-16', expiryDate: '2025-01-23' },
-    { id: 4, name: 'Onions', category: 'Vegetables', quantity: 25, unit: 'kg', costPerUnit: 600, totalCost: 15000, minStock: 8, supplier: 'Green Valley Farms', lastPurchased: '2025-01-16', expiryDate: '2025-02-15' },
-    { id: 5, name: 'Vegetable Oil', category: 'Cooking Oil', quantity: 10, unit: 'liters', costPerUnit: 1200, totalCost: 12000, minStock: 3, supplier: 'Golden Oil Co', lastPurchased: '2025-01-12', expiryDate: '2025-12-31' },
-    { id: 6, name: 'Salt', category: 'Seasoning', quantity: 5, unit: 'kg', costPerUnit: 300, totalCost: 1500, minStock: 2, supplier: 'Crystal Salt Ltd', lastPurchased: '2025-01-10', expiryDate: '2026-01-10' }
+    { 
+        id: 1, 
+        name: 'Rice (25kg bag)', 
+        category: 'Grains', 
+        currentStock: 5, 
+        unit: 'bags', 
+        costPerUnit: 15000, 
+        totalValue: 75000, 
+        minStock: 2, 
+        supplier: 'Rice Mills Ltd', 
+        lastPurchased: '2025-01-10', 
+        expiryDate: '2025-12-31' 
+    },
+    { 
+        id: 2, 
+        name: 'Chicken (whole)', 
+        category: 'Meat', 
+        currentStock: 20, 
+        unit: 'pcs', 
+        costPerUnit: 3500, 
+        totalValue: 70000, 
+        minStock: 5, 
+        supplier: 'Fresh Farm Poultry', 
+        lastPurchased: '2025-01-15', 
+        expiryDate: '2025-01-20' 
+    },
+    { 
+        id: 3, 
+        name: 'Tomatoes', 
+        category: 'Vegetables', 
+        currentStock: 30, 
+        unit: 'kg', 
+        costPerUnit: 800, 
+        totalValue: 24000, 
+        minStock: 10, 
+        supplier: 'Green Valley Farms', 
+        lastPurchased: '2025-01-16', 
+        expiryDate: '2025-01-23' 
+    },
+    { 
+        id: 4, 
+        name: 'Onions', 
+        category: 'Vegetables', 
+        currentStock: 25, 
+        unit: 'kg', 
+        costPerUnit: 600, 
+        totalValue: 15000, 
+        minStock: 8, 
+        supplier: 'Green Valley Farms', 
+        lastPurchased: '2025-01-16', 
+        expiryDate: '2025-02-15' 
+    },
+    { 
+        id: 5, 
+        name: 'Vegetable Oil', 
+        category: 'Cooking Oil', 
+        currentStock: 10, 
+        unit: 'liters', 
+        costPerUnit: 1200, 
+        totalValue: 12000, 
+        minStock: 3, 
+        supplier: 'Golden Oil Co', 
+        lastPurchased: '2025-01-12', 
+        expiryDate: '2025-12-31' 
+    },
+    { 
+        id: 6, 
+        name: 'Salt', 
+        category: 'Seasoning', 
+        currentStock: 5, 
+        unit: 'kg', 
+        costPerUnit: 300, 
+        totalValue: 1500, 
+        minStock: 2, 
+        supplier: 'Crystal Salt Ltd', 
+        lastPurchased: '2025-01-10', 
+        expiryDate: '2026-01-10' 
+    }
 ];
 
 let kitchenPurchases = [
@@ -413,30 +482,33 @@ let notifications = [
         title: 'Room 205 Maintenance Required',
         message: 'Air conditioning unit needs immediate attention',
         type: 'Alert',
-        priority: 'High',
+        priority: 'high',
         recipient: 'Maintenance Team',
         status: 'Unread',
-        timestamp: '2025-09-20T08:20:00'
+        read: false,
+        createdAt: '2025-09-24T08:20:00Z'
     },
     {
         id: 2,
         title: 'Low Stock Alert',
         message: 'Coffee beans running low - current stock: 12kg',
         type: 'Warning',
-        priority: 'Medium',
+        priority: 'medium',
         recipient: 'All Staff',
         status: 'Read',
-        timestamp: '2025-09-20T06:00:00'
+        read: true,
+        createdAt: '2025-09-24T06:00:00Z'
     },
     {
         id: 3,
         title: 'New Booking Confirmed',
         message: 'Emma Williams - Room 205, Check-in: Sept 25',
         type: 'Info',
-        priority: 'Normal',
+        priority: 'normal',
         recipient: 'Reception',
         status: 'Unread',
-        timestamp: '2025-09-20T07:45:00'
+        read: false,
+        createdAt: '2025-09-24T07:45:00Z'
     }
 ];
 let staff = [
@@ -622,30 +694,40 @@ let supplies = [
 let cleaningTasks = [
     {
         id: 1,
-        roomNumber: 103,
-        taskType: 'Checkout Cleaning',
-        status: 'Completed',
-        assignedTo: 'Carol Housekeeping',
-        startTime: '2025-09-20T06:00:00',
-        completedTime: '2025-09-20T07:30:00',
-        notes: 'Deep cleaned, restocked amenities'
+        roomName: 'Madrid',
+        type: 'Checkout Cleaning',
+        status: 'completed',
+        assignee: 'Carol Housekeeping',
+        instructions: 'Deep cleaned, restocked amenities',
+        createdAt: '2025-09-20T06:00:00',
+        completedTime: '2025-09-20T07:30:00'
     },
     {
         id: 2,
-        roomNumber: 204,
-        taskType: 'Maintenance Cleaning',
-        status: 'In Progress',
-        assignedTo: 'Carol Housekeeping',
-        startTime: '2025-09-20T08:00:00',
-        notes: 'Preparing room after plumbing repair'
+        roomName: 'Barcelona',
+        type: 'Maintenance Cleaning',
+        status: 'in-progress',
+        assignee: 'Carol Housekeeping',
+        instructions: 'Preparing room after plumbing repair',
+        createdAt: '2025-09-20T08:00:00'
     },
     {
         id: 3,
-        roomNumber: 302,
-        taskType: 'Daily Cleaning',
-        status: 'Pending',
-        assignedTo: 'Carol Housekeeping',
-        scheduledTime: '2025-09-20T10:00:00'
+        roomName: 'Dallas',
+        type: 'Daily Cleaning',
+        status: 'pending',
+        assignee: 'Carol Housekeeping',
+        instructions: 'Standard daily room cleaning',
+        createdAt: '2025-09-20T10:00:00'
+    },
+    {
+        id: 4,
+        roomName: null,
+        type: 'Lobby Cleaning',
+        status: 'pending',
+        assignee: 'Housekeeping Team',
+        instructions: 'Clean lobby area, vacuum carpets, dust furniture',
+        createdAt: '2025-09-24T09:00:00'
     }
 ];
 let serviceRequests = [
@@ -832,23 +914,42 @@ let laundryTasks = [
 let scanPayOrders = [
     {
         id: 1,
-        customerName: 'Sarah Johnson',
-        items: ['Coffee', 'Sandwich', 'Bottled Water'],
-        total: 2850,
-        status: 'Paid',
-        paymentMethod: 'QR Code',
-        timestamp: new Date('2025-09-20T08:15:00'),
-        location: 'Pool Bar'
+        customerId: 'CUST001',
+        orderNumber: 'SP-001',
+        orderType: 'dine-in',
+        tableNumber: '3',
+        items: 'Coffee, Sandwich, Bottled Water',
+        amount: 2850,
+        paymentMethod: 'qr-code',
+        notes: 'Extra napkins requested',
+        status: 'completed',
+        createdAt: '2025-09-20T08:15:00'
     },
     {
         id: 2,
-        customerName: 'Michael Chen',
-        items: ['Room Service - Breakfast'],
-        total: 5500,
-        status: 'Processing',
-        paymentMethod: 'Mobile Pay',
-        timestamp: new Date('2025-09-20T08:30:00'),
-        location: 'Room 304'
+        customerId: 'CUST002',
+        orderNumber: 'SP-002',
+        orderType: 'room-service',
+        tableNumber: null,
+        items: 'Room Service - Breakfast (Full English)',
+        amount: 5500,
+        paymentMethod: 'mobile-app',
+        notes: 'Deliver to Room 304',
+        status: 'pending',
+        createdAt: '2025-09-20T08:30:00'
+    },
+    {
+        id: 3,
+        customerId: 'CUST003',
+        orderNumber: 'SP-003',
+        orderType: 'takeaway',
+        tableNumber: null,
+        items: 'Chicken Burger, Fries, Coke',
+        amount: 3200,
+        paymentMethod: 'nfc',
+        notes: 'Ready in 15 minutes',
+        status: 'preparing',
+        createdAt: '2025-09-24T22:30:00'
     }
 ];
 
@@ -1030,62 +1131,22 @@ let clockInRecords = [];
 let staffShifts = [];
 let emergencyContacts = [];
 
-// NOTE: in-memory arrays remain for reference during development but are no
-// longer exported. The app is exported at the end of the file for tests and
-// programmatic access.
-
-// Initialize 11 rooms
-for (let i = 1; i <= 11; i++) {
-  rooms.push({
-    id: i,
-    number: `Room ${i}`,
-    type: i <= 4 ? 'Standard' : i <= 8 ? 'Deluxe' : 'Suite',
-    status: i <= 6 ? 'occupied' : i <= 9 ? 'available' : 'cleaning', // Mix of statuses for demo
-    price: i <= 4 ? 25000 : i <= 8 ? 40000 : 65000, // Naira prices
-    currentGuest: i <= 6 ? i : null
-  });
-}
-
-// Initialize sample customers
-customers.push(
-  { id: 1, name: 'John Smith', email: 'john@email.com', phone: '555-0101', createdAt: new Date() },
-  { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '555-0102', createdAt: new Date() },
-  { id: 3, name: 'Mike Wilson', email: 'mike@email.com', phone: '555-0103', createdAt: new Date() },
-  { id: 4, name: 'Emily Brown', email: 'emily@email.com', phone: '555-0104', createdAt: new Date() },
-  { id: 5, name: 'David Lee', email: 'david@email.com', phone: '555-0105', createdAt: new Date() },
-  { id: 6, name: 'Lisa Davis', email: 'lisa@email.com', phone: '555-0106', createdAt: new Date() }
-);
-
-// Initialize sample bar inventory
-barInventory.push(
-  { id: 1, name: 'Premium Whiskey', price: 18000, stock: 12, category: 'spirits', addedAt: new Date() },
-  { id: 2, name: 'Red Wine', price: 10000, stock: 8, category: 'wine', addedAt: new Date() },
-  { id: 3, name: 'Craft Beer', price: 3200, stock: 24, category: 'beer', addedAt: new Date() },
-  { id: 4, name: 'Cocktail Mix', price: 6000, stock: 6, category: 'cocktails', addedAt: new Date() },
-  { id: 5, name: 'Sparkling Water', price: 1600, stock: 2, category: 'non-alcoholic', addedAt: new Date() }
-);
-
-// Initialize sample kitchen orders
-kitchenOrders.push(
-  { id: 1, customerId: 1, roomId: 1, items: 'Caesar Salad, Grilled Salmon', type: 'room-service', status: 'preparing', createdAt: new Date() },
-  { id: 2, customerId: 2, roomId: null, items: 'Steak, Mashed Potatoes', type: 'restaurant', status: 'ready', createdAt: new Date() },
-  { id: 3, customerId: 3, roomId: 3, items: 'Club Sandwich, Fries', type: 'room-service', status: 'pending', createdAt: new Date() },
-  { id: 4, customerId: 4, roomId: null, items: 'Pasta Carbonara', type: 'takeaway', status: 'delivered', createdAt: new Date() }
-);
-
-// Initialize sample bookings
-bookings.push(
-  { id: 1, roomId: 1, customerId: 1, checkIn: new Date(), checkOut: new Date(Date.now() + 86400000 * 2), status: 'confirmed', createdAt: new Date() },
-  { id: 2, roomId: 2, customerId: 2, checkIn: new Date(), checkOut: new Date(Date.now() + 86400000 * 3), status: 'confirmed', createdAt: new Date() },
-  { id: 3, roomId: 3, customerId: 3, checkIn: new Date(), checkOut: new Date(Date.now() + 86400000 * 1), status: 'confirmed', createdAt: new Date() }
-);
-
-// Initialize sample staff
+// Initialize hotel staff with demo credentials that match the frontend
 const staffList = [
-  { id: 1, personalId: 'EMP001', name: 'Alice Manager', email: 'alice@hotel.com', phone: '555-0201', position: 'management', shift: 'morning', hourlyRate: 10000, startDate: '2024-01-15', status: 'on-duty', pin: '1234', department: 'Administration', createdAt: new Date() },
-  { id: 2, personalId: 'EMP002', name: 'Bob Reception', email: 'bob@hotel.com', phone: '555-0202', position: 'front-desk', shift: 'afternoon', hourlyRate: 7200, startDate: '2024-02-01', status: 'on-duty', pin: '2345', department: 'Front Office', createdAt: new Date() },
-  { id: 3, personalId: 'EMP003', name: 'Carol Housekeeping', email: 'carol@hotel.com', phone: '555-0203', position: 'housekeeping', shift: 'morning', hourlyRate: 6400, startDate: '2024-01-20', status: 'off-duty', pin: '3456', department: 'Housekeeping', createdAt: new Date() },
-  { id: 4, personalId: 'EMP004', name: 'David Kitchen', email: 'david@hotel.com', phone: '555-0204', position: 'kitchen', shift: 'afternoon', hourlyRate: 8000, startDate: '2024-03-01', status: 'on-duty', pin: '4567', department: 'Food & Beverage', createdAt: new Date() }
+  // Demo staff that match the frontend login screen
+  { id: 1, personalId: 'EMP001', name: 'Alice Manager', email: 'alice@9jaluxury.com', phone: '555-1001', position: 'management', shift: 'all-day', hourlyRate: 25000, startDate: '2024-01-01', status: 'on-duty', pin: '1234', department: 'Management', createdAt: new Date(), permissions: { rooms: true, customers: true, bar: true, kitchen: true, payments: true, reports: true, staff: true, settings: true } },
+  { id: 2, personalId: 'EMP002', name: 'Bob Reception', email: 'bob@9jaluxury.com', phone: '555-2002', position: 'front-desk', shift: 'morning', hourlyRate: 12000, startDate: '2024-01-01', status: 'on-duty', pin: '2345', department: 'Front Office', createdAt: new Date(), permissions: { rooms: true, customers: true, bar: false, kitchen: false, payments: true, reports: false, staff: false, settings: false } },
+  { id: 3, personalId: 'EMP003', name: 'Carol Housekeeping', email: 'carol@9jaluxury.com', phone: '555-3003', position: 'housekeeping', shift: 'morning', hourlyRate: 10000, startDate: '2024-01-01', status: 'on-duty', pin: '3456', department: 'Housekeeping', createdAt: new Date(), permissions: { rooms: true, customers: false, bar: false, kitchen: false, payments: false, reports: false, staff: false, settings: false } },
+  { id: 4, personalId: 'EMP004', name: 'David Kitchen', email: 'david@9jaluxury.com', phone: '555-4004', position: 'kitchen', shift: 'all-day', hourlyRate: 11000, startDate: '2024-01-01', status: 'on-duty', pin: '4567', department: 'Food & Beverage', createdAt: new Date(), permissions: { rooms: false, customers: false, bar: false, kitchen: true, payments: false, reports: false, staff: false, settings: false } },
+  
+  // Additional production staff (keeping original IDs for backwards compatibility)
+  { id: 10, personalId: 'DIR001', name: 'Hotel Director', email: 'director@9jaluxury.com', phone: '555-1001', position: 'director', shift: 'all-day', hourlyRate: 25000, startDate: '2024-01-01', status: 'on-duty', pin: '1001', department: 'Executive', createdAt: new Date(), permissions: { rooms: true, customers: true, bar: true, kitchen: true, payments: true, reports: true, staff: true, settings: true } },
+  { id: 11, personalId: 'MGR001', name: 'Hotel Manager', email: 'manager@9jaluxury.com', phone: '555-2001', position: 'management', shift: 'all-day', hourlyRate: 20000, startDate: '2024-01-01', status: 'on-duty', pin: '2001', department: 'Management', createdAt: new Date(), permissions: { rooms: true, customers: true, bar: true, kitchen: true, payments: true, reports: true, staff: true, settings: false } },
+  { id: 12, personalId: 'RCP001', name: 'Reception Staff', email: 'reception@9jaluxury.com', phone: '555-3001', position: 'front-desk', shift: 'morning', hourlyRate: 12000, startDate: '2024-01-01', status: 'on-duty', pin: '3001', department: 'Front Office', createdAt: new Date(), permissions: { rooms: true, customers: true, bar: false, kitchen: false, payments: true, reports: false, staff: false, settings: false } },
+  { id: 13, personalId: 'HKP001', name: 'Housekeeping Staff', email: 'housekeeping@9jaluxury.com', phone: '555-4001', position: 'housekeeping', shift: 'morning', hourlyRate: 10000, startDate: '2024-01-01', status: 'on-duty', pin: '4001', department: 'Housekeeping', createdAt: new Date(), permissions: { rooms: true, customers: false, bar: false, kitchen: false, payments: false, reports: false, staff: false, settings: false } },
+  { id: 14, personalId: 'LND001', name: 'Laundry Staff', email: 'laundry@9jaluxury.com', phone: '555-5001', position: 'laundry', shift: 'morning', hourlyRate: 9000, startDate: '2024-01-01', status: 'on-duty', pin: '5001', department: 'Housekeeping', createdAt: new Date(), permissions: { rooms: true, customers: false, bar: false, kitchen: false, payments: false, reports: false, staff: false, settings: false } },
+  { id: 15, personalId: 'KTC001', name: 'Kitchen Staff', email: 'kitchen@9jaluxury.com', phone: '555-6001', position: 'kitchen', shift: 'all-day', hourlyRate: 11000, startDate: '2024-01-01', status: 'on-duty', pin: '6001', department: 'Food & Beverage', createdAt: new Date(), permissions: { rooms: false, customers: false, bar: false, kitchen: true, payments: false, reports: false, staff: false, settings: false } },
+  { id: 16, personalId: 'BAR001', name: 'Bar Manager', email: 'bar@9jaluxury.com', phone: '555-7001', position: 'bar-manager', shift: 'afternoon', hourlyRate: 15000, startDate: '2024-01-01', status: 'on-duty', pin: '7001', department: 'Food & Beverage', createdAt: new Date(), permissions: { rooms: false, customers: true, bar: true, kitchen: false, payments: true, reports: true, staff: false, settings: false } }
 ];
 
 // Add test user from environment variables only if different from existing staff
@@ -1120,38 +1181,9 @@ staffList.forEach(s => {
 });
 console.log('========================');
 
-// Initialize sample clock-in records
-clockInRecords.push(
-  { id: 1, staffId: 1, personalId: 'EMP001', action: 'clock-in', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), location: 'Front Desk', notes: 'Started morning shift' },
-  { id: 2, staffId: 2, personalId: 'EMP002', action: 'clock-in', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), location: 'Reception', notes: 'Afternoon shift start' },
-  { id: 3, staffId: 1, personalId: 'EMP001', action: 'break-start', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), location: 'Staff Room', notes: 'Lunch break' },
-  { id: 4, staffId: 1, personalId: 'EMP001', action: 'break-end', timestamp: new Date(Date.now() - 30 * 60 * 1000), location: 'Staff Room', notes: 'Back from lunch' }
-);
-
-// Initialize staff shifts
-staffShifts.push(
-  { id: 1, staffId: 1, personalId: 'EMP001', date: new Date().toISOString().split('T')[0], shift: 'morning', startTime: '06:00', endTime: '14:00', status: 'scheduled' },
-  { id: 2, staffId: 2, personalId: 'EMP002', date: new Date().toISOString().split('T')[0], shift: 'afternoon', startTime: '14:00', endTime: '22:00', status: 'scheduled' },
-  { id: 3, staffId: 3, personalId: 'EMP003', date: new Date().toISOString().split('T')[0], shift: 'morning', startTime: '06:00', endTime: '14:00', status: 'scheduled' },
-  { id: 4, staffId: 4, personalId: 'EMP004', date: new Date().toISOString().split('T')[0], shift: 'afternoon', startTime: '14:00', endTime: '22:00', status: 'scheduled' }
-);
-
-// Initialize sample supplies
-supplies.push(
-  { id: 1, name: 'Toilet Paper', category: 'toiletries', stock: 45, minimum: 20, supplier: 'Clean Co.', unitCost: 1000, addedAt: new Date() },
-  { id: 2, name: 'Towels', category: 'linens', stock: 12, minimum: 15, supplier: 'Linen Plus', unitCost: 6000, addedAt: new Date() },
-  { id: 3, name: 'All-Purpose Cleaner', category: 'cleaning', stock: 8, minimum: 10, supplier: 'Clean Co.', unitCost: 2300, addedAt: new Date() },
-  { id: 4, name: 'Shampoo', category: 'toiletries', stock: 25, minimum: 15, supplier: 'Beauty Supply', unitCost: 1300, addedAt: new Date() }
-);
-
-// Initialize emergency contacts
-emergencyContacts.push(
-  { id: 1, name: 'Police Department', number: '199', type: 'emergency', department: 'police' },
-  { id: 2, name: 'Fire Service', number: '199', type: 'emergency', department: 'fire' },
-  { id: 3, name: 'Hospital Emergency', number: '+234-800-HELP', type: 'medical', department: 'hospital' },
-  { id: 4, name: 'Hotel Security', number: '+234-803-555-0999', type: 'security', department: 'internal' },
-  { id: 5, name: 'Maintenance Emergency', number: '+234-803-555-0888', type: 'maintenance', department: 'internal' }
-);
+// The in-memory arrays below are for fallback purposes and are no longer the primary data source.
+// The application connects to MongoDB and uses the models in /src/models.
+// To populate the database with initial data, run the seeding script: node scripts/seed.js
 
 // Database (optional MongoDB) - attempt connection and load models
 const connectDB = require('./src/db');
@@ -1164,6 +1196,7 @@ try {
   Customer = require('./src/models/Customer');
   BarItem = require('./src/models/BarItem');
   KitchenOrder = require('./src/models/KitchenOrder');
+  KitchenItem = require('./src/models/KitchenItem');
   Booking = require('./src/models/Booking');
   Payment = require('./src/models/Payment');
   console.log('✅ Models loaded successfully');
@@ -1250,8 +1283,10 @@ app.post('/api/staff/authenticate', (req, res) => {
             name: staff.name,
             personalId: staff.personalId,
             position: staff.position,
-            department: staff.department
-        }
+            department: staff.department,
+            permissions: staff.permissions || {}
+        },
+        message: `Welcome, ${staff.name}!`
     };
     
     console.log('Authentication successful, sending response:', responseData);
@@ -1396,6 +1431,19 @@ app.post('/api/scanpay', (req, res) => {
   res.json({ success: true, order });
 });
 
+app.put('/api/scanpay/:id', (req, res) => {
+  const orderId = parseInt(req.params.id);
+  const orderIndex = scanPayOrders.findIndex(order => order.id === orderId);
+  
+  if (orderIndex === -1) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+  
+  // Update the order with the new data
+  scanPayOrders[orderIndex] = { ...scanPayOrders[orderIndex], ...req.body };
+  res.json({ success: true, order: scanPayOrders[orderIndex] });
+});
+
 // HR API
 app.get('/api/hr', (req, res) => {
   res.json(hrRecords);
@@ -1505,7 +1553,9 @@ app.get('/api/rooms', requireStaffAuth, async (req, res) => {
     try {
       const docs = await Room.find().lean();
       console.log('✅ Fetched', docs.length, 'rooms from MongoDB');
-      return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId })));
+      const transformedDocs = docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId }));
+      console.log('🔍 First room being sent to client:', JSON.stringify(transformedDocs[0], null, 2));
+      return res.json(transformedDocs);
     } catch (err) {
       console.error('❌ Error fetching rooms from DB:', err);
       // Fall back to in-memory data if DB fails
@@ -1863,47 +1913,129 @@ app.put('/api/kitchen/orders/:id', requireStaffAuth, async (req, res) => {
 });
 
 // Kitchen Inventory Routes
-app.get('/api/kitchen/inventory', requireStaffAuth, (req, res) => {
-  res.json(kitchenInventory);
+app.get('/api/kitchen/inventory', requireStaffAuth, async (req, res) => {
+  try {
+    console.log('🍽️ Fetching kitchen inventory - DB connected:', dbConnected, '- KitchenItem model:', !!KitchenItem);
+    
+    if (dbConnected && KitchenItem) {
+      const items = await KitchenItem.find({}).sort({ name: 1 });
+      console.log('✅ Fetched', items.length, 'kitchen items from MongoDB');
+      // Convert Mongoose documents to plain JSON objects
+      const plainItems = items.map(item => item.toJSON());
+      res.json(plainItems);
+    } else {
+      console.log('⚠️ Using fallback kitchen inventory data');
+      res.json(kitchenInventory);
+    }
+  } catch (error) {
+    console.error('Error fetching kitchen inventory:', error);
+    console.log('⚠️ Using fallback kitchen inventory data');
+    res.json(kitchenInventory);
+  }
 });
 
-app.post('/api/kitchen/inventory', requireStaffAuth, (req, res) => {
-  const item = {
-    id: kitchenInventory.length + 1,
-    ...req.body,
-    totalCost: req.body.quantity * req.body.costPerUnit,
-    lastPurchased: new Date().toISOString().split('T')[0]
-  };
-  kitchenInventory.push(item);
-  res.status(201).json(item);
+app.post('/api/kitchen/inventory', requireStaffAuth, async (req, res) => {
+  try {
+    console.log('🍽️ Creating kitchen item - DB connected:', dbConnected, '- KitchenItem model:', !!KitchenItem);
+    
+    if (dbConnected && KitchenItem) {
+      const item = new KitchenItem(req.body);
+      await item.save();
+      console.log('✅ Kitchen item created in MongoDB:', item.name);
+      res.status(201).json(item);
+    } else {
+      // Fallback to local array
+      const item = {
+        id: kitchenInventory.length + 1,
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      kitchenInventory.push(item);
+      console.log('⚠️ Kitchen item created in fallback array');
+      res.status(201).json(item);
+    }
+  } catch (error) {
+    console.error('Error creating kitchen item in DB:', error);
+    // Fallback to local array
+    const item = {
+      id: kitchenInventory.length + 1,
+      ...req.body,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    kitchenInventory.push(item);
+    console.log('⚠️ Kitchen item created in fallback array');
+    res.status(201).json(item);
+  }
 });
 
-app.put('/api/kitchen/inventory/:id', requireStaffAuth, (req, res) => {
-  const itemId = parseInt(req.params.id);
-  const item = kitchenInventory.find(i => i.id === itemId);
-  
-  if (!item) {
-    return res.status(404).json({ error: 'Item not found' });
+app.put('/api/kitchen/inventory/:id', requireStaffAuth, async (req, res) => {
+  try {
+    console.log('🍽️ Updating kitchen item - DB connected:', dbConnected, '- KitchenItem model:', !!KitchenItem);
+    
+    if (dbConnected && KitchenItem) {
+      const item = await KitchenItem.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      
+      if (!item) {
+        return res.status(404).json({ error: 'Kitchen item not found' });
+      }
+      
+      console.log('✅ Kitchen item updated in MongoDB:', item.name);
+      res.json(item);
+    } else {
+      // Fallback to local array
+      const itemId = parseInt(req.params.id);
+      const item = kitchenInventory.find(i => i.id === itemId);
+      
+      if (!item) {
+        return res.status(404).json({ error: 'Kitchen item not found' });
+      }
+      
+      Object.assign(item, req.body, { updatedAt: new Date() });
+      console.log('⚠️ Kitchen item updated in fallback array');
+      res.json(item);
+    }
+  } catch (error) {
+    console.error('Error updating kitchen item:', error);
+    res.status(500).json({ error: 'Failed to update kitchen item' });
   }
-  
-  Object.assign(item, req.body);
-  if (req.body.quantity && req.body.costPerUnit) {
-    item.totalCost = req.body.quantity * req.body.costPerUnit;
-  }
-  
-  res.json(item);
 });
 
-app.delete('/api/kitchen/inventory/:id', requireStaffAuth, (req, res) => {
-  const itemId = parseInt(req.params.id);
-  const index = kitchenInventory.findIndex(i => i.id === itemId);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Item not found' });
+app.delete('/api/kitchen/inventory/:id', requireStaffAuth, async (req, res) => {
+  try {
+    console.log('🍽️ Deleting kitchen item - DB connected:', dbConnected, '- KitchenItem model:', !!KitchenItem);
+    
+    if (dbConnected && KitchenItem) {
+      const item = await KitchenItem.findByIdAndDelete(req.params.id);
+      
+      if (!item) {
+        return res.status(404).json({ error: 'Kitchen item not found' });
+      }
+      
+      console.log('✅ Kitchen item deleted from MongoDB:', item.name);
+      res.json({ message: 'Kitchen item deleted successfully' });
+    } else {
+      // Fallback to local array
+      const itemId = parseInt(req.params.id);
+      const index = kitchenInventory.findIndex(i => i.id === itemId);
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Kitchen item not found' });
+      }
+      
+      kitchenInventory.splice(index, 1);
+      console.log('⚠️ Kitchen item deleted from fallback array');
+      res.json({ message: 'Kitchen item deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Error deleting kitchen item:', error);
+    res.status(500).json({ error: 'Failed to delete kitchen item' });
   }
-  
-  kitchenInventory.splice(index, 1);
-  res.json({ message: 'Item deleted successfully' });
 });
 
 // Kitchen Purchases Routes
@@ -2236,6 +2368,15 @@ app.post('/api/staff', requireAdminAuth, (req, res) => {
   };
   staff.push(newStaff);
   res.status(201).json(newStaff);
+});
+
+// Get individual staff member
+app.get('/api/staff/:id', requireAdminAuth, (req, res) => {
+  const staffMember = staff.find(s => s.id === parseInt(req.params.id));
+  if (!staffMember) {
+    return res.status(404).json({ error: 'Staff member not found' });
+  }
+  res.json(staffMember);
 });
 
 app.put('/api/staff/:id', requireAdminAuth, (req, res) => {
