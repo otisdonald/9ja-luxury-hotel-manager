@@ -9,6 +9,7 @@
     "seed": "node scripts/seed.js",
     "test": "jest",
     "test-atlas": "node scripts/test-atlas.js",
+    "lint": "echo 'Running lint checks...' && node -c server.js && echo 'Lint checks passed'",
     "electron": "electron .",
     "electron-dev": "NODE_ENV=development electron .",
     "build": "electron-builder",
@@ -16,7 +17,8 @@
     "build-mac": "electron-builder --mac",
     "build-linux": "electron-builder --linux",
     "dist": "npm run build",
-    "vercel-build": "npm install"
+    "vercel-build": "npm install",
+    "postinstall": "echo 'Installation completed successfully'"
   },
   "keywords": [
     "hotel",
@@ -30,6 +32,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",

@@ -1,0 +1,80 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test --if-present
+        
+      - name: Build application
+        run: npm run build --if-present
+        
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r public/ deploy/
+          cp server.js deploy/
+          cp package.json deploy/
+          cp package-lock.json deploy/ 2>/dev/null || true
+          cp -r src/ deploy/ 2>/dev/null || true
+          cd deploy && npm ci --production
+        
+      - name: Archive deployment package
+        uses: actions/upload-artifact@v3
+        with:
+          name: hotel-manager-deployment-${{ github.sha }}
+          path: deploy/
+          retention-days: 30
+          
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: 9JA Luxury Hotel Manager ${{ github.ref }}
+          body: |
+            ## 🏨 9JA Luxury Hotel Management System Release
+            
+            ### Features:
+            - Complete hotel room management (11 rooms)
+            - Customer database and booking system
+            - Kitchen inventory management with MongoDB
+            - Bar operations and inventory
+            - Staff authentication and role-based access
+            - Admin dashboard for directors
+            - PWA support for mobile installation
+            
+            ### Installation:
+            1. Download the deployment package
+            2. Extract files to your server
+            3. Install dependencies: `npm install --production`
+            4. Set up environment variables (.env file)
+            5. Start the server: `npm start`
+            
+            ### Access:
+            - Staff Portal: `http://your-domain/staff-login.html`
+            - Main App: `http://your-domain/`
+            - Admin Dashboard: `http://your-domain/admin` (Director only)
+          draft: false
+          prerelease: false

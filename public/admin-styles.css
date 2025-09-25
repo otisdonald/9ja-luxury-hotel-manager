@@ -1,4 +1,68 @@
-/* Admin Dashboard Enhanced Styles */
+/* Admin Dashboard Enhanced Styles with Dark Theme Support */
+
+/* Import theme variables and transitions */
+:root {
+    /* Light Theme Colors (Default) */
+    --primary-color: #667eea;
+    --primary-dark: #5a6fd8;
+    --secondary-color: #764ba2;
+    --accent-color: #f093fb;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
+    --light-bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --input-bg: #ffffff;
+    --input-border: #d1d5db;
+    --input-focus: #667eea;
+    --hover-bg: #f1f5f9;
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark Theme Colors */
+[data-theme="dark"] {
+    --primary-color: #818cf8;
+    --primary-dark: #6366f1;
+    --secondary-color: #a78bfa;
+    --accent-color: #f472b6;
+    --success-color: #34d399;
+    --warning-color: #fbbf24;
+    --danger-color: #f87171;
+    --info-color: #60a5fa;
+    --light-bg: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: #334155;
+    --input-bg: #334155;
+    --input-border: #475569;
+    --input-focus: #818cf8;
+    --hover-bg: #334155;
+    --modal-overlay: rgba(0, 0, 0, 0.8);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+}
+
+/* Theme transition for smooth switching */
+*, *::before, *::after {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Staff Theme Toggle positioning */
+.staff-theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
 
 /* Login Container Styles */
 .login-container {
@@ -6,18 +70,19 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     padding: 20px;
 }
 
 .login-form {
-    background: white;
+    background: var(--card-bg);
     padding: 40px;
     border-radius: 15px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-lg);
     width: 100%;
     max-width: 400px;
     text-align: center;
+    border: 1px solid var(--border-color);
 }
 
 .login-header {
@@ -26,18 +91,18 @@
 
 .login-header i {
     font-size: 3rem;
-    color: #667eea;
+    color: var(--primary-color);
     margin-bottom: 15px;
 }
 
 .login-header h2 {
-    color: #2c3e50;
+    color: var(--text-primary);
     margin: 0 0 10px 0;
     font-size: 1.8rem;
 }
 
 .login-header p {
-    color: #7f8c8d;
+    color: var(--text-secondary);
     margin: 0;
     font-size: 0.9rem;
 }

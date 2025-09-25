@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hotel-manager-v1.0.3';
+const CACHE_NAME = 'v2.5.0-electron-fixes';
 const urlsToCache = [
   '/',
   '/index.html',

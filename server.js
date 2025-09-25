@@ -14,15 +14,32 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Content Security Policy for Electron packaged apps
 app.use((req, res, next) => {
-    res.setHeader('Content-Security-Policy', 
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
-        "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
-        "img-src 'self' data: blob: http://localhost:*; " +
-        "connect-src 'self' http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
-        "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com https://fonts.googleapis.com;"
-    );
+    // Check if running in Electron
+    const isElectron = req.headers['user-agent'] && req.headers['user-agent'].includes('Electron');
+    
+    if (isElectron) {
+        // Very relaxed CSP for packaged Electron apps to avoid warnings
+        res.setHeader('Content-Security-Policy', 
+            "default-src * data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval'; " +
+            "script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * data: blob: 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src * data: blob:; " +
+            "style-src * data: blob: 'unsafe-inline'; " +
+            "font-src * data: blob: 'unsafe-inline';"
+        );
+    } else {
+        // Standard CSP for web browsers
+        res.setHeader('Content-Security-Policy', 
+            "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+            "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+            "img-src 'self' data: blob: http://localhost:*; " +
+            "connect-src 'self' http://localhost:* https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+            "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com https://fonts.googleapis.com;"
+        );
+    }
     next();
 });
 

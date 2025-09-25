@@ -1,5 +1,45 @@
 // Admin Dashboard JavaScript
 
+// Theme Management System (copied from main script for consistency)
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    applyTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Show notification if available
+    if (typeof showNotification === 'function') {
+        showNotification(`Switched to ${newTheme} theme`, 'success');
+    } else {
+        console.log(`Theme switched to ${newTheme}`);
+    }
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    const themeIcon = document.getElementById('theme-icon');
+    if (themeIcon) {
+        if (theme === 'dark') {
+            themeIcon.className = 'fas fa-sun';
+            themeIcon.title = 'Switch to Light Theme';
+        } else {
+            themeIcon.className = 'fas fa-moon';
+            themeIcon.title = 'Switch to Dark Theme';
+        }
+    }
+    
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+        metaThemeColor.content = theme === 'dark' ? '#1e293b' : '#2c3e50';
+    }
+}
+
 // Authentication helper function - MUST be defined first
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('staffToken');
@@ -20,13 +60,44 @@ async function fetchWithAuth(url, options = {}) {
         }
     };
     
-    return fetch(url, mergedOptions);
+    try {
+        const response = await fetch(url, mergedOptions);
+        
+        // Special handling for staff status endpoint - suppress 404 errors for admin dashboard
+        if (url.includes('/api/staff/current-status') && response.status === 404) {
+            // Return empty array silently without logging
+            return { ok: false, status: 404, json: async () => [] };
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Fetch error for', url, ':', error);
+        throw error;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initTheme(); // Initialize theme first
     checkStaffAuthentication();
     initializeAdminDashboard();
+    
+    // Add cleanup on page unload
+    window.addEventListener('beforeunload', cleanupAdmin);
 });
+
+// Cleanup function for admin dashboard
+function cleanupAdmin() {
+    // Clear any intervals
+    if (window.adminUpdateInterval) {
+        clearInterval(window.adminUpdateInterval);
+        window.adminUpdateInterval = null;
+    }
+    
+    // Destroy all charts
+    destroyAllCharts();
+    
+    console.log('Admin dashboard cleanup completed');
+}
 
 // Initialize admin dashboard components
 function initializeAdminDashboard() {
@@ -776,6 +847,9 @@ function updateAdminStaffDisplay(staff) {
 
 function logoutAdmin() {
     if (confirm('Are you sure you want to logout?')) {
+        // Clean up before logout
+        cleanupAdmin();
+        
         const staffToken = localStorage.getItem('staffToken');
         fetch('/api/staff/logout', {
             method: 'POST',
@@ -788,6 +862,11 @@ function logoutAdmin() {
             window.location.href = '/staff-login.html';
         });
     }
+}
+
+// Alias for HTML onclick
+function logout() {
+    logoutAdmin();
 }
 
 // Add authorization header to all API requests
@@ -821,10 +900,16 @@ function showDashboard() {
     initializeAdmin();
     loadAllReports();
     
-    // Update every 5 minutes
-    if (!window.adminUpdateInterval) {
-        window.adminUpdateInterval = setInterval(loadAllReports, 300000);
+    // Clear any existing interval first
+    if (window.adminUpdateInterval) {
+        clearInterval(window.adminUpdateInterval);
     }
+    
+    // Update every 5 minutes
+    window.adminUpdateInterval = setInterval(() => {
+        console.log('Auto-refreshing dashboard data...');
+        loadAllReports();
+    }, 300000);
 }
 
 // Initialize admin dashboard
@@ -1179,9 +1264,24 @@ async function loadAlerts() {
     }
 }
 
+// Function to destroy all existing charts
+function destroyAllCharts() {
+    Object.values(chartInstances).forEach(chart => {
+        if (chart && typeof chart.destroy === 'function') {
+            chart.destroy();
+        }
+    });
+    chartInstances = {};
+}
+
 // Create charts
 async function createCharts() {
     try {
+        console.log('Creating charts...');
+        
+        // Destroy existing charts first
+        destroyAllCharts();
+        
         // Small delay to ensure DOM is ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
@@ -1201,6 +1301,9 @@ async function createCharts() {
     }
 }
 
+// Global chart instances to manage destruction
+let chartInstances = {};
+
 // Create room status chart
 function createRoomStatusChart(rooms) {
     const canvas = document.getElementById('roomStatusChart');
@@ -1215,6 +1318,11 @@ function createRoomStatusChart(rooms) {
         return;
     }
     
+    // Destroy existing chart if it exists
+    if (chartInstances.roomStatusChart) {
+        chartInstances.roomStatusChart.destroy();
+    }
+    
     const ctx = canvas.getContext('2d');
     
     const statusCounts = {
@@ -1224,7 +1332,7 @@ function createRoomStatusChart(rooms) {
         'Maintenance': rooms.filter(r => r.status === 'maintenance').length
     };
 
-    new Chart(ctx, {
+    chartInstances.roomStatusChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: Object.keys(statusCounts),
@@ -1261,6 +1369,11 @@ function createRevenueChart() {
         return;
     }
     
+    // Destroy existing chart if it exists
+    if (chartInstances.revenueChart) {
+        chartInstances.revenueChart.destroy();
+    }
+    
     const ctx = canvas.getContext('2d');
     
     // Mock data for the last 7 days
@@ -1273,7 +1386,7 @@ function createRevenueChart() {
         revenue.push(Math.random() * 800000 + 600000); // Random revenue between ₦600,000-₦1,400,000
     }
 
-    new Chart(ctx, {
+    chartInstances.revenueChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: days,

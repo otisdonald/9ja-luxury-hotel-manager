@@ -1,6 +1,50 @@
 // Hotel Manager JavaScript
 console.log('Script loading...');
 
+// Theme Management System
+function initTheme() {
+    // Get saved theme preference or default to light
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    applyTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Show theme change notification
+    showAlert(`Switched to ${newTheme} theme`, 'success');
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // Update theme toggle icon
+    const themeIcon = document.getElementById('theme-icon');
+    if (themeIcon) {
+        if (theme === 'dark') {
+            themeIcon.className = 'fas fa-sun';
+            themeIcon.title = 'Switch to Light Theme';
+        } else {
+            themeIcon.className = 'fas fa-moon';  
+            themeIcon.title = 'Switch to Dark Theme';
+        }
+    }
+    
+    // Update meta theme color for mobile browsers
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+        metaThemeColor.content = theme === 'dark' ? '#1e293b' : '#2c3e50';
+    }
+}
+
+// Initialize theme on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initTheme();
+});
+
 // Custom notification system for packaged app compatibility
 function showAlert(message, type = 'info') {
     // Create notification element
@@ -76,11 +120,37 @@ function closeModal(modalId) {
     if (modal) {
         modal.style.display = 'none';
         modal.classList.remove('show');
+        
         // Reset form if it exists
         const form = modal.querySelector('form');
         if (form) {
             form.reset();
+            
+            // Clear any editing state attributes
+            form.removeAttribute('data-edit-id');
+            form.removeAttribute('data-customer-id');
+            
+            // Reset submit button text to default
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const btnText = submitBtn.getAttribute('data-default-text');
+                if (btnText) {
+                    submitBtn.textContent = btnText;
+                } else {
+                    // Set common default texts based on modal
+                    if (modalId.includes('customer')) submitBtn.textContent = 'Add Customer';
+                    else if (modalId.includes('booking')) submitBtn.textContent = 'Create Booking';
+                    else if (modalId.includes('bar')) submitBtn.textContent = 'Add Item';
+                    else if (modalId.includes('kitchen')) submitBtn.textContent = 'Add Item';
+                    else if (modalId.includes('order')) submitBtn.textContent = 'Place Order';
+                    else submitBtn.textContent = 'Submit';
+                }
+            }
         }
+        
+        console.log(`Modal ${modalId} closed and form reset`);
+    } else {
+        console.warn(`Modal with ID ${modalId} not found`);
     }
 }
 
@@ -371,24 +441,53 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Tab buttons found:', document.querySelectorAll('.tab-btn').length);
     console.log('Tab contents found:', document.querySelectorAll('.tab-content').length);
     console.log('Rooms tab element:', document.getElementById('rooms'));
+    
+    // Initialize category overview system
+    if (!window.location.pathname.includes('admin')) {
+        console.log('Initializing category overview...');
+        // Show overview by default
+        showOverview();
+        
+        // Update stats initially
+        setTimeout(updateCategoryStats, 1000);
+        
+        // Update stats every 30 seconds
+        setInterval(updateCategoryStats, 30000);
+    }
 });
 
 // Global refresh function
 function refreshAllData() {
-    const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+    // Force cache clear
+    if ('caches' in window) {
+        caches.keys().then(function(names) {
+            for (let name of names) {
+                caches.delete(name);
+            }
+        });
+    }
+    
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'rooms';
     loadTabContent(activeTab);
     updateBadgeCounts();
     
-    // Show refresh feedback
-    const refreshBtn = event.target.closest('.btn');
-    const originalText = refreshBtn.innerHTML;
-    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-    refreshBtn.disabled = true;
+    // Update category stats if on overview
+    if (document.getElementById('categoryOverview').style.display !== 'none') {
+        updateCategoryStats();
+    }
     
-    setTimeout(() => {
-        refreshBtn.innerHTML = originalText;
-        refreshBtn.disabled = false;
-    }, 1000);
+    // Show refresh feedback
+    const refreshBtn = event?.target.closest('.btn');
+    if (refreshBtn) {
+        const originalText = refreshBtn.innerHTML;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        refreshBtn.disabled = true;
+        
+        setTimeout(() => {
+            refreshBtn.innerHTML = originalText;
+            refreshBtn.disabled = false;
+        }, 1000);
+    }
 }
 
 // Helper to compare IDs (string-safe)
@@ -1748,13 +1847,24 @@ function setupModalEventListeners() {
     // Close modal when clicking X or outside
     document.querySelectorAll('.close').forEach(closeBtn => {
         closeBtn.addEventListener('click', () => {
-            closeBtn.closest('.modal').style.display = 'none';
+            const modal = closeBtn.closest('.modal');
+            if (modal && modal.id) {
+                closeModal(modal.id);
+            } else {
+                // Fallback if modal doesn't have ID
+                modal.style.display = 'none';
+            }
         });
     });
     
     window.addEventListener('click', (event) => {
         if (event.target.classList.contains('modal')) {
-            event.target.style.display = 'none';
+            if (event.target.id) {
+                closeModal(event.target.id);
+            } else {
+                // Fallback if modal doesn't have ID
+                event.target.style.display = 'none';
+            }
         }
     });
     
@@ -1906,7 +2016,7 @@ async function handleBookingSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('bookingModal').style.display = 'none';
+            closeModal('bookingModal');
             event.target.reset();
             loadRooms();
             showAlert('Booking created successfully!', 'success');
@@ -1939,7 +2049,7 @@ async function handleCustomerSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('customerModal').style.display = 'none';
+            closeModal('customerModal');
             event.target.reset();
             
             // Reset form state
@@ -1973,7 +2083,7 @@ async function handleCustomerSubmit(event) {
         
         saveCustomersToLocal(localCustomers);
         
-        document.getElementById('customerModal').style.display = 'none';
+        closeModal('customerModal');
         event.target.reset();
         
         // Reset form state
@@ -2157,7 +2267,7 @@ async function handleBarItemSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('barItemModal').style.display = 'none';
+            closeModal('barItemModal');
             event.target.reset();
             loadBarInventory();
             showAlert('Bar item added successfully!', 'success');
@@ -2187,7 +2297,7 @@ async function handleOrderSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('orderModal').style.display = 'none';
+            closeModal('orderModal');
             event.target.reset();
             loadKitchenOrders();
             showAlert('Order created successfully!', 'success');
@@ -2635,7 +2745,7 @@ async function handlePoliceReportSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('policeReportModal').style.display = 'none';
+            closeModal('policeReportModal');
             event.target.reset();
             loadPoliceReports();
             alert('Police report submitted successfully!');
@@ -2679,7 +2789,7 @@ async function handlePaymentSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('paymentModal').style.display = 'none';
+            closeModal('paymentModal');
             event.target.reset();
             loadPayments();
             alert('Payment processed successfully!');
@@ -2710,7 +2820,7 @@ async function handleRefundSubmit(event) {
         });
         
         if (response.ok) {
-            document.getElementById('refundModal').style.display = 'none';
+            closeModal('refundModal');
             event.target.reset();
             loadPayments();
             alert('Refund processed successfully!');
@@ -3085,10 +3195,38 @@ async function loadStaffOptions(selectId) {
 async function loadCurrentStaffStatus() {
     try {
         const response = await fetch('/api/staff/current-status');
+        
+        if (!response.ok) {
+            // If staff authentication is not available, show a message instead
+            const statusContainer = document.getElementById('currentStaffStatus');
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <h4>Current Staff Status</h4>
+                    <div class="info-message">
+                        <p>Staff status tracking requires staff authentication.</p>
+                        <p>Please use the Staff Login portal to track individual staff status.</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+        
         const staffStatus = await response.json();
         
         const statusContainer = document.getElementById('currentStaffStatus');
         if (!statusContainer) return;
+
+        // Check if staffStatus is an array
+        if (!Array.isArray(staffStatus)) {
+            console.warn('Staff status data is not an array:', staffStatus);
+            statusContainer.innerHTML = `
+                <h4>Current Staff Status</h4>
+                <div class="info-message">
+                    <p>No staff status data available.</p>
+                </div>
+            `;
+            return;
+        }
         
         let statusHTML = '<h4>Current Staff Status</h4><div class="status-grid">';
         
@@ -3721,7 +3859,7 @@ async function loadServices() {
                 body: JSON.stringify(record)
             });
             if (response.ok) {
-                document.getElementById('hrRecordModal').style.display = 'none';
+                closeModal('hrRecordModal');
                 event.target.reset();
                 loadHRRecords();
                 alert('HR record added!');
@@ -3776,7 +3914,7 @@ async function loadServices() {
                 body: JSON.stringify(item)
             });
             if (response.ok) {
-                document.getElementById('stockItemModal').style.display = 'none';
+                closeModal('stockItemModal');
                 event.target.reset();
                 loadStockItems();
                 alert('Stock item added!');
@@ -3832,7 +3970,7 @@ async function loadServices() {
                 body: JSON.stringify(transfer)
             });
             if (response.ok) {
-                document.getElementById('stockTransferModal').style.display = 'none';
+                closeModal('stockTransferModal');
                 event.target.reset();
                 loadStockTransfers();
                 alert('Stock transfer recorded!');
@@ -3885,7 +4023,7 @@ async function loadServices() {
                 body: JSON.stringify(message)
             });
             if (response.ok) {
-                document.getElementById('automatedMessageModal').style.display = 'none';
+                closeModal('automatedMessageModal');
                 event.target.reset();
                 loadAutomatedMessages();
                 alert('Automated message sent!');
@@ -3938,7 +4076,7 @@ async function loadServices() {
                 body: JSON.stringify(branch)
             });
             if (response.ok) {
-                document.getElementById('locationBranchModal').style.display = 'none';
+                closeModal('locationBranchModal');
                 event.target.reset();
                 loadLocationBranches();
                 alert('Location/branch added!');
@@ -4259,7 +4397,7 @@ async function handleNotificationSubmit(e) {
         });
         
         if (response.ok) {
-            document.getElementById('notificationModal').style.display = 'none';
+            closeModal('notificationModal');
             e.target.reset();
             loadNotifications();
             alert('Notification sent successfully!');
@@ -4676,5 +4814,232 @@ async function handleEmergencySubmit(e) {
         }
     } catch (error) {
         console.error('Error sending emergency alert:', error);
+    }
+}
+
+// ================================
+// CATEGORY NAVIGATION SYSTEM
+// ================================
+
+// Category navigation functions
+function showCategory(categoryName) {
+    const overview = document.getElementById('categoryOverview');
+    const detail = document.getElementById('categoryDetail');
+    const title = document.getElementById('categoryTitle');
+    const content = document.getElementById('detailContent');
+    
+    // Set category title
+    const categoryTitles = {
+        'rooms': 'Rooms Management',
+        'customers': 'Customer Management', 
+        'bar': 'Bar Operations',
+        'kitchen': 'Kitchen Management',
+        'payments': 'Financial Management',
+        'reports': 'Security & Reports',
+        'staff': 'Staff Management',
+        'housekeeping': 'Housekeeping',
+        'notifications': 'Notifications & Alerts',
+        'analytics': 'Analytics & Reports'
+    };
+    
+    title.textContent = categoryTitles[categoryName] || 'Category';
+    
+    // Find and move the corresponding tab content
+    const tabContent = document.getElementById(categoryName);
+    if (tabContent) {
+        // Clone the content instead of moving it to preserve original
+        content.innerHTML = tabContent.innerHTML;
+        
+        // Re-initialize any event listeners for the moved content
+        initializeCategoryContent(categoryName);
+    } else {
+        console.warn(`Tab content for ${categoryName} not found`);
+        content.innerHTML = `<div class="no-data">Content for ${categoryTitles[categoryName] || categoryName} is loading...</div>`;
+    }
+    
+    // Animate transition
+    overview.classList.add('fade-out');
+    setTimeout(() => {
+        overview.style.display = 'none';
+        detail.style.display = 'block';
+        detail.classList.add('fade-in');
+        
+        // Load the category content
+        loadTabContent(categoryName);
+    }, 300);
+}
+
+function showOverview() {
+    const overview = document.getElementById('categoryOverview');
+    const detail = document.getElementById('categoryDetail');
+    
+    // Animate transition
+    detail.classList.add('fade-out');
+    setTimeout(() => {
+        detail.style.display = 'none';
+        overview.style.display = 'block';
+        overview.classList.add('fade-in');
+        
+        // Update category stats
+        updateCategoryStats();
+    }, 300);
+}
+
+function initializeCategoryContent(categoryName) {
+    // Re-run initialization for specific categories
+    switch(categoryName) {
+        case 'rooms':
+            loadRooms();
+            // Note: No separate loadBookings function, bookings are loaded with rooms
+            break;
+        case 'customers':
+            loadCustomers();
+            break;
+        case 'bar':
+            loadBarInventory();
+            break;
+        case 'kitchen':
+            loadKitchenInventory();
+            loadKitchenOrders();
+            break;
+        case 'payments':
+            loadPayments();
+            break;
+        case 'reports':
+            loadPoliceReports();
+            break;
+        case 'staff':
+            loadStaff();
+            break;
+        case 'housekeeping':
+            loadHousekeeping();
+            break;
+        case 'notifications':
+            loadNotifications();
+            break;
+        case 'analytics':
+            loadAnalytics();
+            break;
+    }
+}
+
+function updateCategoryStats() {
+    // Update room statistics
+    const roomsAvailable = document.getElementById('roomsAvailable');
+    if (roomsAvailable) {
+        // This will be updated by loadRooms() function
+        fetch('/api/rooms')
+            .then(response => response.json())
+            .then(rooms => {
+                const available = rooms.filter(room => room.status === 'available').length;
+                roomsAvailable.textContent = `${available} available`;
+            })
+            .catch(() => {
+                roomsAvailable.textContent = '0 available';
+            });
+    }
+    
+    // Update customer count
+    const totalCustomers = document.getElementById('totalCustomers');
+    if (totalCustomers) {
+        fetch('/api/customers')
+            .then(response => response.json())
+            .then(customers => {
+                totalCustomers.textContent = `${customers.length} customers`;
+            })
+            .catch(() => {
+                totalCustomers.textContent = '0 customers';
+            });
+    }
+    
+    // Update bar items count
+    const barItems = document.getElementById('barItems');
+    if (barItems) {
+        fetch('/api/bar/inventory')
+            .then(response => response.json())
+            .then(items => {
+                barItems.textContent = `${items.length} items`;
+            })
+            .catch(() => {
+                barItems.textContent = '0 items';
+            });
+    }
+    
+    // Update pending orders
+    const pendingOrders = document.getElementById('pendingOrders');
+    if (pendingOrders) {
+        fetch('/api/kitchen/orders')
+            .then(response => response.json())
+            .then(orders => {
+                const pending = orders.filter(order => order.status === 'pending' || order.status === 'preparing').length;
+                pendingOrders.textContent = `${pending} pending orders`;
+            })
+            .catch(() => {
+                pendingOrders.textContent = '0 pending orders';
+            });
+    }
+    
+    // Update daily revenue
+    const dailyRevenue = document.getElementById('dailyRevenue');
+    if (dailyRevenue) {
+        const today = new Date().toISOString().split('T')[0];
+        fetch(`/api/payments?date=${today}`)
+            .then(response => response.json())
+            .then(payments => {
+                const total = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                dailyRevenue.textContent = `₦${total.toLocaleString()} today`;
+            })
+            .catch(() => {
+                dailyRevenue.textContent = '₦0 today';
+            });
+    }
+    
+    // Update active reports
+    const activeReports = document.getElementById('activeReports');
+    if (activeReports) {
+        fetch('/api/police-reports')
+            .then(response => response.json())
+            .then(reports => {
+                const active = reports.filter(report => report.status === 'reported' || report.status === 'investigating').length;
+                activeReports.textContent = `${active} active reports`;
+            })
+            .catch(() => {
+                activeReports.textContent = '0 active reports';
+            });
+    }
+    
+    // Update staff on duty
+    const staffOnDuty = document.getElementById('staffOnDuty');
+    if (staffOnDuty) {
+        fetch('/api/staff')
+            .then(response => response.json())
+            .then(staff => {
+                const onDuty = staff.filter(member => member.status === 'on-duty').length;
+                staffOnDuty.textContent = `${onDuty} on duty`;
+            })
+            .catch(() => {
+                staffOnDuty.textContent = '0 on duty';
+            });
+    }
+    
+    // Update cleaning tasks
+    const cleaningTasks = document.getElementById('cleaningTasks');
+    if (cleaningTasks) {
+        // This would need to be implemented based on your housekeeping system
+        cleaningTasks.textContent = '0 pending tasks';
+    }
+    
+    // Update unread notifications
+    const unreadNotifications = document.getElementById('unreadNotifications');
+    if (unreadNotifications) {
+        fetch('/api/notifications')
+            .then(response => response.json())
+            .then(notifications => {
+                const unread = notifications.filter(notif => !notif.read).length;
+                unreadNotifications.textContent = `${unread} unread`;
+            })
+            .catch(() => {
+                unreadNotifications.textContent = '0 unread';
+            });
     }
 }

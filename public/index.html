@@ -15,6 +15,11 @@
     <meta name="msapplication-TileColor" content="#2c3e50">
     <meta name="msapplication-tap-highlight" content="no">
     
+    <!-- Cache Prevention -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0")>
+    
     <!-- Manifest -->
     <link rel="manifest" href="/manifest.json">
     
@@ -38,14 +43,160 @@
                     <p class="header-subtitle">Complete Hotel Management System</p>
                 </div>
                 <div class="header-actions">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Theme">
+                        <i class="fas fa-moon" id="theme-icon"></i>
+                    </button>
                     <button class="btn btn-secondary" onclick="refreshAllData()" title="Refresh Data">
                         <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-warning" onclick="location.reload(true)" title="Force Reload Page">
+                        <i class="fas fa-redo"></i> Hard Refresh
                     </button>
                     <button class="btn btn-success" onclick="window.location.href='/admin'" title="Admin Dashboard">
                         <i class="fas fa-chart-line"></i> Admin Dashboard
                     </button>
+                    <button class="btn btn-danger" onclick="logoutStaff()" title="Logout (Ctrl+L)" tabindex="0" accesskey="l">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
             </div>
+        </header>
+
+        <!-- Category Overview Page -->
+        <div id="categoryOverview" class="category-overview">
+            <div class="welcome-section">
+                <h2>Hotel Management Dashboard</h2>
+                <p>Select a category below to manage your hotel operations</p>
+            </div>
+            
+            <div class="category-grid">
+                <!-- Rooms Management -->
+                <div class="category-card" onclick="showCategory('rooms')">
+                    <div class="category-icon">
+                        <i class="fas fa-bed"></i>
+                    </div>
+                    <h3>Rooms Management</h3>
+                    <p>Room bookings, availability, and status management</p>
+                    <div class="category-stats">
+                        <span id="roomsAvailable">0 available</span>
+                    </div>
+                </div>
+
+                <!-- Customer Management -->
+                <div class="category-card" onclick="showCategory('customers')">
+                    <div class="category-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Customer Management</h3>
+                    <p>Guest profiles, preferences, and history</p>
+                    <div class="category-stats">
+                        <span id="totalCustomers">0 customers</span>
+                    </div>
+                </div>
+
+                <!-- Bar Operations -->
+                <div class="category-card" onclick="showCategory('bar')">
+                    <div class="category-icon">
+                        <i class="fas fa-wine-glass"></i>
+                    </div>
+                    <h3>Bar Operations</h3>
+                    <p>Inventory management and beverage orders</p>
+                    <div class="category-stats">
+                        <span id="barItems">0 items</span>
+                    </div>
+                </div>
+
+                <!-- Kitchen Management -->
+                <div class="category-card" onclick="showCategory('kitchen')">
+                    <div class="category-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <h3>Kitchen Management</h3>
+                    <p>Food inventory, orders, and menu management</p>
+                    <div class="category-stats">
+                        <span id="pendingOrders">0 pending orders</span>
+                    </div>
+                </div>
+
+                <!-- Financial Management -->
+                <div class="category-card" onclick="showCategory('payments')">
+                    <div class="category-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h3>Financial Management</h3>
+                    <p>Payments, invoices, and financial reports</p>
+                    <div class="category-stats">
+                        <span id="dailyRevenue">₦0 today</span>
+                    </div>
+                </div>
+
+                <!-- Security & Reports -->
+                <div class="category-card" onclick="showCategory('reports')">
+                    <div class="category-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Security & Reports</h3>
+                    <p>Incident reports, security logs, and documentation</p>
+                    <div class="category-stats">
+                        <span id="activeReports">0 active reports</span>
+                    </div>
+                </div>
+
+                <!-- Staff Management -->
+                <div class="category-card" onclick="showCategory('staff')">
+                    <div class="category-icon">
+                        <i class="fas fa-users-cog"></i>
+                    </div>
+                    <h3>Staff Management</h3>
+                    <p>Employee schedules, tasks, and performance</p>
+                    <div class="category-stats">
+                        <span id="staffOnDuty">0 on duty</span>
+                    </div>
+                </div>
+
+                <!-- Housekeeping -->
+                <div class="category-card" onclick="showCategory('housekeeping')">
+                    <div class="category-icon">
+                        <i class="fas fa-broom"></i>
+                    </div>
+                    <h3>Housekeeping</h3>
+                    <p>Room cleaning, maintenance, and supplies</p>
+                    <div class="category-stats">
+                        <span id="cleaningTasks">0 pending tasks</span>
+                    </div>
+                </div>
+
+                <!-- Notifications & Alerts -->
+                <div class="category-card" onclick="showCategory('notifications')">
+                    <div class="category-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3>Notifications & Alerts</h3>
+                    <p>System alerts, reminders, and communications</p>
+                    <div class="category-stats">
+                        <span id="unreadNotifications">0 unread</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Detail Pages (Hidden by default) -->
+        <div id="categoryDetail" class="category-detail" style="display: none;">
+            <div class="category-header">
+                <button class="btn btn-secondary back-btn" onclick="showOverview()">
+                    <i class="fas fa-arrow-left"></i> Back to Overview
+                </button>
+                <h2 id="categoryTitle">Category</h2>
+            </div>
+            
+            <div class="category-content">
+                <!-- Original tab content will be moved here dynamically -->
+                <div id="detailContent"></div>
+            </div>
+        </div>
+
+        <!-- Keep existing tab structure hidden for functionality -->
+        <div style="display: none;">
             <nav class="nav-tabs">
                 <button class="tab-btn active" data-tab="rooms">
                     <i class="fas fa-bed"></i> Rooms
@@ -448,6 +599,11 @@
             <div id="housekeeping" class="tab-content">
                 <div class="section-header">
                     <h2>Housekeeping</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showCleaningModal()">
+                            <i class="fas fa-plus"></i> New Cleaning Task
+                        </button>
+                    </div>
                 </div>
                 <div class="housekeeping-tabs">
                     <div id="cleaning" class="hk-tab-content active">
@@ -1538,14 +1694,16 @@
                     <select id="laundryTaskType" name="type" required>
                         <option value="">Select Type</option>
                         <option value="washing">Washing</option>
+                        <option value="washing-ironing">Washing/Ironing</option>
                         <option value="drying">Drying</option>
                         <option value="pressing">Pressing</option>
+                        <option value="ironing">Ironing</option>
                         <option value="folding">Folding</option>
                         <option value="delivery">Delivery</option>
                     </select>
                 </div>
                 <div class="form-row">
-                    <select id="laundryTaskRoom" name="roomNumber" required>
+                    <select id="laundryTaskRoom" name="roomName" required>
                         <option value="">Select Room</option>
                         <option value="101">Room 101</option>
                         <option value="102">Room 102</option>
@@ -1576,6 +1734,61 @@
         </div>
     </div>
 
+    <!-- Scan & Pay Order Modal -->
+    <div id="scanPayOrderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Scan & Pay Order</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="scanPayOrderForm">
+                    <div class="form-row">
+                        <select id="scanPayCustomer" name="customerId" required>
+                            <option value="">Select Customer</option>
+                        </select>
+                        <select id="scanPayTable" name="tableNumber">
+                            <option value="">Table Number (Optional)</option>
+                            <option value="1">Table 1</option>
+                            <option value="2">Table 2</option>
+                            <option value="3">Table 3</option>
+                            <option value="4">Table 4</option>
+                            <option value="5">Table 5</option>
+                            <option value="6">Table 6</option>
+                            <option value="7">Table 7</option>
+                            <option value="8">Table 8</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="scanPayOrderNumber" name="orderNumber" placeholder="Order Number" required>
+                        <select id="scanPayOrderType" name="orderType" required>
+                            <option value="">Order Type</option>
+                            <option value="dine-in">Dine In</option>
+                            <option value="takeaway">Takeaway</option>
+                            <option value="room-service">Room Service</option>
+                        </select>
+                    </div>
+                    <textarea id="scanPayItems" name="items" placeholder="Order Items (e.g., 2x Burger, 1x Fries, 2x Coke)" required rows="3"></textarea>
+                    <div class="form-row">
+                        <input type="number" id="scanPayAmount" name="amount" placeholder="Total Amount (₦)" step="0.01" min="0" required>
+                        <select id="scanPayPaymentMethod" name="paymentMethod" required>
+                            <option value="">Payment Method</option>
+                            <option value="qr-code">QR Code</option>
+                            <option value="mobile-app">Mobile App</option>
+                            <option value="nfc">NFC/Tap to Pay</option>
+                            <option value="card">Card Payment</option>
+                        </select>
+                    </div>
+                    <textarea id="scanPayNotes" name="notes" placeholder="Special instructions or notes" rows="2"></textarea>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Create Order</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('scanPayOrderModal')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Kitchen Item Modal -->
     <div id="kitchenItemModal" class="modal">
         <div class="modal-content">
@@ -1589,27 +1802,34 @@
                         <input type="text" id="kitchenItemName" name="name" placeholder="Item Name" required>
                         <select id="kitchenItemCategory" name="category" required>
                             <option value="">Select Category</option>
-                            <option value="vegetables">Vegetables</option>
-                            <option value="fruits">Fruits</option>
-                            <option value="meat">Meat & Poultry</option>
-                            <option value="seafood">Seafood</option>
-                            <option value="dairy">Dairy</option>
-                            <option value="grains">Grains & Cereals</option>
-                            <option value="spices">Spices & Seasonings</option>
-                            <option value="beverages">Beverages</option>
-                            <option value="frozen">Frozen Items</option>
-                            <option value="canned">Canned Goods</option>
-                            <option value="cleaning">Cleaning Supplies</option>
-                            <option value="other">Other</option>
+                            <option value="Vegetables">Vegetables</option>
+                            <option value="Meat">Meat & Poultry</option>
+                            <option value="Dairy">Dairy</option>
+                            <option value="Grains">Grains & Cereals</option>
+                            <option value="Spices">Spices & Seasonings</option>
+                            <option value="Beverages">Beverages</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="form-row">
                         <input type="number" id="kitchenItemStock" name="currentStock" placeholder="Current Stock" step="0.01" required>
-                        <input type="text" id="kitchenItemUnit" name="unit" placeholder="Unit (kg, pcs, liters)" required>
+                        <select id="kitchenItemUnit" name="unit" required>
+                            <option value="">Select Unit</option>
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="lbs">Pounds (lbs)</option>
+                            <option value="pieces">Pieces</option>
+                            <option value="liters">Liters</option>
+                            <option value="bottles">Bottles</option>
+                            <option value="bags">Bags</option>
+                            <option value="boxes">Boxes</option>
+                        </select>
                     </div>
                     <div class="form-row">
                         <input type="number" id="kitchenItemCost" name="costPerUnit" placeholder="Cost per Unit (₦)" step="0.01" required>
-                        <input type="number" id="kitchenItemMinStock" name="minStock" placeholder="Minimum Stock Level" step="0.01" required>
+                        <input type="number" id="kitchenItemMinStock" name="minimumStock" placeholder="Minimum Stock Level" step="0.01" required>
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="kitchenItemSupplier" name="supplier" placeholder="Supplier (optional)">
                     </div>
                     <textarea id="kitchenItemNotes" name="notes" placeholder="Additional notes" rows="2"></textarea>
                     <button type="submit" class="btn btn-primary">Add Item</button>
@@ -1702,8 +1922,82 @@
         </div>
     </div>
 
+    <!-- Stock Item Modal -->
+    <div id="stockItemModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('stockItemModal')">&times;</span>
+            <h3>Add Stock Item</h3>
+            <form id="stockItemForm" onsubmit="handleStockItemSubmit(event)">
+                <div class="form-row">
+                    <input type="text" id="stockItemName" placeholder="Item Name" required>
+                    <select id="stockItemCategory" required title="Select Category">
+                        <option value="">Category</option>
+                        <option value="cleaning">Cleaning Supplies</option>
+                        <option value="toiletries">Toiletries</option>
+                        <option value="linens">Linens & Towels</option>
+                        <option value="maintenance">Maintenance Tools</option>
+                        <option value="office">Office Supplies</option>
+                        <option value="kitchen">Kitchen Supplies</option>
+                        <option value="beverages">Beverages</option>
+                        <option value="food">Food Items</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="stockItemQuantity" placeholder="Initial Quantity" required min="0">
+                    <input type="number" id="stockItemMinLevel" placeholder="Minimum Level" required min="0">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="stockItemPrice" placeholder="Unit Price" step="0.01" min="0">
+                    <input type="text" id="stockItemSupplier" placeholder="Supplier (optional)">
+                </div>
+                <textarea id="stockItemDescription" placeholder="Description (optional)" rows="2"></textarea>
+                <button type="submit" class="btn btn-primary">Add Stock Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stock Transfer Modal -->
+    <div id="stockTransferModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('stockTransferModal')">&times;</span>
+            <h3>Transfer Stock</h3>
+            <form id="stockTransferForm" onsubmit="handleStockTransferSubmit(event)">
+                <div class="form-row">
+                    <select id="transferFromLocation" required title="Select From Location">
+                        <option value="">From Location</option>
+                        <option value="main-storage">Main Storage</option>
+                        <option value="housekeeping">Housekeeping</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="bar">Bar</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="front-desk">Front Desk</option>
+                    </select>
+                    <select id="transferToLocation" required title="Select To Location">
+                        <option value="">To Location</option>
+                        <option value="main-storage">Main Storage</option>
+                        <option value="housekeeping">Housekeeping</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="bar">Bar</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="front-desk">Front Desk</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="transferItemName" placeholder="Item Name" required>
+                    <input type="number" id="transferQuantity" placeholder="Quantity" required min="1">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="transferRequestedBy" placeholder="Requested By" required>
+                    <input type="text" id="transferAuthorizedBy" placeholder="Authorized By">
+                </div>
+                <textarea id="transferReason" placeholder="Reason for Transfer" rows="2" required></textarea>
+                <button type="submit" class="btn btn-info">Transfer Stock</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=2.1.0"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>

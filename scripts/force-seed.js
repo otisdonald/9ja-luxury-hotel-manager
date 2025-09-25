@@ -1,7 +1,5 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
-const Room = require('../src/models/Room');
-const connectDB = require('../src/db');
 
 const roomsData = [
     // Standard Rooms: ₦35,000
@@ -26,17 +24,44 @@ const roomsData = [
 
 const seedRooms = async () => {
     try {
-        console.log('Attempting to connect to the database...');
-        await connectDB();
-        console.log('Database connected successfully for seeding.');
+        const uri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/9ja_luxury';
+        
+        console.log('Connecting to MongoDB...');
+        await mongoose.connect(uri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log('Connected successfully.');
 
-        console.log('Deleting existing room data...');
-        await Room.deleteMany({});
-        console.log('Existing rooms collection has been cleared.');
+        // Force drop the entire rooms collection
+        console.log('Dropping rooms collection...');
+        try {
+            await mongoose.connection.db.dropCollection('rooms');
+            console.log('Rooms collection dropped.');
+        } catch (err) {
+            console.log('Collection might not exist, continuing...');
+        }
+
+        // Define the Room schema directly here to avoid caching issues
+        const RoomSchema = new mongoose.Schema({
+            legacyId: { type: Number, index: true },
+            name: { type: String, required: true },
+            type: { type: String, required: true },
+            status: { type: String, enum: ['available','occupied','maintenance','cleaning'], default: 'available' },
+            price: { type: Number, default: 0 },
+            floor: { type: Number },
+            currentGuest: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null }
+        }, { timestamps: true });
+
+        const Room = mongoose.model('Room', RoomSchema);
 
         console.log('Inserting new room data...');
-        await Room.insertMany(roomsData);
-        console.log('✅ New room data has been inserted successfully!');
+        const insertedRooms = await Room.insertMany(roomsData);
+        console.log('✅ Inserted', insertedRooms.length, 'rooms successfully!');
+
+        // Verify the data
+        const verification = await Room.find({}, 'name type price').lean();
+        console.log('✅ Verification - Room names:', verification.map(r => r.name));
 
     } catch (err) {
         console.error('❌ Database seeding failed:', err.message);
@@ -48,4 +73,3 @@ const seedRooms = async () => {
 };
 
 seedRooms();
-
