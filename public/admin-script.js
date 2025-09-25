@@ -112,13 +112,9 @@ function checkStaffAuthentication() {
         return;
     }
     
-    // Check if staff has admin privileges (management position or director)
-    const hasAdminAccess = staffInfo.position === 'director' || 
-                          staffInfo.position === 'management' ||
-                          (staffInfo.permissions && staffInfo.permissions.settings === true);
-    
-    if (!hasAdminAccess) {
-        alert('Admin access required. You need management or director privileges to access this dashboard.');
+    // Check if staff has admin privileges (Director only - DIR001)
+    if (staffInfo.position !== 'director') {
+        alert('Director access required. Only DIR001 (Hotel Director) can access this dashboard.');
         window.location.href = '/index.html';
         return;
     }

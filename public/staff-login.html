@@ -540,21 +540,24 @@
             </form>
             
             <div class="staff-info">
-                <h4>Demo Staff Credentials:</h4>
+                <h4>Staff Credentials:</h4>
                 <ul>
-                    <li><strong>EMP001</strong> - Alice Manager (PIN: 1234) - 🔥 Admin Access</li>
-                    <li><strong>EMP002</strong> - Bob Reception (PIN: 2345) - 📋 Staff Access</li>
-                    <li><strong>EMP003</strong> - Carol Housekeeping (PIN: 3456) - 📋 Staff Access</li>
-                    <li><strong>EMP004</strong> - David Kitchen (PIN: 4567) - 📋 Staff Access</li>
+                    <li><strong>DIR001</strong> - Hotel Director (PIN: 1001) - 🔥 Admin Access</li>
+                    <li><strong>MGR001</strong> - Hotel Manager (PIN: 2001) - 📋 Staff Access</li>
+                    <li><strong>RCP001</strong> - Reception Staff (PIN: 3001) - 📋 Staff Access</li>
+                    <li><strong>HKP001</strong> - Housekeeping Staff (PIN: 4001) - 📋 Staff Access</li>
+                    <li><strong>LND001</strong> - Laundry Staff (PIN: 5001) - 📋 Staff Access</li>
+                    <li><strong>KTC001</strong> - Kitchen Staff (PIN: 6001) - 📋 Staff Access</li>
+                    <li><strong>BAR001</strong> - Bar Manager (PIN: 7001) - 📋 Staff Access</li>
                 </ul>
                 <div class="test-section">
-                    <h4>🧪 Quick Test (.env):</h4>
+                    <h4>🧪 Access Levels:</h4>
                     <ul>
-                        <li><strong>EMP002</strong> - Staff Portal (PIN: 2345) - 📋 Main Interface</li>
-                        <li><strong>EMP001</strong> - Admin Dashboard (PIN: 1234) - 🔥 Full Access</li>
+                        <li><strong>DIR001</strong> - Admin Dashboard (PIN: 1001) - � Full Admin Access</li>
+                        <li><strong>MGR001+</strong> - Staff Portal (PINs: 2001-7001) - � Department Access</li>
                     </ul>
                     <p class="test-note">
-                        <em>Use EMP002 for staff portal testing, EMP001 for admin dashboard!</em>
+                        <em>Only DIR001 (Hotel Director) has admin dashboard access!</em>
                     </p>
                 </div>
             </div>
@@ -657,13 +660,9 @@
                     showSuccess(`Welcome back, ${data.staff.name}! Redirecting...`);
                     
                     setTimeout(() => {
-                        // Redirect admin users (management/director) to admin dashboard
-                        const hasAdminAccess = data.staff.position === 'director' || 
-                                             data.staff.position === 'management' ||
-                                             (data.staff.permissions && data.staff.permissions.settings === true);
-                        
-                        if (hasAdminAccess) {
-                            console.log('Redirecting admin user to admin dashboard');
+                        // Only DIR001 (Hotel Director) gets admin access
+                        if (data.staff.position === 'director' && data.staff.personalId === 'DIR001') {
+                            console.log('Redirecting director to admin dashboard');
                             window.location.href = '/admin.html';
                         } else {
                             console.log('Redirecting to staff portal');
@@ -694,13 +693,9 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data.valid) {
-                        // Check if user has admin access and redirect accordingly
+                        // Only DIR001 (Hotel Director) gets admin access
                         const staffInfo = JSON.parse(localStorage.getItem('staffInfo') || '{}');
-                        const hasAdminAccess = staffInfo.position === 'director' || 
-                                             staffInfo.position === 'management' ||
-                                             (staffInfo.permissions && staffInfo.permissions.settings === true);
-                        
-                        if (hasAdminAccess) {
+                        if (staffInfo.position === 'director' && staffInfo.personalId === 'DIR001') {
                             window.location.href = '/admin.html';
                         } else {
                             window.location.href = '/index.html';
