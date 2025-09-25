@@ -112,9 +112,13 @@ function checkStaffAuthentication() {
         return;
     }
     
-    // Check if staff has admin privileges
-    if (staffInfo.position !== 'management' && staffInfo.position !== 'admin') {
-        alert('Admin access required. You will be redirected to the staff portal.');
+    // Check if staff has admin privileges (management position or director)
+    const hasAdminAccess = staffInfo.position === 'director' || 
+                          staffInfo.position === 'management' ||
+                          (staffInfo.permissions && staffInfo.permissions.settings === true);
+    
+    if (!hasAdminAccess) {
+        alert('Admin access required. You need management or director privileges to access this dashboard.');
         window.location.href = '/index.html';
         return;
     }
@@ -148,9 +152,9 @@ async function verifyStaffTokenAndShowDashboard() {
             return;
         }
         
-        // Check admin privileges again
-        if (data.staff.position !== 'management' && data.staff.position !== 'admin') {
-            alert('Admin access required. You will be redirected to the staff portal.');
+        // Check admin privileges again (Director only)
+        if (data.staff.position !== 'director') {
+            alert('Director access required. You will be redirected to the staff portal.');
             window.location.href = '/index.html';
             return;
         }
@@ -170,13 +174,20 @@ async function verifyStaffTokenAndShowDashboard() {
 // Load Executive Dashboard data
 async function loadExecutiveDashboard() {
     try {
-        const [rooms, customers, payments, kitchenOrders, barItems] = await Promise.all([
-            fetchWithAuth('/api/rooms'),
-            fetchWithAuth('/api/customers'),
-            fetchWithAuth('/api/payments'),
-            fetchWithAuth('/api/kitchen/orders'),
-            fetchWithAuth('/api/bar/inventory')
+        const [roomsData, customersData, paymentsData, kitchenOrdersData, barItemsData] = await Promise.all([
+            fetchWithAuth('/api/rooms').catch(e => []),
+            fetchWithAuth('/api/customers').catch(e => []),
+            fetchWithAuth('/api/payments').catch(e => []),
+            fetchWithAuth('/api/kitchen/orders').catch(e => []),
+            fetchWithAuth('/api/bar/inventory').catch(e => [])
         ]);
+
+        // Ensure all data are arrays
+        const rooms = Array.isArray(roomsData) ? roomsData : [];
+        const customers = Array.isArray(customersData) ? customersData : [];
+        const payments = Array.isArray(paymentsData) ? paymentsData : [];
+        const kitchenOrders = Array.isArray(kitchenOrdersData) ? kitchenOrdersData : [];
+        const barItems = Array.isArray(barItemsData) ? barItemsData : [];
 
         // Calculate metrics
         const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
@@ -226,14 +237,22 @@ async function loadDailyReport() {
     const reportDate = document.getElementById('reportDate')?.value || new Date().toISOString().split('T')[0];
     
     try {
-        const [rooms, customers, payments, kitchenOrders, barItems, staff] = await Promise.all([
-            fetchWithAuth('/api/rooms'),
-            fetchWithAuth('/api/customers'),
-            fetchWithAuth('/api/payments'),
-            fetchWithAuth('/api/kitchen/orders'),
-            fetchWithAuth('/api/bar/inventory'),
-            fetchWithAuth('/api/staff')
+        const [roomsData, customersData, paymentsData, kitchenOrdersData, barItemsData, staffData] = await Promise.all([
+            fetchWithAuth('/api/rooms').catch(e => []),
+            fetchWithAuth('/api/customers').catch(e => []),
+            fetchWithAuth('/api/payments').catch(e => []),
+            fetchWithAuth('/api/kitchen/orders').catch(e => []),
+            fetchWithAuth('/api/bar/inventory').catch(e => []),
+            fetchWithAuth('/api/staff').catch(e => [])
         ]);
+
+        // Ensure all data are arrays
+        const rooms = Array.isArray(roomsData) ? roomsData : [];
+        const customers = Array.isArray(customersData) ? customersData : [];
+        const payments = Array.isArray(paymentsData) ? paymentsData : [];
+        const kitchenOrders = Array.isArray(kitchenOrdersData) ? kitchenOrdersData : [];
+        const barItems = Array.isArray(barItemsData) ? barItemsData : [];
+        const staff = Array.isArray(staffData) ? staffData : [];
 
         // Filter data for selected date
         const dayPayments = payments.filter(p => p.createdAt && p.createdAt.includes(reportDate));
@@ -300,14 +319,22 @@ async function loadDailyReport() {
 // Load Hotel Sections data
 async function loadHotelSectionsData() {
     try {
-        const [rooms, customers, kitchenOrders, barItems, payments, staff] = await Promise.all([
-            fetchWithAuth('/api/rooms'),
-            fetchWithAuth('/api/customers'),
-            fetchWithAuth('/api/kitchen/orders'),
-            fetchWithAuth('/api/bar/inventory'),
-            fetchWithAuth('/api/payments'),
-            fetchWithAuth('/api/staff')
+        const [roomsData, customersData, kitchenOrdersData, barItemsData, paymentsData, staffData] = await Promise.all([
+            fetchWithAuth('/api/rooms').catch(e => []),
+            fetchWithAuth('/api/customers').catch(e => []),
+            fetchWithAuth('/api/kitchen/orders').catch(e => []),
+            fetchWithAuth('/api/bar/inventory').catch(e => []),
+            fetchWithAuth('/api/payments').catch(e => []),
+            fetchWithAuth('/api/staff').catch(e => [])
         ]);
+
+        // Ensure all data are arrays
+        const rooms = Array.isArray(roomsData) ? roomsData : [];
+        const customers = Array.isArray(customersData) ? customersData : [];
+        const kitchenOrders = Array.isArray(kitchenOrdersData) ? kitchenOrdersData : [];
+        const barItems = Array.isArray(barItemsData) ? barItemsData : [];
+        const payments = Array.isArray(paymentsData) ? paymentsData : [];
+        const staff = Array.isArray(staffData) ? staffData : [];
 
         // Update section statistics
         updateElement('sectionOccupiedRooms', rooms.filter(r => r.status === 'occupied').length);
@@ -1348,10 +1375,13 @@ function exportReport() {
 // Load staff management report
 async function loadStaffReport() {
     try {
-        const [staff, clockRecords] = await Promise.all([
-            fetch('/api/staff/current-status').then(r => r.json()),
-            fetch('/api/clock-records').then(r => r.json())
+        const [staffResponse, clockResponse] = await Promise.all([
+            fetchWithAuth('/api/staff/current-status').catch(e => []),
+            fetchWithAuth('/api/clock-records').catch(e => [])
         ]);
+
+        const staff = Array.isArray(staffResponse) ? staffResponse : [];
+        const clockRecords = Array.isArray(clockResponse) ? clockResponse : [];
 
         const onDuty = staff.filter(s => s.status === 'on-duty').length;
         const onBreak = staff.filter(s => s.status === 'on-break').length;

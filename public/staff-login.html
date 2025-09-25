@@ -654,12 +654,21 @@
                     
                     console.log('Login successful, token stored:', data.token);
                     
-                    showSuccess(`Welcome back, ${data.staff.name}! Redirecting to staff portal...`);
+                    showSuccess(`Welcome back, ${data.staff.name}! Redirecting...`);
                     
                     setTimeout(() => {
-                        // Always go to staff portal after login
-                        console.log('Redirecting to index.html');
-                        window.location.href = '/index.html';
+                        // Redirect admin users (management/director) to admin dashboard
+                        const hasAdminAccess = data.staff.position === 'director' || 
+                                             data.staff.position === 'management' ||
+                                             (data.staff.permissions && data.staff.permissions.settings === true);
+                        
+                        if (hasAdminAccess) {
+                            console.log('Redirecting admin user to admin dashboard');
+                            window.location.href = '/admin.html';
+                        } else {
+                            console.log('Redirecting to staff portal');
+                            window.location.href = '/index.html';
+                        }
                     }, 1500);
                 } else {
                     showError(data.error || 'Authentication failed');
@@ -685,8 +694,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data.valid) {
-                        // Always go to staff portal when already logged in
-                        window.location.href = '/index.html';
+                        // Check if user has admin access and redirect accordingly
+                        const staffInfo = JSON.parse(localStorage.getItem('staffInfo') || '{}');
+                        const hasAdminAccess = staffInfo.position === 'director' || 
+                                             staffInfo.position === 'management' ||
+                                             (staffInfo.permissions && staffInfo.permissions.settings === true);
+                        
+                        if (hasAdminAccess) {
+                            window.location.href = '/admin.html';
+                        } else {
+                            window.location.href = '/index.html';
+                        }
                     }
                 } else {
                     // Invalid token, remove it
