@@ -1551,13 +1551,26 @@ app.get('/api/rooms', requireStaffAuth, async (req, res) => {
       return res.json(transformedDocs);
     } catch (err) {
       console.error('❌ Error fetching rooms from DB:', err);
-      // Fall back to in-memory data if DB fails
+      // Fall back to fallback data
     }
   }
   
-  // Fallback to in-memory rooms data
+  // Fallback room data (should match what's in the database)
   console.log('⚠️ Using fallback rooms data');
-  return res.json(rooms.map(room => ({ ...room, id: room.id || room.legacyId })));
+  const fallbackRooms = [
+    { id: 1, legacyId: 1, name: 'Port Harcourt', type: 'Standard', status: 'available', price: 35000, floor: 1 },
+    { id: 2, legacyId: 2, name: 'Berlin', type: 'Executive', status: 'occupied', price: 40000, floor: 1 },
+    { id: 3, legacyId: 3, name: 'Madrid', type: 'Executive', status: 'available', price: 40000, floor: 1 },
+    { id: 4, legacyId: 4, name: 'Barcelona', type: 'Executive', status: 'maintenance', price: 40000, floor: 2 },
+    { id: 5, legacyId: 5, name: 'Amsterdam', type: 'Executive', status: 'occupied', price: 40000, floor: 2 },
+    { id: 6, legacyId: 6, name: 'Prague', type: 'VIP', status: 'available', price: 50000, floor: 2 },
+    { id: 7, legacyId: 7, name: 'Paris', type: 'VIP', status: 'cleaning', price: 50000, floor: 2 },
+    { id: 8, legacyId: 8, name: 'Vienna', type: 'VIP', status: 'available', price: 50000, floor: 2 },
+    { id: 9, legacyId: 9, name: 'New York', type: 'V.VIP', status: 'occupied', price: 60000, floor: 3 },
+    { id: 10, legacyId: 10, name: 'Dallas', type: 'V.VIP', status: 'available', price: 60000, floor: 3 },
+    { id: 11, legacyId: 11, name: 'Atlanta', type: 'V.VIP', status: 'available', price: 60000, floor: 3 }
+  ];
+  return res.json(fallbackRooms);
 });
 
 app.put('/api/rooms/:id', requireStaffAuth, async (req, res) => {

@@ -400,21 +400,32 @@ function idEq(a, b) {
 // Update badge counts
 async function updateBadgeCounts() {
     try {
+        const token = localStorage.getItem('staffToken');
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const [rooms, customers] = await Promise.all([
-            fetch('/api/rooms').then(r => r.json()),
-            fetch('/api/customers').then(r => r.json())
+            fetch('/api/rooms', { headers }).then(r => r.ok ? r.json() : []),
+            fetch('/api/customers', { headers }).then(r => r.ok ? r.json() : [])
         ]);
         
         const roomsCount = document.getElementById('roomsCount');
         const customersCount = document.getElementById('customersCount');
         
         if (roomsCount) {
-            const occupiedCount = rooms.filter(r => r.status === 'occupied').length;
-            roomsCount.textContent = `${rooms.length} Rooms (${occupiedCount} Occupied)`;
+            const safeRooms = Array.isArray(rooms) ? rooms : [];
+            const occupiedCount = safeRooms.filter(r => r.status === 'occupied').length;
+            roomsCount.textContent = `${safeRooms.length} Rooms (${occupiedCount} Occupied)`;
         }
         
         if (customersCount) {
-            customersCount.textContent = `${customers.length} Customers`;
+            const safeCustomers = Array.isArray(customers) ? customers : [];
+            customersCount.textContent = `${safeCustomers.length} Customers`;
         }
     } catch (error) {
         console.error('Error updating badge counts:', error);
@@ -575,11 +586,20 @@ async function loadRooms() {
 
 // View room details
 function viewRoomDetails(roomId) {
-    // This could open a detailed modal with room information
-    fetch(`/api/rooms`)
-        .then(response => response.json())
+    const token = localStorage.getItem('staffToken');
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    fetch(`/api/rooms`, { headers })
+        .then(response => response.ok ? response.json() : [])
         .then(rooms => {
-            const room = rooms.find(r => idEq(r.id, roomId));
+            const safeRooms = Array.isArray(rooms) ? rooms : [];
+            const room = safeRooms.find(r => idEq(r.id, roomId));
             if (room) {
                 const roomName = room.name || room.number || `Room ${room.legacyId || room.id}` || 'Unnamed Room';
                 alert(`Room Details:\n\nRoom: ${roomName}\nType: ${room.type}\nStatus: ${room.status}\nPrice: ₦${room.price}/night\n${room.currentGuest ? `Guest: Customer #${room.currentGuest}` : 'No current guest'}`);
