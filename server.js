@@ -3040,6 +3040,18 @@ app.get('/api/admin/health-check', requireStaffAuth, (req, res) => {
   });
 });
 
+// Catch-all handler: serve index.html for any non-API routes
+// This ensures that frontend routing works properly
+app.get('*', (req, res) => {
+  // Skip API routes - they should return their own 404s
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
+  // For all other routes, serve index.html (for frontend routing)
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Start server only when run directly, not when required (e.g., by seed scripts)
 if (require.main === module) {
   app.listen(PORT, () => {
