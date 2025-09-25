@@ -75,6 +75,7 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
+        modal.classList.remove('show');
         // Reset form if it exists
         const form = modal.querySelector('form');
         if (form) {
@@ -194,6 +195,9 @@ async function verifyStaffToken() {
 }
 
 function updateStaffDisplay(staff) {
+    // Store staff info globally
+    window.currentStaff = staff;
+    
     // Add staff info to header if not exists
     if (!document.getElementById('staffInfo')) {
         const header = document.querySelector('.header');
@@ -214,6 +218,40 @@ function updateStaffDisplay(staff) {
             header.appendChild(staffDiv);
         }
     }
+    
+    // Update UI based on permissions
+    updateUIPermissions(staff);
+}
+
+// Function to update UI elements based on staff permissions
+function updateUIPermissions(staff) {
+    // Hide "Add Staff" button for non-directors
+    const addStaffButtons = document.querySelectorAll('button[onclick="showStaffModal()"]');
+    addStaffButtons.forEach(button => {
+        if (staff.position === 'director') {
+            button.style.display = 'inline-block';
+        } else {
+            button.style.display = 'none';
+            // Add a message for non-directors
+            if (!button.parentNode.querySelector('.permission-notice')) {
+                const notice = document.createElement('div');
+                notice.className = 'permission-notice';
+                notice.style.cssText = 'background: #f8d7da; color: #721c24; padding: 8px 12px; border-radius: 4px; font-size: 0.9em; margin-left: 10px;';
+                notice.innerHTML = '<i class="fas fa-info-circle"></i> Only the Hotel Director can add staff members';
+                button.parentNode.appendChild(notice);
+            }
+        }
+    });
+    
+    // Control admin dashboard button visibility (Director only)
+    const adminButton = document.querySelector('button[onclick*="/admin"]');
+    if (adminButton) {
+        if (staff.position === 'director') {
+            adminButton.style.display = 'inline-block';
+        } else {
+            adminButton.style.display = 'none';
+        }
+    }
 }
 
 function logoutStaff() {
@@ -231,11 +269,55 @@ function logoutStaff() {
     }
 }
 
+// Debug function to clear authentication (can be called from browser console)
+window.clearAuth = function() {
+    console.log('Clearing authentication...');
+    localStorage.removeItem('staffToken');
+    localStorage.removeItem('staffInfo');
+    console.log('Authentication cleared. Redirecting to login...');
+    window.location.href = '/staff-login.html';
+};
+
+// Debug function to inspect and clean customer data
+window.debugCustomers = function() {
+    console.log('=== CUSTOMER DEBUG INFO ===');
+    const localCustomers = getCustomersFromLocal() || [];
+    console.log('Local customers count:', localCustomers.length);
+    
+    localCustomers.forEach((customer, index) => {
+        const isValid = isValidCustomerId(customer.id);
+        console.log(`Customer ${index}:`, {
+            id: customer.id,
+            name: customer.name,
+            validId: isValid,
+            hasRequiredFields: !!(customer.id && customer.name && customer.email)
+        });
+    });
+    
+    const cleaned = cleanupCustomerData();
+    console.log('After cleanup:', cleaned.length);
+    console.log('=== END DEBUG ===');
+    
+    return {
+        original: localCustomers.length,
+        cleaned: cleaned.length,
+        removed: localCustomers.length - cleaned.length
+    };
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('error', function(e) {
         console.error('Global error:', e.message, e.filename, e.lineno);
     });
     console.log('DOM loaded, initializing...');
+    
+    // Add keyboard shortcut for logout (Ctrl+L)
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'l') {
+            e.preventDefault();
+            logoutStaff();
+        }
+    });
     
     // Tab switching functionality
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -273,6 +355,17 @@ document.addEventListener('DOMContentLoaded', function() {
     setupModalEventListeners();
     setupKitchenTabs(); // Add kitchen tab functionality
     updateBadgeCounts();
+    
+    // Control admin dashboard button visibility on page load
+    const staffInfo = JSON.parse(localStorage.getItem('staffInfo') || '{}');
+    const adminButton = document.querySelector('button[onclick*="/admin"]');
+    if (adminButton) {
+        if (staffInfo.position === 'director') {
+            adminButton.style.display = 'inline-block';
+        } else {
+            adminButton.style.display = 'none';
+        }
+    }
     
     // Debug: Check if elements exist
     console.log('Tab buttons found:', document.querySelectorAll('.tab-btn').length);
@@ -413,17 +506,29 @@ async function loadRooms() {
         
         const rooms = await response.json();
         console.log('✅ Loaded rooms:', rooms.length);
+        console.log('🔍 First room data:', rooms[0]);
+        console.log('🔍 Room names:', rooms.map(r => ({ id: r._id, name: r.name, number: r.number })));
+        
+        // Debug: Check for rooms with undefined names
+        const undefinedNameRooms = rooms.filter(r => !r.name);
+        if (undefinedNameRooms.length > 0) {
+            console.warn('⚠️ Found rooms with undefined names:', undefinedNameRooms);
+        }
         
         const roomsGrid = document.getElementById('roomsGrid');
         roomsGrid.innerHTML = '';
         
         rooms.forEach(room => {
+            // Ensure we have a fallback name system
+            const roomName = room.name || room.number || `Room ${room.legacyId || room.id}` || 'Unnamed Room';
+            console.log('🏠 Displaying room:', { id: room.id, originalName: room.name, displayName: roomName });
+            
             const roomCard = document.createElement('div');
             roomCard.className = 'room-card';
             roomCard.innerHTML = `
                 <div class="room-header">
                     <div>
-                        <div class="room-number">${room.number}</div>
+                        <div class="room-name">${roomName}</div>
                         <div class="room-type">${room.type}</div>
                     </div>
                     <span class="room-status ${room.status}">${room.status}</span>
@@ -439,6 +544,9 @@ async function loadRooms() {
                     ${room.status === 'occupied' ? 
                         `<button class="btn btn-small btn-success" onclick="checkoutRoom('${room.id}')" title="Checkout Guest">
                             <i class="fas fa-sign-out-alt"></i> Checkout
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="cancelBooking('${room.id}')" title="Cancel Booking">
+                            <i class="fas fa-times"></i> Cancel
                         </button>` : 
                         `<button class="btn btn-small btn-primary" onclick="showBookingModal('${room.id}')" title="Book Room">
                             <i class="fas fa-calendar-plus"></i> Book
@@ -473,7 +581,8 @@ function viewRoomDetails(roomId) {
         .then(rooms => {
             const room = rooms.find(r => idEq(r.id, roomId));
             if (room) {
-                alert(`Room Details:\n\nRoom: ${room.number}\nType: ${room.type}\nStatus: ${room.status}\nPrice: ₦${room.price}/night\n${room.currentGuest ? `Guest: Customer #${room.currentGuest}` : 'No current guest'}`);
+                const roomName = room.name || room.number || `Room ${room.legacyId || room.id}` || 'Unnamed Room';
+                alert(`Room Details:\n\nRoom: ${roomName}\nType: ${room.type}\nStatus: ${room.status}\nPrice: ₦${room.price}/night\n${room.currentGuest ? `Guest: Customer #${room.currentGuest}` : 'No current guest'}`);
             }
         })
         .catch(error => {
@@ -507,6 +616,91 @@ function showNotification(message, type = 'info') {
 }
 
 // Enhanced Customer Management
+// Local Storage Persistence Functions
+function saveCustomersToLocal(customers) {
+    try {
+        localStorage.setItem('hotelCustomers', JSON.stringify(customers));
+        console.log('✅ Customers saved to localStorage');
+    } catch (error) {
+        console.error('❌ Failed to save customers to localStorage:', error);
+    }
+}
+
+function getCustomersFromLocal() {
+    try {
+        const stored = localStorage.getItem('hotelCustomers');
+        return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+        console.error('❌ Failed to load customers from localStorage:', error);
+        return null;
+    }
+}
+
+function clearLocalCustomers() {
+    localStorage.removeItem('hotelCustomers');
+    console.log('🗑️ Local customers cleared');
+}
+
+// Kitchen Items Local Storage Functions
+function saveKitchenItemsToLocal(items) {
+    try {
+        localStorage.setItem('hotelKitchenItems', JSON.stringify(items));
+        console.log('✅ Kitchen items saved to localStorage');
+    } catch (error) {
+        console.error('❌ Failed to save kitchen items to localStorage:', error);
+    }
+}
+
+function getKitchenItemsFromLocal() {
+    try {
+        const items = localStorage.getItem('hotelKitchenItems');
+        return items ? JSON.parse(items) : null;
+    } catch (error) {
+        console.error('❌ Failed to get kitchen items from localStorage:', error);
+        return null;
+    }
+}
+
+// Kitchen Orders Local Storage Functions
+function saveKitchenOrdersToLocal(orders) {
+    try {
+        localStorage.setItem('hotelKitchenOrders', JSON.stringify(orders));
+        console.log('✅ Kitchen orders saved to localStorage');
+    } catch (error) {
+        console.error('❌ Failed to save kitchen orders to localStorage:', error);
+    }
+}
+
+function getKitchenOrdersFromLocal() {
+    try {
+        const orders = localStorage.getItem('hotelKitchenOrders');
+        return orders ? JSON.parse(orders) : null;
+    } catch (error) {
+        console.error('❌ Failed to get kitchen orders from localStorage:', error);
+        return null;
+    }
+}
+
+// Rooms Local Storage Functions
+function saveRoomsToLocal(rooms) {
+    try {
+        localStorage.setItem('hotelRooms', JSON.stringify(rooms));
+        console.log('✅ Rooms saved to localStorage');
+    } catch (error) {
+        console.error('❌ Failed to save rooms to localStorage:', error);
+    }
+}
+
+function getRoomsFromLocal() {
+    try {
+        const rooms = localStorage.getItem('hotelRooms');
+        return rooms ? JSON.parse(rooms) : null;
+    } catch (error) {
+        console.error('❌ Failed to get rooms from localStorage:', error);
+        return null;
+    }
+}
+
 async function loadCustomers() {
     try {
         console.log('👥 Loading customers...');
@@ -523,24 +717,50 @@ async function loadCustomers() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const customers = await response.json();
+        let customers = await response.json();
+        
+        // Clean up any invalid local data first
+        const cleanedLocalCustomers = cleanupCustomerData();
+        
+        // Check if we're in offline mode and have valid local customers
+        if (cleanedLocalCustomers && cleanedLocalCustomers.length > 0) {
+            // Merge server customers with local customers, prioritizing local changes
+            const serverIds = customers.map(c => c.id);
+            const newLocalCustomers = cleanedLocalCustomers.filter(c => !serverIds.includes(c.id));
+            customers = [...customers, ...newLocalCustomers];
+            console.log(`📱 Merged ${newLocalCustomers.length} local customers with server data`);
+        }
+        
+        // Save merged data to local storage
+        saveCustomersToLocal(customers);
+        
         console.log('✅ Loaded customers:', customers.length);
         
         const tableBody = document.querySelector('#customersTable tbody');
+        if (!tableBody) {
+            console.error('Customer table body not found in DOM');
+            return;
+        }
+        
         tableBody.innerHTML = '';
         
-        customers.forEach(customer => {
+        customers.forEach((customer, index) => {
+            if (!customer.id) {
+                console.warn('Customer missing ID at index:', index, customer);
+                customer.id = `temp_${Date.now()}_${index}`;
+            }
+            
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${customer.id}</td>
-                <td>${customer.name}</td>
-                <td>${customer.email}</td>
-                <td>${customer.phone}</td>
+                <td title="Customer ID: ${customer.id}">${customer.id.substring(0, 8)}...</td>
+                <td>${customer.name || 'N/A'}</td>
+                <td>${customer.email || 'N/A'}</td>
+                <td>${customer.phone || 'N/A'}</td>
                 <td>
-                    <button class="btn btn-primary" onclick="editCustomer('${customer.id}')">
+                    <button class="btn btn-primary" onclick="editCustomer('${customer.id}')" title="Edit Customer">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-danger" onclick="deleteCustomer('${customer.id}')">
+                    <button class="btn btn-danger" onclick="deleteCustomer('${customer.id}')" title="Delete Customer">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -552,6 +772,39 @@ async function loadCustomers() {
         updateCustomerSelects(customers);
     } catch (error) {
         console.error('Error loading customers:', error);
+        
+        // Fall back to local storage if API fails
+        const localCustomers = getCustomersFromLocal();
+        if (localCustomers && localCustomers.length > 0) {
+            console.log('📱 Loading customers from localStorage');
+            
+            const tableBody = document.querySelector('#customersTable tbody');
+            tableBody.innerHTML = '';
+            
+            localCustomers.forEach(customer => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${customer.id}</td>
+                    <td>${customer.name}</td>
+                    <td>${customer.email}</td>
+                    <td>${customer.phone}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editCustomer('${customer.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteCustomer('${customer.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            updateCustomerSelects(localCustomers);
+            showAlert('Loaded customers from local storage', 'info');
+        } else {
+            showAlert('Unable to load customers. Check your connection.', 'error');
+        }
     }
 }
 
@@ -610,7 +863,15 @@ async function updateStock(itemId) {
         document.getElementById('updateStockForm').dataset.itemId = itemId;
         
         // Show the modal
-        document.getElementById('updateStockModal').style.display = 'block';
+        const modal = document.getElementById('updateStockModal');
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+        
+        // Focus on first input after a short delay
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input, select');
+            if (firstInput) firstInput.focus();
+        }, 100);
         
     } catch (error) {
         console.error('Error preparing stock update:', error);
@@ -709,6 +970,9 @@ async function loadKitchenOrders() {
                     <button class="btn btn-success" onclick="updateOrderStatus('${order.id}')">
                         <i class="fas fa-check"></i> Update Status
                     </button>
+                    <button class="btn btn-danger" onclick="deleteKitchenOrder('${order.id}')">
+                        <i class="fas fa-trash"></i> Cancel Order
+                    </button>
                 </div>
             `;
             ordersContainer.appendChild(orderCard);
@@ -721,38 +985,79 @@ async function loadKitchenOrders() {
 // Enhanced Kitchen Management Functions
 async function loadKitchenInventory() {
     try {
+        console.log('📦 Loading kitchen inventory...');
         const response = await fetch('/api/kitchen/inventory');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const inventory = await response.json();
+        console.log('📦 Received', inventory.length, 'kitchen items');
+        console.log('📦 Sample item:', inventory[0]); // Debug: Log first item structure
         
         const tableBody = document.querySelector('#kitchenInventoryTable');
         if (tableBody) {
             tableBody.innerHTML = '';
             
-            inventory.forEach(item => {
-                const totalValue = item.currentStock * item.costPerUnit;
-                const stockStatus = getStockStatus(item.currentStock, item.minStock);
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>${item.category}</td>
-                    <td>${item.currentStock}</td>
-                    <td>${item.unit}</td>
-                    <td>₦${item.costPerUnit.toFixed(2)}</td>
-                    <td>₦${totalValue.toFixed(2)}</td>
-                    <td>${item.minStock}</td>
-                    <td><span class="stock-status ${stockStatus.class}">${stockStatus.text}</span></td>
-                    <td>
-                        <button class="btn btn-primary btn-sm" onclick="editKitchenItem('${item.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-warning btn-sm" onclick="adjustStock('${item.id}')">
-                            <i class="fas fa-plus-minus"></i>
-                        </button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
+            if (inventory.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center">No kitchen inventory items found</td></tr>';
+                return;
+            }
+            
+            try {
+                inventory.forEach(item => {
+                    try {
+                        console.log('Processing item:', item); // Debug individual item
+                        
+                        // Extract the actual ID from Mongoose document
+                        const itemId = item._id || item.id || (item._doc && item._doc._id) || '';
+                        console.log('Extracted ID:', itemId); // Debug ID extraction
+                        
+                        // Ensure all values are valid numbers with extra safety
+                        const currentStock = isNaN(Number(item.currentStock)) ? 0 : Number(item.currentStock);
+                        const costPerUnit = isNaN(Number(item.costPerUnit)) ? 0 : Number(item.costPerUnit);
+                        const minStock = isNaN(Number(item.minStock)) ? 0 : Number(item.minStock);
+                        const totalValue = currentStock * costPerUnit;
+                        
+                        // Validate that totalValue and costPerUnit are safe for toFixed
+                        const safeCostPerUnit = isFinite(costPerUnit) ? costPerUnit : 0;
+                        const safeTotalValue = isFinite(totalValue) ? totalValue : 0;
+                        
+                        const stockStatus = getStockStatus(currentStock, minStock);
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.name || 'N/A'}</td>
+                            <td>${item.category || 'N/A'}</td>
+                            <td>${currentStock}</td>
+                            <td>${item.unit || 'N/A'}</td>
+                            <td>₦${safeCostPerUnit.toFixed(2)}</td>
+                            <td>₦${safeTotalValue.toFixed(2)}</td>
+                            <td>${minStock}</td>
+                            <td><span class="stock-status ${stockStatus.class}">${stockStatus.text}</span></td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="editKitchenItem('${itemId}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-warning btn-sm" onclick="adjustStock('${itemId}')">
+                                    <i class="fas fa-plus-minus"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteKitchenItem('${itemId}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    } catch (itemProcessError) {
+                        console.error('Error processing individual item:', itemProcessError, item);
+                        // Continue processing other items instead of breaking the whole loop
+                    }
+                });
+            } catch (itemError) {
+                console.error('Error processing kitchen inventory item:', itemError);
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error displaying inventory items</td></tr>';
+            }
         }
         
         // Update overview stats
@@ -769,6 +1074,33 @@ function getStockStatus(currentStock, minStock) {
         return { class: 'medium', text: 'Medium' };
     } else {
         return { class: 'good', text: 'Good' };
+    }
+}
+
+async function deleteKitchenItem(itemId) {
+    if (confirm('Are you sure you want to delete this kitchen inventory item?')) {
+        try {
+            const response = await fetch(`/api/kitchen/inventory/${itemId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                loadKitchenInventory();
+                showAlert('Kitchen item deleted successfully!', 'success');
+            } else {
+                throw new Error('API request failed');
+            }
+        } catch (error) {
+            console.error('Error deleting kitchen item via API, removing locally:', error);
+            
+            // Remove from local storage as fallback
+            let localItems = getKitchenItemsFromLocal() || [];
+            localItems = localItems.filter(item => item.id != itemId);
+            saveKitchenItemsToLocal(localItems);
+            
+            loadKitchenInventory();
+            showAlert('Kitchen item removed locally!', 'warning');
+        }
     }
 }
 
@@ -934,12 +1266,36 @@ function setupKitchenTabs() {
 
 // Modal Functions
 function showKitchenItemModal() {
-    document.getElementById('kitchenItemModal').style.display = 'block';
+    const modal = document.getElementById('kitchenItemModal');
+    const form = document.getElementById('kitchenItemForm');
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    // Reset form for adding new item
+    form.removeAttribute('data-edit-id');
+    submitButton.textContent = 'Add Item';
+    form.reset();
+    
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showPurchaseModal() {
+    const modal = document.getElementById('purchaseModal');
     loadKitchenItemsForPurchase();
-    document.getElementById('purchaseModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 async function loadKitchenItemsForPurchase() {
@@ -1022,19 +1378,29 @@ function calculatePurchaseTotal() {
 async function handleKitchenItemSubmit(e) {
     e.preventDefault();
     
+    const form = e.target;
+    const editId = form.getAttribute('data-edit-id');
+    const isEditing = !!editId;
+    
     const formData = new FormData(e.target);
     const itemData = {
         name: formData.get('name'),
-        category: formData.get('category'),
-        unit: formData.get('unit'),
-        minimumStock: parseInt(formData.get('minimumStock')),
-        quantity: parseInt(formData.get('currentStock')) || 0,
-        costPerUnit: parseFloat(formData.get('costPerUnit')) || 0
+        category: formData.get('category'), // This should match the enum values in the model
+        unit: formData.get('unit'), // This should match the enum values in the model
+        minStock: parseInt(formData.get('minimumStock')) || 0, // Fixed field name to match model
+        currentStock: parseInt(formData.get('currentStock')) || 0, // Fixed field name to match model
+        costPerUnit: parseFloat(formData.get('costPerUnit')) || 0,
+        supplier: formData.get('supplier') || '' // Add supplier field
     };
     
+    console.log(isEditing ? 'Updating kitchen item:' : 'Creating kitchen item:', itemData); // Debug log
+    
     try {
-        const response = await fetch('/api/kitchen/inventory', {
-            method: 'POST',
+        const url = isEditing ? `/api/kitchen/inventory/${editId}` : '/api/kitchen/inventory';
+        const method = isEditing ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
@@ -1043,17 +1409,26 @@ async function handleKitchenItemSubmit(e) {
         });
         
         if (response.ok) {
-            showAlert('Kitchen item added successfully!', 'success');
+            const successMessage = isEditing ? 'Kitchen item updated successfully!' : 'Kitchen item added successfully!';
+            showAlert(successMessage, 'success');
             closeModal('kitchenItemModal');
+            
+            // Reset form state
+            form.removeAttribute('data-edit-id');
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.textContent = 'Add Item';
+            form.reset();
+            
             loadKitchenInventory();
-            e.target.reset();
         } else {
             const error = await response.json();
-            showAlert(error.message || 'Failed to add kitchen item', 'error');
+            const errorMessage = isEditing ? 'Failed to update kitchen item' : 'Failed to add kitchen item';
+            showAlert(error.message || errorMessage, 'error');
         }
     } catch (error) {
-        console.error('Error adding kitchen item:', error);
-        showAlert('Error adding kitchen item', 'error');
+        console.error('Error with kitchen item:', error);
+        const errorMessage = isEditing ? 'Error updating kitchen item' : 'Error adding kitchen item';
+        showAlert(errorMessage, 'error');
     }
 }
 
@@ -1190,94 +1565,129 @@ Status: ${purchaseData.status}`;
 
 function editKitchenItem(itemId) {
     try {
-        // Find the item from the inventory list
-        const itemRows = document.querySelectorAll('#kitchenInventory .inventory-item');
+        console.log('Editing kitchen item with ID:', itemId);
+        
+        // Find the item from the current inventory table
+        const tableRows = document.querySelectorAll('#kitchenInventoryTable tr');
         let itemData = null;
         
-        itemRows.forEach(row => {
-            const id = row.getAttribute('data-item-id');
-            if (id === itemId) {
+        tableRows.forEach(row => {
+            const deleteButton = row.querySelector(`button[onclick*="deleteKitchenItem('${itemId}')"]`);
+            if (deleteButton) {
                 const cells = row.querySelectorAll('td');
-                itemData = {
-                    id: itemId,
-                    name: cells[0]?.textContent || '',
-                    category: cells[1]?.textContent || '',
-                    quantity: cells[2]?.textContent || '',
-                    unit: cells[3]?.textContent || '',
-                    price: cells[4]?.textContent || ''
-                };
+                if (cells.length >= 8) {
+                    itemData = {
+                        id: itemId,
+                        name: cells[0]?.textContent || '',
+                        category: cells[1]?.textContent || '',
+                        currentStock: cells[2]?.textContent || '',
+                        unit: cells[3]?.textContent || '',
+                        costPerUnit: cells[4]?.textContent.replace(/[₦$,]/g, '') || '',
+                        minStock: cells[6]?.textContent || ''
+                    };
+                }
             }
         });
         
         if (itemData) {
-            // Pre-fill the kitchen item form with existing data
-            document.getElementById('itemName').value = itemData.name;
-            document.getElementById('itemCategory').value = itemData.category;
-            document.getElementById('itemQuantity').value = itemData.quantity.replace(/[^\d.]/g, '');
-            document.getElementById('itemUnit').value = itemData.unit;
-            document.getElementById('itemPrice').value = itemData.price.replace(/[^\d.]/g, '');
+            console.log('Found item data for editing:', itemData);
             
-            // Show the modal
-            document.getElementById('kitchenItemModal').style.display = 'block';
+            // Pre-fill the kitchen item form with existing data
+            document.getElementById('kitchenItemName').value = itemData.name;
+            document.getElementById('kitchenItemCategory').value = itemData.category;
+            document.getElementById('kitchenItemStock').value = itemData.currentStock;
+            document.getElementById('kitchenItemUnit').value = itemData.unit;
+            document.getElementById('kitchenItemCost').value = itemData.costPerUnit;
+            document.getElementById('kitchenItemMinStock').value = itemData.minStock;
+            
+            // Change form to edit mode
+            const form = document.getElementById('kitchenItemForm');
+            const submitButton = form.querySelector('button[type="submit"]');
             
             // Store the item ID for updating
-            document.getElementById('kitchenItemForm').setAttribute('data-edit-id', itemId);
+            form.setAttribute('data-edit-id', itemId);
+            submitButton.textContent = 'Update Item';
+            
+            // Show the modal
+            showKitchenItemModal();
         } else {
-            showAlert('Item not found', 'error');
+            console.error('Could not find item data for ID:', itemId);
+            showAlert('Could not find item to edit', 'error');
         }
     } catch (error) {
-        console.error('Error editing kitchen item:', error);
-        showAlert('Error loading item details', 'error');
+        console.error('Error in editKitchenItem:', error);
+        showAlert('Error opening edit form', 'error');
     }
 }
 
 function adjustStock(itemId) {
     try {
-        // Find the item from the inventory list
-        const itemRows = document.querySelectorAll('#kitchenInventory .inventory-item');
+        console.log('Adjusting stock for item ID:', itemId);
+        
+        // Find the item from the current inventory table
+        const tableRows = document.querySelectorAll('#kitchenInventoryTable tr');
         let itemData = null;
         
-        itemRows.forEach(row => {
-            const id = row.getAttribute('data-item-id');
-            if (id === itemId) {
+        tableRows.forEach(row => {
+            const deleteButton = row.querySelector(`button[onclick*="deleteKitchenItem('${itemId}')"]`);
+            if (deleteButton) {
                 const cells = row.querySelectorAll('td');
-                itemData = {
-                    id: itemId,
-                    name: cells[0]?.textContent || '',
-                    currentQuantity: cells[2]?.textContent || ''
-                };
+                if (cells.length >= 8) {
+                    itemData = {
+                        id: itemId,
+                        name: cells[0]?.textContent || '',
+                        currentStock: parseFloat(cells[2]?.textContent) || 0,
+                        unit: cells[3]?.textContent || ''
+                    };
+                }
             }
         });
         
         if (itemData) {
-            const currentQty = parseFloat(itemData.currentQuantity.replace(/[^\d.]/g, '')) || 0;
-            const adjustment = prompt(`Adjust stock for ${itemData.name}\nCurrent quantity: ${currentQty}\nEnter adjustment (+/- amount):`);
+            const adjustment = prompt(`Adjust stock for ${itemData.name}\nCurrent quantity: ${itemData.currentStock} ${itemData.unit}\nEnter adjustment (+/- amount):`);
             
             if (adjustment !== null && adjustment.trim() !== '') {
                 const adjustmentValue = parseFloat(adjustment);
                 if (!isNaN(adjustmentValue)) {
-                    const newQuantity = Math.max(0, currentQty + adjustmentValue);
+                    const newQuantity = Math.max(0, itemData.currentStock + adjustmentValue);
                     
-                    // Update the display (this would normally make an API call)
-                    const row = document.querySelector(`[data-item-id="${itemId}"] td:nth-child(3)`);
-                    if (row) {
-                        row.textContent = newQuantity.toFixed(1);
-                    }
-                    
-                    showAlert(`Stock adjusted successfully. New quantity: ${newQuantity}`, 'success');
-                    
-                    // Refresh the inventory display
-                    loadKitchenInventory();
+                    // Make API call to update the stock
+                    updateKitchenItemStock(itemId, newQuantity);
                 } else {
                     showAlert('Please enter a valid number', 'error');
                 }
             }
         } else {
-            showAlert('Item not found', 'error');
+            console.error('Could not find item data for ID:', itemId);
+            showAlert('Could not find item to adjust', 'error');
         }
     } catch (error) {
-        console.error('Error adjusting stock:', error);
+        console.error('Error in adjustStock:', error);
         showAlert('Error adjusting stock', 'error');
+    }
+}
+
+// Helper function to update stock via API
+async function updateKitchenItemStock(itemId, newStock) {
+    try {
+        const response = await fetch(`/api/kitchen/inventory/${itemId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            },
+            body: JSON.stringify({ currentStock: newStock })
+        });
+        
+        if (response.ok) {
+            showAlert('Stock updated successfully!', 'success');
+            loadKitchenInventory(); // Refresh the inventory display
+        } else {
+            throw new Error('Failed to update stock');
+        }
+    } catch (error) {
+        console.error('Error updating stock:', error);
+        showAlert('Failed to update stock', 'error');
     }
 }
 
@@ -1387,6 +1797,7 @@ function setupModalEventListeners() {
 
 // Modal Functions
 function showBookingModal(roomId = null) {
+    const modal = document.getElementById('bookingModal');
     loadAvailableRooms();
     loadCustomers(); // Load customers into the dropdown when modal opens
     
@@ -1400,10 +1811,18 @@ function showBookingModal(roomId = null) {
         }, 100);
     }
     
-    document.getElementById('bookingModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showCustomerModal() {
+    const modal = document.getElementById('customerModal');
     // Reset form for adding new customer
     const form = document.getElementById('customerForm');
     form.reset();
@@ -1413,15 +1832,38 @@ function showCustomerModal() {
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.textContent = 'Add Customer';
     
-    document.getElementById('customerModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showBarItemModal() {
-    document.getElementById('barItemModal').style.display = 'block';
+    const modal = document.getElementById('barItemModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showOrderModal() {
-    document.getElementById('orderModal').style.display = 'block';
+    const modal = document.getElementById('orderModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 // Form Handlers
@@ -1487,10 +1929,43 @@ async function handleCustomerSubmit(event) {
             
             loadCustomers();
             showAlert(isUpdate ? 'Customer updated successfully!' : 'Customer added successfully!', 'success');
+        } else {
+            throw new Error('API request failed');
         }
     } catch (error) {
-        console.error('Error saving customer:', error);
-        showAlert('Error saving customer', 'error');
+        console.error('Error saving customer via API, saving locally:', error);
+        
+        // Save to local storage as fallback
+        let localCustomers = getCustomersFromLocal() || [];
+        
+        if (isUpdate) {
+            // Update existing customer
+            const index = localCustomers.findIndex(c => c.id == customerId);
+            if (index !== -1) {
+                localCustomers[index] = { ...customer, id: customerId };
+            }
+        } else {
+            // Add new customer with generated ID
+            const newId = Date.now().toString(); // Simple ID generation
+            customer.id = newId;
+            localCustomers.push(customer);
+        }
+        
+        saveCustomersToLocal(localCustomers);
+        
+        document.getElementById('customerModal').style.display = 'none';
+        event.target.reset();
+        
+        // Reset form state
+        delete event.target.dataset.customerId;
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.textContent = 'Add Customer';
+        
+        loadCustomers();
+        showAlert(
+            isUpdate ? 'Customer updated locally!' : 'Customer saved locally!', 
+            'warning'
+        );
     }
 }
 
@@ -1511,7 +1986,15 @@ async function editCustomer(customerId) {
             document.getElementById('customerForm').dataset.customerId = customerId;
             
             // Show modal
-            document.getElementById('customerModal').style.display = 'block';
+            const modal = document.getElementById('customerModal');
+            modal.style.display = 'flex';
+            modal.classList.add('show');
+            
+            // Focus on first input after a short delay
+            setTimeout(() => {
+                const firstInput = modal.querySelector('input');
+                if (firstInput) firstInput.focus();
+            }, 100);
             
             // Change submit button text
             const submitBtn = document.querySelector('#customerForm button[type="submit"]');
@@ -1523,23 +2006,114 @@ async function editCustomer(customerId) {
     }
 }
 
+// Helper function to validate customer ID format
+function isValidCustomerId(customerId) {
+    if (!customerId) return false;
+    
+    // Check for MongoDB ObjectId format (24 hex characters)
+    const mongoIdPattern = /^[0-9a-fA-F]{24}$/;
+    
+    // Check for UUID format
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    
+    // Check for simple numeric ID
+    const numericPattern = /^\d+$/;
+    
+    return mongoIdPattern.test(customerId) || uuidPattern.test(customerId) || numericPattern.test(customerId);
+}
+
+// Clean up invalid customer records
+function cleanupCustomerData() {
+    try {
+        let localCustomers = getCustomersFromLocal() || [];
+        const originalLength = localCustomers.length;
+        
+        // Remove customers with invalid IDs or missing required fields
+        localCustomers = localCustomers.filter(customer => {
+            return customer && 
+                   customer.id && 
+                   isValidCustomerId(customer.id) &&
+                   customer.name && 
+                   customer.name.trim().length > 0;
+        });
+        
+        if (localCustomers.length < originalLength) {
+            console.log(`🧹 Cleaned up ${originalLength - localCustomers.length} invalid customer records`);
+            saveCustomersToLocal(localCustomers);
+        }
+        
+        return localCustomers;
+    } catch (error) {
+        console.error('Error cleaning up customer data:', error);
+        return [];
+    }
+}
+
 // Delete customer function
 async function deleteCustomer(customerId) {
+    // Validate customer ID first
+    if (!isValidCustomerId(customerId)) {
+        console.error('Invalid customer ID format:', customerId);
+        showAlert('Invalid customer ID format. Please refresh and try again.', 'error');
+        loadCustomers(); // Refresh the customer list
+        return;
+    }
+    
     if (confirm('Are you sure you want to delete this customer?')) {
         try {
+            console.log('Attempting to delete customer with ID:', customerId);
+            
             const response = await fetch(`/api/customers/${customerId}`, {
                 method: 'DELETE'
             });
             
+            console.log('Delete response status:', response.status);
+            
             if (response.ok) {
                 loadCustomers();
                 showAlert('Customer deleted successfully!', 'success');
+            } else if (response.status === 404) {
+                console.log('Customer not found on server, cleaning up locally');
+                
+                // Customer doesn't exist on server, remove from local storage
+                let localCustomers = getCustomersFromLocal() || [];
+                const originalLength = localCustomers.length;
+                localCustomers = localCustomers.filter(c => c.id != customerId);
+                
+                if (localCustomers.length < originalLength) {
+                    saveCustomersToLocal(localCustomers);
+                    loadCustomers();
+                    showAlert('Customer was already removed. Display updated.', 'info');
+                } else {
+                    // Customer not found locally either, refresh the list
+                    loadCustomers();
+                    showAlert('Customer not found. List refreshed.', 'info');
+                }
             } else {
-                showAlert('Error deleting customer', 'error');
+                const errorText = await response.text();
+                console.error('Server error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
             }
         } catch (error) {
             console.error('Error deleting customer:', error);
-            showAlert('Error deleting customer', 'error');
+            
+            // If it's a network error or server error, try local fallback
+            if (error.message.includes('Failed to fetch') || error.message.includes('Server error')) {
+                // Remove from local storage as fallback
+                let localCustomers = getCustomersFromLocal() || [];
+                const originalLength = localCustomers.length;
+                localCustomers = localCustomers.filter(c => c.id != customerId);
+                
+                if (localCustomers.length < originalLength) {
+                    saveCustomersToLocal(localCustomers);
+                    loadCustomers();
+                    showAlert('Connection error. Customer removed from local display.', 'warning');
+                } else {
+                    showAlert('Connection error and customer not found locally.', 'error');
+                }
+            } else {
+                showAlert('Failed to delete customer. Please try again.', 'error');
+            }
         }
     }
 }
@@ -1616,7 +2190,7 @@ async function loadAvailableRooms() {
         rooms.filter(room => room.status === 'available').forEach(room => {
             const option = document.createElement('option');
             option.value = String(room.id);
-            option.textContent = `${room.number} - ${room.type} (${room.price}/night)`;
+            option.textContent = `${room.name} - ${room.type} (${room.price}/night)`;
             roomSelect.appendChild(option);
         });
     } catch (error) {
@@ -1643,7 +2217,15 @@ let currentRoomId = null;
 
 async function changeRoomStatus(roomId) {
     currentRoomId = roomId;
-    document.getElementById('roomStatusModal').style.display = 'block';
+    const modal = document.getElementById('roomStatusModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 // Handle room status form submission
@@ -1785,6 +2367,39 @@ async function checkoutRoom(roomId) {
     }
 }
 
+async function cancelBooking(roomId) {
+    if (confirm('Are you sure you want to cancel this booking? The room will become available.')) {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'available', currentGuest: null })
+            });
+            
+            if (response.ok) {
+                loadRooms();
+                showAlert('Booking cancelled successfully! Room is now available.', 'success');
+            } else {
+                throw new Error('API request failed');
+            }
+        } catch (error) {
+            console.error('Error cancelling booking via API, updating locally:', error);
+            
+            // Update local storage as fallback
+            let localRooms = getRoomsFromLocal() || [];
+            const roomIndex = localRooms.findIndex(r => r.id == roomId);
+            if (roomIndex !== -1) {
+                localRooms[roomIndex].status = 'available';
+                localRooms[roomIndex].currentGuest = null;
+                saveRoomsToLocal(localRooms);
+            }
+            
+            loadRooms();
+            showAlert('Booking cancelled locally!', 'warning');
+        }
+    }
+}
+
 function bookRoom(roomId) {
     document.getElementById('roomSelect').value = roomId;
     showBookingModal();
@@ -1794,7 +2409,42 @@ let currentOrderId = null;
 
 async function updateOrderStatus(orderId) {
     currentOrderId = orderId;
-    document.getElementById('orderStatusModal').style.display = 'block';
+    const modal = document.getElementById('orderStatusModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
+}
+
+async function deleteKitchenOrder(orderId) {
+    if (confirm('Are you sure you want to cancel this kitchen order?')) {
+        try {
+            const response = await fetch(`/api/kitchen/orders/${orderId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                loadKitchenOrders();
+                showAlert('Kitchen order cancelled successfully!', 'success');
+            } else {
+                throw new Error('API request failed');
+            }
+        } catch (error) {
+            console.error('Error deleting kitchen order via API, removing locally:', error);
+            
+            // Remove from local storage as fallback
+            let localOrders = getKitchenOrdersFromLocal() || [];
+            localOrders = localOrders.filter(order => order.id != orderId);
+            saveKitchenOrdersToLocal(localOrders);
+            
+            loadKitchenOrders();
+            showAlert('Kitchen order cancelled locally!', 'warning');
+        }
+    }
 }
 
 // Police Reports Management
@@ -1902,17 +2552,41 @@ async function loadPayments() {
 
 // Modal Functions
 function showPoliceReportModal() {
+    const modal = document.getElementById('policeReportModal');
     populateRoomAndCustomerSelects('reportRoom', 'reportCustomer');
-    document.getElementById('policeReportModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input, select');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showPaymentModal() {
+    const modal = document.getElementById('paymentModal');
     populateRoomAndCustomerSelects('paymentRoom', 'paymentCustomer');
-    document.getElementById('paymentModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input, select');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showRefundModal() {
-    document.getElementById('refundModal').style.display = 'block';
+    const modal = document.getElementById('refundModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 // Form Handlers
@@ -2081,7 +2755,15 @@ let currentStaffId = null;
 
 async function updateReportStatus(reportId) {
     currentReportId = reportId;
-    document.getElementById('reportStatusModal').style.display = 'block';
+    const modal = document.getElementById('reportStatusModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 // NEW FEATURES FUNCTIONS
@@ -2101,24 +2783,43 @@ function displayNotifications(notifications) {
     const container = document.getElementById('notificationsList');
     if (!container) return;
 
-    container.innerHTML = notifications.map(notification => `
-        <div class="notification-item ${notification.read ? '' : 'unread'} ${notification.priority === 'urgent' ? 'urgent' : ''}">
+    if (!notifications || notifications.length === 0) {
+        container.innerHTML = '<div class="no-notifications">No notifications at this time</div>';
+        return;
+    }
+
+    container.innerHTML = notifications.map(notification => {
+        const date = new Date(notification.createdAt);
+        const timeString = isNaN(date.getTime()) ? 'Unknown time' : date.toLocaleString();
+        const priorityClass = notification.priority ? notification.priority.toLowerCase() : 'normal';
+        
+        return `
+        <div class="notification-item ${notification.read ? '' : 'unread'} ${priorityClass === 'high' || priorityClass === 'urgent' ? 'urgent' : ''}">
             <div class="notification-header">
-                <h4 class="notification-title">${notification.title}</h4>
-                <span class="notification-time">${new Date(notification.createdAt).toLocaleString()}</span>
+                <h4 class="notification-title">${notification.title || 'Notification'}</h4>
+                <span class="notification-time">${timeString}</span>
             </div>
-            <p>${notification.message}</p>
+            <p>${notification.message || 'No message'}</p>
             <div class="notification-meta">
-                <span class="recipient">${notification.recipient}</span>
-                <span class="priority priority-${notification.priority}">${notification.priority}</span>
+                <span class="recipient">${notification.recipient || 'All Staff'}</span>
+                <span class="priority priority-${priorityClass}">${priorityClass.charAt(0).toUpperCase() + priorityClass.slice(1)}</span>
                 ${!notification.read ? `<button class="btn btn-sm" onclick="markAsRead('${notification.id}')">Mark Read</button>` : ''}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function showNotificationModal() {
-    document.getElementById('notificationModal').style.display = 'block';
+    const modal = document.getElementById('notificationModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input, select, textarea');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 async function markAsRead(notificationId) {
@@ -2160,6 +2861,9 @@ async function loadStaff() {
 function displayStaff(staff) {
     const container = document.getElementById('staffList');
     if (!container) return;
+    
+    // Check if current user is director for showing edit/delete buttons
+    const isDirector = window.currentStaff && window.currentStaff.position === 'director';
 
     container.innerHTML = staff.map(member => `
         <div class="staff-card ${member.status === 'off-duty' ? 'off-duty' : ''}">
@@ -2167,14 +2871,28 @@ function displayStaff(staff) {
                 <h4 class="staff-name">${member.name}</h4>
                 <span class="staff-status ${member.status}">${member.status}</span>
             </div>
+            <p><strong>ID:</strong> ${member.personalId}</p>
             <p><strong>Position:</strong> ${member.position}</p>
             <p><strong>Shift:</strong> ${member.shift}</p>
             <p><strong>Phone:</strong> ${member.phone}</p>
             <p><strong>Email:</strong> ${member.email}</p>
             <p><strong>Rate:</strong> ₦${member.hourlyRate}/hour</p>
             <div class="staff-actions">
-                <button class="btn btn-sm btn-info" onclick="updateStaffStatus('${member.id}')">Update Status</button>
-                <button class="btn btn-sm btn-warning" onclick="editStaff('${member.id}')">Edit</button>
+                <button class="btn btn-sm btn-info" onclick="updateStaffStatus('${member.id}')" title="Update Status">
+                    <i class="fas fa-sync"></i> Status
+                </button>
+                ${isDirector ? `
+                    <button class="btn btn-sm btn-warning" onclick="editStaff('${member.id}')" title="Edit Staff Member">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteStaff('${member.id}')" title="Delete Staff Member">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                ` : `
+                    <span class="permission-notice" style="font-size: 0.8em; color: #6c757d; font-style: italic;">
+                        <i class="fas fa-lock"></i> Director only
+                    </span>
+                `}
             </div>
         </div>
     `).join('');
@@ -2195,17 +2913,134 @@ function updateStaffStats(staff) {
 }
 
 function showStaffModal() {
-    document.getElementById('staffModal').style.display = 'block';
+    // Check if user has permission to add staff (Director only)
+    if (window.currentStaff && window.currentStaff.position !== 'director') {
+        showAlert('Access Denied: Only the Hotel Director can add staff members', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('staffModal');
+    const form = document.getElementById('staffForm');
+    
+    // Reset form for adding new staff
+    form.reset();
+    form.removeAttribute('data-edit-id');
+    
+    // Reset submit button text
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Add Staff Member';
+    
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }, 100);
+}
+
+// Edit staff member function
+async function editStaff(staffId) {
+    // Check if user has permission to edit staff (Director only)
+    if (window.currentStaff && window.currentStaff.position !== 'director') {
+        showAlert('Access Denied: Only the Hotel Director can edit staff members', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/staff/${staffId}`);
+        if (response.ok) {
+            const staff = await response.json();
+            
+            // Populate the staff form with existing data
+            document.getElementById('staffPersonalId').value = staff.personalId;
+            document.getElementById('staffName').value = staff.name;
+            document.getElementById('staffEmail').value = staff.email;
+            document.getElementById('staffPhone').value = staff.phone;
+            document.getElementById('staffPosition').value = staff.position;
+            document.getElementById('staffShift').value = staff.shift;
+            document.getElementById('staffSalary').value = staff.hourlyRate;
+            document.getElementById('staffStartDate').value = staff.startDate;
+            document.getElementById('staffNotes').value = staff.notes || '';
+            
+            // Set form to edit mode
+            const form = document.getElementById('staffForm');
+            form.setAttribute('data-edit-id', staffId);
+            
+            // Change submit button text
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.textContent = 'Update Staff Member';
+            
+            // Show the modal
+            showStaffModal();
+            
+        } else {
+            throw new Error('Failed to load staff data');
+        }
+    } catch (error) {
+        console.error('Error loading staff for edit:', error);
+        showAlert('Error loading staff data', 'error');
+    }
+}
+
+// Delete staff member function
+async function deleteStaff(staffId) {
+    // Check if user has permission to delete staff (Director only)
+    if (window.currentStaff && window.currentStaff.position !== 'director') {
+        showAlert('Access Denied: Only the Hotel Director can delete staff members', 'error');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this staff member? This action cannot be undone.')) {
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                loadStaff();
+                await loadCurrentStaffStatus();
+                showAlert('Staff member deleted successfully!', 'success');
+            } else if (response.status === 403) {
+                const errorData = await response.json();
+                showAlert(`Access Denied: ${errorData.message || 'Only the Hotel Director can delete staff members'}`, 'error');
+            } else {
+                const errorText = await response.text();
+                console.error('Server error:', response.status, errorText);
+                showAlert(`Failed to delete staff member. Server error: ${response.status}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting staff member:', error);
+            showAlert('Failed to delete staff member. Please check your connection and try again.', 'error');
+        }
+    }
 }
 
 function showScheduleModal() {
+    const modal = document.getElementById('scheduleModal');
     loadStaffOptions('scheduleStaff');
-    document.getElementById('scheduleModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showClockInModal() {
+    const modal = document.getElementById('clockInModal');
     loadStaffOptions('clockStaff');
-    document.getElementById('clockInModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 async function loadStaffOptions(selectId) {
@@ -2284,12 +3119,16 @@ function getStatusClass(status) {
     }
 }
 
-function showClockInModal() {
-    document.getElementById('clockInModal').style.display = 'block';
-}
-
 function showTimesheetModal() {
-    document.getElementById('timesheetModal').style.display = 'block';
+    const modal = document.getElementById('timesheetModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 async function quickClock(action) {
@@ -2447,7 +3286,7 @@ function displayCleaningTasks(tasks) {
 
     container.innerHTML = tasks.map(task => `
         <div class="cleaning-task ${task.status === 'completed' ? 'completed' : ''}">
-            <h4>${task.roomId ? `Room ${task.roomId}` : 'General Area'} - ${task.type}</h4>
+            <h4>${task.roomName ? `${task.roomName}` : 'General Area'} - ${task.type}</h4>
             <p><strong>Status:</strong> ${task.status}</p>
             <p><strong>Assigned to:</strong> ${task.assignee || 'Unassigned'}</p>
             <p><strong>Instructions:</strong> ${task.instructions || 'Standard cleaning'}</p>
@@ -2527,18 +3366,42 @@ function updateHousekeepingStats() {
 }
 
 function showMaintenanceModal() {
+    const modal = document.getElementById('maintenanceModal');
     loadRoomOptions('maintenanceRoom');
-    document.getElementById('maintenanceModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showSupplyModal() {
-    document.getElementById('supplyModal').style.display = 'block';
+    const modal = document.getElementById('supplyModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('input, select');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 function showCleaningModal() {
+    const modal = document.getElementById('cleaningModal');
     loadRoomOptions('cleaningRoom');
     loadStaffOptions('cleaningAssignee');
-    document.getElementById('cleaningModal').style.display = 'block';
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Focus on first input after a short delay
+    setTimeout(() => {
+        const firstInput = modal.querySelector('select, input');
+        if (firstInput) firstInput.focus();
+    }, 100);
 }
 
 // ANALYTICS FUNCTIONALITY
@@ -2634,7 +3497,7 @@ async function loadServices() {
         const task = {
             title: formData.get('title'),
             type: formData.get('type'),
-            roomNumber: formData.get('roomNumber'),
+            roomName: formData.get('roomName'),
             priority: formData.get('priority'),
             notes: formData.get('notes'),
             status: 'pending'
@@ -2672,19 +3535,53 @@ async function loadServices() {
     function displayScanPayOrders(orders) {
         const container = document.getElementById('scanPayOrdersList');
         if (!container) return;
-        container.innerHTML = orders.map(order => `
-            <div class="scanpay-order">
-                <h4>Order #${order.id} - ${order.status}</h4>
-                <p><strong>Customer:</strong> ${order.customerId}</p>
-                <p><strong>Items:</strong> ${order.items}</p>
-                <p><strong>Amount:</strong> ₦${order.amount}</p>
-                <p><strong>Created:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
-            </div>
-        `).join('');
+        
+        if (!orders || orders.length === 0) {
+            container.innerHTML = '<div class="no-data">No scan & pay orders found</div>';
+            return;
+        }
+        
+        container.innerHTML = orders.map(order => {
+            const statusClass = order.status === 'completed' ? 'status-completed' : 
+                               order.status === 'pending' ? 'status-pending' : 
+                               order.status === 'preparing' ? 'status-preparing' : '';
+            
+            return `
+                <div class="scanpay-order ${statusClass}">
+                    <div class="order-header">
+                        <h4>Order ${order.orderNumber || `#${order.id}`}</h4>
+                        <span class="order-status status-${order.status}">${order.status || 'Unknown'}</span>
+                    </div>
+                    <div class="order-details">
+                        <p><strong>Customer:</strong> ${order.customerId || 'Unknown'}</p>
+                        <p><strong>Type:</strong> ${order.orderType || 'Not specified'}</p>
+                        ${order.tableNumber ? `<p><strong>Table:</strong> ${order.tableNumber}</p>` : ''}
+                        <p><strong>Items:</strong> ${order.items || 'No items listed'}</p>
+                        <p><strong>Amount:</strong> ₦${(order.amount || 0).toLocaleString()}</p>
+                        <p><strong>Payment:</strong> ${order.paymentMethod || 'Not specified'}</p>
+                        ${order.notes ? `<p><strong>Notes:</strong> ${order.notes}</p>` : ''}
+                        <p><strong>Created:</strong> ${order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Unknown'}</p>
+                    </div>
+                    <div class="order-actions">
+                        ${order.status === 'pending' ? '<button class="btn btn-sm btn-success" onclick="updateOrderStatus(' + order.id + ', \'completed\')">Mark Complete</button>' : ''}
+                        <button class="btn btn-sm btn-secondary" onclick="viewOrderDetails(' + order.id + ')">View Details</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
     function showScanPayOrderModal() {
-        document.getElementById('scanPayOrderModal').style.display = 'block';
+        const modal = document.getElementById('scanPayOrderModal');
+        loadCustomerOptions('scanPayCustomer');
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+        
+        // Focus on first input after a short delay
+        setTimeout(() => {
+            const firstInput = modal.querySelector('select, input');
+            if (firstInput) firstInput.focus();
+        }, 100);
     }
 
     async function handleScanPayOrderSubmit(event) {
@@ -2692,25 +3589,70 @@ async function loadServices() {
         const formData = new FormData(event.target);
         const order = {
             customerId: formData.get('customerId'),
+            orderNumber: formData.get('orderNumber'),
+            orderType: formData.get('orderType'),
+            tableNumber: formData.get('tableNumber'),
             items: formData.get('items'),
             amount: parseFloat(formData.get('amount')),
-            status: 'pending'
+            paymentMethod: formData.get('paymentMethod'),
+            notes: formData.get('notes'),
+            status: 'pending',
+            createdAt: new Date().toISOString()
         };
+        
         try {
+            const token = localStorage.getItem('authToken');
             const response = await fetch('/api/scanpay', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(order)
             });
+            
             if (response.ok) {
-                document.getElementById('scanPayOrderModal').style.display = 'none';
+                closeModal('scanPayOrderModal');
                 event.target.reset();
                 loadScanPayOrders();
-                alert('Scan & Pay order created!');
+                showAlert('Scan & Pay order created successfully!', 'success');
+            } else {
+                throw new Error('Failed to create order');
             }
         } catch (error) {
-            console.error('Error creating scan & pay order:', error);
+            console.error('Error creating Scan & Pay order:', error);
+            showAlert('Failed to create order. Please try again.', 'error');
         }
+    }
+
+    async function updateOrderStatus(orderId, status) {
+        try {
+            const token = localStorage.getItem('staffToken');
+            const response = await fetch(`/api/scanpay/${orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (response.ok) {
+                loadScanPayOrders();
+                showAlert('Order status updated successfully!', 'success');
+            } else {
+                throw new Error('Failed to update status');
+            }
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            showAlert('Failed to update order status. Please try again.', 'error');
+        }
+    }
+
+    function viewOrderDetails(orderId) {
+        // For now, just show an alert with order ID
+        // In a full implementation, this could open a detailed modal
+        showAlert(`Viewing details for Order #${orderId}`, 'info');
     }
 
     // HR FUNCTIONALITY
@@ -3225,7 +4167,7 @@ async function loadRoomOptions(selectId) {
         rooms.forEach(room => {
             const option = document.createElement('option');
             option.value = String(room.id);
-            option.textContent = `Room ${room.number} (${room.type})`;
+            option.textContent = `${room.name} (${room.type})`;
             select.appendChild(option);
         });
     } catch (error) {
@@ -3309,34 +4251,63 @@ async function handleNotificationSubmit(e) {
 
 async function handleStaffSubmit(e) {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    // Check if this is an edit or create operation
+    const editId = form.getAttribute('data-edit-id');
+    const isEdit = editId !== null;
+    
+    const staffData = {
+        personalId: formData.get('staffPersonalId') || document.getElementById('staffPersonalId').value,
+        name: formData.get('staffName') || document.getElementById('staffName').value,
+        email: formData.get('staffEmail') || document.getElementById('staffEmail').value,
+        phone: formData.get('staffPhone') || document.getElementById('staffPhone').value,
+        position: formData.get('staffPosition') || document.getElementById('staffPosition').value,
+        shift: formData.get('staffShift') || document.getElementById('staffShift').value,
+        hourlyRate: parseFloat(formData.get('staffSalary') || document.getElementById('staffSalary').value),
+        startDate: formData.get('staffStartDate') || document.getElementById('staffStartDate').value,
+        notes: formData.get('staffNotes') || document.getElementById('staffNotes').value
+    };
     
     try {
-        const response = await fetch('/api/staff', {
-            method: 'POST',
+        const url = isEdit ? `/api/staff/${editId}` : '/api/staff';
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                personalId: formData.get('staffPersonalId') || document.getElementById('staffPersonalId').value,
-                name: formData.get('staffName') || document.getElementById('staffName').value,
-                email: formData.get('staffEmail') || document.getElementById('staffEmail').value,
-                phone: formData.get('staffPhone') || document.getElementById('staffPhone').value,
-                position: formData.get('staffPosition') || document.getElementById('staffPosition').value,
-                shift: formData.get('staffShift') || document.getElementById('staffShift').value,
-                hourlyRate: parseFloat(formData.get('staffSalary') || document.getElementById('staffSalary').value),
-                startDate: formData.get('staffStartDate') || document.getElementById('staffStartDate').value,
-                notes: formData.get('staffNotes') || document.getElementById('staffNotes').value
-            })
+            body: JSON.stringify(staffData)
         });
         
         if (response.ok) {
-            document.getElementById('staffModal').style.display = 'none';
-            e.target.reset();
+            closeModal('staffModal');
+            
+            // Reset form and clear edit mode
+            form.reset();
+            form.removeAttribute('data-edit-id');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.textContent = 'Add Staff Member';
+            
+            // Reload staff data
             loadStaff();
             await loadCurrentStaffStatus();
-            alert('Staff member added successfully!');
+            
+            const message = isEdit ? 'Staff member updated successfully!' : 'Staff member added successfully!';
+            showAlert(message, 'success');
+            
+        } else if (response.status === 403) {
+            const errorData = await response.json();
+            console.error('Access denied:', errorData);
+            showAlert(`Access Denied: ${errorData.message || 'Only the Hotel Director can manage staff members'}`, 'error');
+        } else {
+            const errorText = await response.text();
+            console.error('Server error:', response.status, errorText);
+            showAlert(`Failed to ${isEdit ? 'update' : 'add'} staff member. Server error: ${response.status}`, 'error');
         }
     } catch (error) {
-        console.error('Error adding staff member:', error);
+        console.error('Error submitting staff data:', error);
+        showAlert(`Failed to ${isEdit ? 'update' : 'add'} staff member. Please check your connection and try again.`, 'error');
     }
 }
 

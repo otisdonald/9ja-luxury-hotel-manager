@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hotel-manager-v1.0.0';
+const CACHE_NAME = 'hotel-manager-v1.0.3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,22 +9,32 @@ const urlsToCache = [
   '/script.js',
   '/admin-script.js',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  // Add other critical assets
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
+  '/icons/icon-16x16.png',
+  '/icons/icon-192x192.png'
+  // Removed non-existent icon-512x512.png
 ];
 
-// Install event - cache resources
+// Install event - cache resources with individual error handling
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Service Worker: Caching files');
-        return cache.addAll(urlsToCache);
+        // Cache files individually to avoid complete failure if one file fails
+        return Promise.allSettled(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(error => {
+              console.warn(`Service Worker: Failed to cache ${url}:`, error);
+              return null; // Continue with other files
+            });
+          })
+        );
       })
-      .then(() => {
+      .then((results) => {
+        const successful = results.filter(result => result.status === 'fulfilled').length;
+        const failed = results.filter(result => result.status === 'rejected').length;
+        console.log(`Service Worker: Cached ${successful} files, ${failed} failed`);
         console.log('Service Worker: Installation complete');
         return self.skipWaiting();
       })
@@ -114,7 +124,21 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
 
-        // If not in cache, fetch from network
+        // Skip caching external resources that might violate CSP
+        const url = new URL(event.request.url);
+        if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && !url.hostname.includes('localhost')) {
+          // For external resources, just fetch without caching
+          return fetch(event.request).catch(() => {
+            // Return a basic response if external resource fails
+            return new Response('', { 
+              status: 200, 
+              statusText: 'OK',
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+        }
+
+        // If not in cache, fetch from network (local resources only)
         return fetch(event.request).then((response) => {
           // Don't cache if not a valid response
           if (!response || response.status !== 200 || response.type !== 'basic') {
