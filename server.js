@@ -1692,16 +1692,22 @@ app.delete('/api/customers/:id', requireStaffAuth, async (req, res) => {
 
 // Booking Routes
 app.get('/api/bookings', requireStaffAuth, async (req, res) => {
+  console.log('📋 Fetching bookings - DB connected:', dbConnected, '- Booking model:', !!Booking);
+  
   if (dbConnected && Booking) {
     try {
       const docs = await Booking.find().lean();
+      console.log('✅ Fetched', docs.length, 'bookings from MongoDB');
       return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId })));
     } catch (err) {
-      console.error('Error fetching bookings from DB:', err);
-      return res.status(500).json({ error: 'DB error' });
+      console.error('❌ Error fetching bookings from DB:', err);
+      // Fall back to empty array instead of error
     }
   }
-  return res.status(503).json({ error: 'Database not available' });
+  
+  // Fallback: return empty array instead of 503 error
+  console.log('⚠️ Using fallback empty bookings array');
+  return res.json([]);
 });
 
 app.post('/api/bookings', requireStaffAuth, async (req, res) => {
@@ -2261,19 +2267,22 @@ app.put('/api/police-reports/:id', (req, res) => {
 
 // Payment Routes
 app.get('/api/payments', requireStaffAuth, async (req, res) => {
+  console.log('💳 Fetching payments - DB connected:', dbConnected, '- Payment model:', !!Payment);
+  
   if (dbConnected && Payment) {
     try {
       const docs = await Payment.find().populate('customerId', 'name').lean();
+      console.log('✅ Fetched', docs.length, 'payments from MongoDB');
       return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId, customerName: d.customerId ? d.customerId.name : null })));
     } catch (err) {
-      console.error('Error fetching payments from DB:', err);
-      // Fall back to in-memory data if DB fails
+      console.error('❌ Error fetching payments from DB:', err);
+      // Fall back to empty array instead of error
     }
   }
   
-  // Fallback to in-memory payments data
-  console.log('⚠️ Using fallback payments data');
-  return res.json(payments.map(payment => ({ ...payment, id: payment.id })));
+  // Fallback to empty array
+  console.log('⚠️ Using fallback empty payments array');
+  return res.json([]);
 });
 
 app.post('/api/payments', requireStaffAuth, async (req, res) => {

@@ -948,16 +948,20 @@ async function loadRoomReport() {
 async function loadCustomerReport() {
     try {
         const [customers, bookings] = await Promise.all([
-            fetch('/api/customers').then(r => r.json()),
-            fetch('/api/bookings').then(r => r.json())
+            fetchWithAuth('/api/customers').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/bookings').then(r => r.json()).catch(() => [])
         ]);
 
-        const today = new Date().toDateString();
-        const newToday = customers.filter(c => new Date(c.createdAt).toDateString() === today).length;
-        const checkinsToday = bookings.filter(b => new Date(b.checkIn).toDateString() === today).length;
-        const checkoutsToday = bookings.filter(b => new Date(b.checkOut).toDateString() === today).length;
+        // Ensure we have arrays to work with
+        const safeCustomers = Array.isArray(customers) ? customers : [];
+        const safeBookings = Array.isArray(bookings) ? bookings : [];
 
-        document.getElementById('totalCustomers').textContent = customers.length;
+        const today = new Date().toDateString();
+        const newToday = safeCustomers.filter(c => c.createdAt && new Date(c.createdAt).toDateString() === today).length;
+        const checkinsToday = safeBookings.filter(b => b.checkIn && new Date(b.checkIn).toDateString() === today).length;
+        const checkoutsToday = safeBookings.filter(b => b.checkOut && new Date(b.checkOut).toDateString() === today).length;
+
+        document.getElementById('totalCustomers').textContent = safeCustomers.length;
         document.getElementById('newCustomers').textContent = newToday;
         document.getElementById('todayCheckins').textContent = checkinsToday;
         document.getElementById('todayCheckouts').textContent = checkoutsToday;
@@ -1591,54 +1595,60 @@ async function loadPerformanceMetrics() {
 async function loadRecentActivity() {
     try {
         const [bookings, orders, clockRecords, payments] = await Promise.all([
-            fetchWithAuth('/api/bookings').then(r => r.json()),
-            fetchWithAuth('/api/kitchen/orders').then(r => r.json()),
-            fetchWithAuth('/api/clock-records').then(r => r.json()),
-            fetchWithAuth('/api/payments').then(r => r.json())
+            fetchWithAuth('/api/bookings').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/kitchen/orders').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/clock-records').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/payments').then(r => r.json()).catch(() => [])
         ]);
+
+        // Ensure we have arrays to work with
+        const safeBookings = Array.isArray(bookings) ? bookings : [];
+        const safeOrders = Array.isArray(orders) ? orders : [];
+        const safeClockRecords = Array.isArray(clockRecords) ? clockRecords : [];
+        const safePayments = Array.isArray(payments) ? payments : [];
 
         const activities = [];
 
         // Add booking activities
-        bookings.slice(-10).forEach(booking => {
+        safeBookings.slice(-10).forEach(booking => {
             activities.push({
                 type: 'booking',
                 icon: 'fa-bed',
                 message: `New booking created for Room ${booking.roomId}`,
-                time: new Date(booking.createdAt),
+                time: new Date(booking.createdAt || Date.now()),
                 priority: 'normal'
             });
         });
 
         // Add order activities
-        orders.slice(-10).forEach(order => {
+        safeOrders.slice(-10).forEach(order => {
             activities.push({
                 type: 'order',
                 icon: 'fa-utensils',
                 message: `Kitchen order #${order.id} - ${order.status}`,
-                time: new Date(order.createdAt),
+                time: new Date(order.createdAt || Date.now()),
                 priority: order.status === 'pending' ? 'high' : 'normal'
             });
         });
 
         // Add staff activities
-        clockRecords.slice(-10).forEach(record => {
+        safeClockRecords.slice(-10).forEach(record => {
             activities.push({
                 type: 'staff',
                 icon: 'fa-clock',
                 message: `${record.personalId} ${record.action.replace('-', ' ')}`,
-                time: new Date(record.timestamp),
+                time: new Date(record.timestamp || Date.now()),
                 priority: 'low'
             });
         });
 
         // Add payment activities
-        payments.slice(-10).forEach(payment => {
+        safePayments.slice(-10).forEach(payment => {
             activities.push({
                 type: 'payment',
                 icon: 'fa-credit-card',
-                message: `Payment of ₦${payment.amount.toLocaleString()} received`,
-                time: new Date(payment.date),
+                message: `Payment of ₦${payment.amount ? payment.amount.toLocaleString() : '0'} received`,
+                time: new Date(payment.date || Date.now()),
                 priority: 'normal'
             });
         });
