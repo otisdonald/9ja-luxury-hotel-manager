@@ -46,7 +46,25 @@ function applyTheme(theme) {
 // Initialize theme on page load
 document.addEventListener('DOMContentLoaded', function() {
     initTheme();
+    initializeDashboard();
 });
+
+// Initialize dashboard counts
+async function initializeDashboard() {
+    try {
+        // Load laundry tasks count
+        const laundryResponse = await fetch('/api/laundry');
+        const laundryTasks = await laundryResponse.json();
+        updateLaundryCount(laundryTasks);
+        
+        // Load stock valuation for dashboard
+        const stockResponse = await fetch('/api/stock/valuation');
+        const stockValuation = await stockResponse.json();
+        updateDashboardStockValue(stockValuation.totalStockValue);
+    } catch (error) {
+        console.error('Error initializing dashboard:', error);
+    }
+}
 
 // Custom notification system for packaged app compatibility
 function showAlert(message, type = 'info') {
@@ -646,7 +664,13 @@ async function loadRooms() {
                     </div>
                     <span class="room-status ${room.status}">${room.status}</span>
                 </div>
-                <div class="room-price">₦${room.price.toLocaleString()}</div>
+                <div class="room-price">
+                    ₦${room.price.toLocaleString()}
+                    ${staffInfo.position === 'director' ? `
+                    <button class="btn-price-edit" onclick="editRoomPrice('${room.id}', ${room.price})" title="Edit Price - Director Only">
+                        <i class="fas fa-edit"></i>
+                    </button>` : ''}
+                </div>
                 ${room.currentGuest ? `<div class="room-guest">
                     <i class="fas fa-user"></i> Guest: Customer #${room.currentGuest}
                 </div>` : '<div class="room-guest"><i class="fas fa-bed"></i> Available for booking</div>'}
@@ -2499,6 +2523,130 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // ROOM PRICE EDITING FUNCTIONS
+    let currentEditingRoomId = null;
+    
+    // Show room price editing modal
+    async function editRoomPrice(roomId, currentPrice) {
+        // Check if user is director
+        if (staffInfo.position !== 'director') {
+            showAlert('Access denied. Only the Hotel Director can edit room prices.', 'danger');
+            return;
+        }
+        
+        currentEditingRoomId = roomId;
+        
+        try {
+            // Fetch room details
+            const token = localStorage.getItem('staffToken');
+            const response = await fetch(`/api/rooms/${roomId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const room = await response.json();
+                
+                // Populate modal with room information
+                document.getElementById('priceEditRoomName').textContent = room.name || `Room ${room.number || room.legacyId}`;
+                document.getElementById('priceEditRoomType').textContent = room.type;
+                document.getElementById('currentPriceDisplay').textContent = `₦${currentPrice.toLocaleString()}`;
+                document.getElementById('newRoomPrice').value = currentPrice;
+                document.getElementById('roomIdToEdit').value = roomId;
+                
+                // Show modal
+                const modal = document.getElementById('roomPriceModal');
+                modal.style.display = 'flex';
+                modal.classList.add('show');
+                
+                // Focus on price input
+                setTimeout(() => {
+                    document.getElementById('newRoomPrice').focus();
+                    document.getElementById('newRoomPrice').select();
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Error fetching room details:', error);
+            showAlert('Error loading room details', 'error');
+        }
+    }
+    
+    // Set quick price option
+    function setQuickPrice(price) {
+        document.getElementById('newRoomPrice').value = price;
+    }
+    
+    // Handle room price form submission
+    async function handleRoomPriceSubmit(event) {
+        event.preventDefault();
+        
+        // Check if user is director
+        if (staffInfo.position !== 'director') {
+            showAlert('Access denied. Only the Hotel Director can edit room prices.', 'danger');
+            return;
+        }
+        
+        const formData = new FormData(event.target);
+        const newPrice = parseInt(formData.get('price'));
+        const roomId = formData.get('roomId');
+        const reason = formData.get('reason');
+        const notes = formData.get('notes');
+        
+        // Validation
+        if (!newPrice || newPrice < 1000 || newPrice > 1000000) {
+            showAlert('Please enter a valid price between ₦1,000 and ₦1,000,000', 'error');
+            return;
+        }
+        
+        // Confirmation dialog
+        const currentPriceText = document.getElementById('currentPriceDisplay').textContent;
+        const confirmMessage = `Are you sure you want to change the room price from ${currentPriceText} to ₦${newPrice.toLocaleString()}?`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('staffToken');
+            const response = await fetch(`/api/rooms/${roomId}/price`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    price: newPrice,
+                    reason: reason,
+                    notes: notes,
+                    updatedBy: 'Hotel Director' // This could be dynamic based on logged-in user
+                })
+            });
+            
+            if (response.ok) {
+                closeModal('roomPriceModal');
+                loadRooms(); // Refresh rooms display
+                showAlert(`Room price updated to ₦${newPrice.toLocaleString()}!`, 'success');
+                
+                // Reset form
+                event.target.reset();
+                currentEditingRoomId = null;
+            } else {
+                const errorData = await response.json();
+                showAlert(errorData.error || 'Error updating room price', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating room price:', error);
+            showAlert('Error updating room price', 'error');
+        }
+    }
+    
+    // Make functions globally available
+    window.editRoomPrice = editRoomPrice;
+    window.setQuickPrice = setQuickPrice;
+    window.handleRoomPriceSubmit = handleRoomPriceSubmit;
+    
     // Handle order status form submission
     const orderStatusForm = document.getElementById('orderStatusForm');
     if (orderStatusForm) {
@@ -3737,8 +3885,19 @@ async function loadServices() {
             const response = await fetch('/api/laundry');
             const tasks = await response.json();
             displayLaundryTasks(tasks);
+            updateLaundryCount(tasks);
         } catch (error) {
             console.error('Error loading laundry tasks:', error);
+        }
+    }
+
+    function updateLaundryCount(tasks) {
+        const activeTasks = tasks.filter(task => 
+            task.status !== 'completed' && task.status !== 'cancelled'
+        );
+        const countElement = document.getElementById('laundryTasksCount');
+        if (countElement) {
+            countElement.textContent = `${activeTasks.length} active task${activeTasks.length !== 1 ? 's' : ''}`;
         }
     }
 
@@ -3986,6 +4145,8 @@ async function loadServices() {
             const items = await response.json();
             displayStockItems(items);
             await loadStockTransfers();
+            await loadStockValuation();
+            initializeStockNavigation();
         } catch (error) {
             console.error('Error loading stock items:', error);
         }
@@ -3996,10 +4157,38 @@ async function loadServices() {
         if (!container) return;
         container.innerHTML = items.map(item => `
             <div class="stock-item">
-                <h4>${item.name} (${item.category})</h4>
-                <p><strong>Quantity:</strong> ${item.quantity}</p>
-                <p><strong>Location:</strong> ${item.location}</p>
-                <p><strong>Created:</strong> ${new Date(item.createdAt).toLocaleString()}</p>
+                <div class="stock-item-header">
+                    <h4>${item.name} (${item.category})</h4>
+                    <span class="stock-status ${item.currentStock <= item.minStock ? 'low-stock' : 'normal-stock'}">
+                        ${item.currentStock <= item.minStock ? 'LOW STOCK' : 'NORMAL'}
+                    </span>
+                </div>
+                <div class="stock-item-details">
+                    <div class="stock-detail">
+                        <strong>Current Stock:</strong> ${item.currentStock} ${item.unit}
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Min/Max Level:</strong> ${item.minStock}/${item.maxStock} ${item.unit}
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Supplier:</strong> ${item.supplier} (${item.supplierCode || 'N/A'})
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Purchase Price:</strong> ₦${item.purchasePrice || item.cost || 0}
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Selling Price:</strong> ₦${item.sellingPrice || 'N/A'}
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Total Value:</strong> ₦${(item.totalValue || (item.currentStock * (item.purchasePrice || item.cost || 0))).toLocaleString()}
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Profit Margin:</strong> ${item.profitMargin || 'N/A'}%
+                    </div>
+                    <div class="stock-detail">
+                        <strong>Last Restocked:</strong> ${item.lastRestocked || 'N/A'}
+                    </div>
+                </div>
             </div>
         `).join('');
     }
@@ -4088,6 +4277,252 @@ async function loadServices() {
         } catch (error) {
             console.error('Error recording stock transfer:', error);
         }
+    }
+
+    // ENHANCED STOCK MANAGEMENT FUNCTIONALITY
+    
+    // Initialize stock navigation tabs
+    function initializeStockNavigation() {
+        const stockNavButtons = document.querySelectorAll('.stock-nav-btn');
+        const stockTabContents = document.querySelectorAll('.stock-tab-content');
+        
+        stockNavButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.stockTab;
+                
+                // Remove active class from all buttons and tabs
+                stockNavButtons.forEach(btn => btn.classList.remove('active'));
+                stockTabContents.forEach(tab => tab.classList.remove('active'));
+                
+                // Add active class to clicked button and target tab
+                button.classList.add('active');
+                const targetTabContent = document.getElementById(`stock${targetTab.charAt(0).toUpperCase() + targetTab.slice(1)}Tab`);
+                if (targetTabContent) {
+                    targetTabContent.classList.add('active');
+                    
+                    // Load tab-specific content
+                    switch(targetTab) {
+                        case 'suppliers':
+                            loadSuppliers();
+                            break;
+                        case 'valuation':
+                            loadStockValuation();
+                            break;
+                        case 'sales':
+                            loadSalesTracking();
+                            break;
+                    }
+                }
+            });
+        });
+    }
+
+    // Load stock valuation data
+    async function loadStockValuation() {
+        try {
+            const response = await fetch('/api/stock/valuation');
+            const valuation = await response.json();
+            updateStockOverview(valuation);
+            updateDashboardStockValue(valuation.totalStockValue);
+        } catch (error) {
+            console.error('Error loading stock valuation:', error);
+        }
+    }
+
+    // Update stock overview cards
+    function updateStockOverview(valuation) {
+        const elements = {
+            totalStockValue: document.getElementById('totalStockValue'),
+            afterSalesValue: document.getElementById('afterSalesValue'),
+            profitMargin: document.getElementById('profitMargin'),
+            lowStockAlert: document.getElementById('lowStockAlert')
+        };
+
+        if (elements.totalStockValue) {
+            elements.totalStockValue.textContent = `₦${valuation.totalStockValue.toLocaleString()}`;
+        }
+        if (elements.afterSalesValue) {
+            elements.afterSalesValue.textContent = `₦${valuation.afterSalesValue.toLocaleString()}`;
+        }
+        if (elements.profitMargin) {
+            elements.profitMargin.textContent = `${valuation.profitMargin}%`;
+        }
+        if (elements.lowStockAlert) {
+            elements.lowStockAlert.textContent = valuation.lowStockAlert;
+        }
+
+        // Update valuation details tab
+        const valuationSummary = document.getElementById('valuationSummary');
+        if (valuationSummary) {
+            valuationSummary.innerHTML = `
+                <div class="valuation-overview-cards">
+                    <div class="valuation-card">
+                        <h4>Total Inventory Investment</h4>
+                        <div class="value">₦${valuation.totalStockValue.toLocaleString()}</div>
+                    </div>
+                    <div class="valuation-card">
+                        <h4>Potential Revenue</h4>
+                        <div class="value">₦${valuation.afterSalesValue.toLocaleString()}</div>
+                    </div>
+                    <div class="valuation-card">
+                        <h4>Expected Profit</h4>
+                        <div class="value">₦${(valuation.afterSalesValue - valuation.totalStockValue).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="item-breakdown">
+                    <h4>Item-wise Breakdown</h4>
+                    <div class="breakdown-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                    <th>Current Value</th>
+                                    <th>Potential Value</th>
+                                    <th>Profit Margin</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${valuation.itemBreakdown.map(item => `
+                                    <tr class="${item.status}">
+                                        <td>${item.name}</td>
+                                        <td>${item.category}</td>
+                                        <td>${item.stock}</td>
+                                        <td>₦${item.currentValue.toLocaleString()}</td>
+                                        <td>₦${item.potentialValue.toLocaleString()}</td>
+                                        <td>${item.profitMargin}%</td>
+                                        <td><span class="status-badge ${item.status}">${item.status.toUpperCase()}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Update dashboard stock value display
+    function updateDashboardStockValue(value) {
+        const stockValueDisplay = document.getElementById('stockValueDisplay');
+        if (stockValueDisplay) {
+            stockValueDisplay.textContent = `₦${value.toLocaleString()} total value`;
+        }
+    }
+
+    // Load suppliers data
+    async function loadSuppliers() {
+        try {
+            const response = await fetch('/api/suppliers');
+            const suppliers = await response.json();
+            displaySuppliers(suppliers);
+        } catch (error) {
+            console.error('Error loading suppliers:', error);
+        }
+    }
+
+    // Display suppliers
+    function displaySuppliers(suppliers) {
+        const container = document.getElementById('suppliersList');
+        if (!container) return;
+        
+        container.innerHTML = suppliers.map(supplier => `
+            <div class="supplier-card">
+                <div class="supplier-header">
+                    <h4>${supplier.name}</h4>
+                    <span class="supplier-code">${supplier.code}</span>
+                    <span class="supplier-status ${supplier.status}">${supplier.status.toUpperCase()}</span>
+                </div>
+                <div class="supplier-details">
+                    <div class="supplier-contact">
+                        <p><i class="fas fa-user"></i> <strong>Contact:</strong> ${supplier.contact}</p>
+                        <p><i class="fas fa-envelope"></i> <strong>Email:</strong> ${supplier.email}</p>
+                        <p><i class="fas fa-phone"></i> <strong>Phone:</strong> ${supplier.phone}</p>
+                    </div>
+                    <div class="supplier-info">
+                        <p><i class="fas fa-tag"></i> <strong>Category:</strong> ${supplier.category}</p>
+                        <p><i class="fas fa-calendar"></i> <strong>Payment Terms:</strong> ${supplier.paymentTerms} days</p>
+                        <p><i class="fas fa-shopping-cart"></i> <strong>Total Orders:</strong> ${supplier.totalOrders}</p>
+                        <p><i class="fas fa-clock"></i> <strong>Last Order:</strong> ${supplier.lastOrder || 'Never'}</p>
+                    </div>
+                </div>
+                <div class="supplier-address">
+                    <p><i class="fas fa-map-marker-alt"></i> ${supplier.address}</p>
+                </div>
+                ${supplier.notes ? `<div class="supplier-notes"><p><i class="fas fa-sticky-note"></i> ${supplier.notes}</p></div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    // Show supplier modal
+    function showSupplierModal() {
+        document.getElementById('supplierModal').style.display = 'block';
+    }
+
+    // Handle supplier form submission
+    async function handleSupplierSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const supplier = {
+            name: formData.get('name'),
+            code: formData.get('code'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            contact: formData.get('contact'),
+            category: formData.get('category'),
+            address: formData.get('address'),
+            paymentTerms: parseInt(formData.get('paymentTerms')) || 30,
+            status: formData.get('status'),
+            notes: formData.get('notes')
+        };
+        
+        try {
+            const response = await fetch('/api/suppliers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(supplier)
+            });
+            if (response.ok) {
+                closeModal('supplierModal');
+                event.target.reset();
+                loadSuppliers();
+                showAlert('Supplier added successfully!', 'success');
+            }
+        } catch (error) {
+            console.error('Error adding supplier:', error);
+            showAlert('Error adding supplier', 'error');
+        }
+    }
+
+    // Show stock valuation modal
+    function showStockValuationModal() {
+        document.getElementById('stockValuationModal').style.display = 'block';
+        loadStockValuation();
+    }
+
+    // Load sales tracking data (placeholder for now)
+    function loadSalesTracking() {
+        const container = document.getElementById('salesTracking');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="sales-tracking-placeholder">
+                <h4>Sales Tracking Coming Soon</h4>
+                <p>This section will track:</p>
+                <ul>
+                    <li>Items sold and revenue generated</li>
+                    <li>Top-selling products</li>
+                    <li>Profit margins by category</li>
+                    <li>Sales trends over time</li>
+                    <li>Stock turnover rates</li>
+                </ul>
+                <button class="btn btn-primary" onclick="showAlert('Sales tracking integration coming in next update!', 'info')">
+                    <i class="fas fa-chart-line"></i> Enable Sales Tracking
+                </button>
+            </div>
+        `;
     }
 
     // AUTOMATED MESSAGING FUNCTIONALITY
@@ -4949,6 +5384,8 @@ function showCategory(categoryName) {
         'staff': 'Staff Management',
         'housekeeping': 'Housekeeping',
         'notifications': 'Notifications & Alerts',
+        'laundry': 'Laundry Service',
+        'stock': 'Stock & Inventory Management',
         'analytics': 'Analytics & Reports'
     };
     

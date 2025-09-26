@@ -7,7 +7,13 @@ const RoomSchema = new Schema({
   status: { type: String, enum: ['available','occupied','maintenance','cleaning'], default: 'available' },
   price: { type: Number, default: 0 },
   floor: { type: Number },
-  currentGuest: { type: Schema.Types.ObjectId, ref: 'Customer', default: null }
+  currentGuest: { type: Schema.Types.ObjectId, ref: 'Customer', default: null },
+  // Price audit fields
+  lastPriceUpdate: { type: Date },
+  priceUpdateBy: { type: String },
+  priceChangeReason: { type: String },
+  priceChangeNotes: { type: String },
+  previousPrice: { type: Number }
 }, { timestamps: true });
 
 module.exports = model('Room', RoomSchema);

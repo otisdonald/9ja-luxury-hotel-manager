@@ -179,6 +179,28 @@ function requireAdminAuth(req, res, next) {
     });
 }
 
+// Director-only middleware for price editing
+function requireDirectorAuth(req, res, next) {
+    requireStaffAuth(req, res, (err) => {
+        if (err) return next(err);
+        
+        // Only Director can edit room prices
+        if (req.staff.position !== 'director') {
+            console.log('💰 Price edit denied for position:', req.staff.position, 'User:', req.staff.personalId);
+            return res.status(403).json({ 
+                error: 'Director access required',
+                message: 'Only the Hotel Director can edit room prices',
+                currentPosition: req.staff.position,
+                requiredPosition: 'director',
+                feature: 'Room Price Management'
+            });
+        }
+        
+        console.log('💰 Price edit access granted for Director:', req.staff.personalId);
+        next();
+    });
+}
+
 // Publicly serve static assets (HTML/CSS/JS). Auth is enforced on API routes.
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -1073,8 +1095,13 @@ let stockItems = [
         maxStock: 200,
         unit: 'rolls',
         supplier: 'CleanCorp Ltd',
+        supplierCode: 'SUP001',
         lastRestocked: '2025-09-18',
-        cost: 85
+        purchasePrice: 85,
+        sellingPrice: 120,
+        totalValue: 150 * 85,
+        potentialRevenue: 150 * 120,
+        profitMargin: ((120 - 85) / 85 * 100).toFixed(2)
     },
     {
         id: 2,
@@ -1085,8 +1112,13 @@ let stockItems = [
         maxStock: 80,
         unit: 'pieces',
         supplier: 'LinenPlus',
+        supplierCode: 'SUP002',
         lastRestocked: '2025-09-15',
-        cost: 1500
+        purchasePrice: 1500,
+        sellingPrice: 2200,
+        totalValue: 45 * 1500,
+        potentialRevenue: 45 * 2200,
+        profitMargin: ((2200 - 1500) / 1500 * 100).toFixed(2)
     },
     {
         id: 3,
@@ -1097,8 +1129,13 @@ let stockItems = [
         maxStock: 50,
         unit: 'kg',
         supplier: 'Premium Coffee Co',
+        supplierCode: 'SUP003',
         lastRestocked: '2025-09-19',
-        cost: 2800
+        purchasePrice: 2800,
+        sellingPrice: 4200,
+        totalValue: 12 * 2800,
+        potentialRevenue: 12 * 4200,
+        profitMargin: ((4200 - 2800) / 2800 * 100).toFixed(2)
     },
     {
         id: 4,
@@ -1109,8 +1146,77 @@ let stockItems = [
         maxStock: 120,
         unit: 'bottles',
         supplier: 'LuxCare Products',
+        supplierCode: 'SUP004',
         lastRestocked: '2025-09-17',
-        cost: 450
+        purchasePrice: 450,
+        sellingPrice: 650,
+        totalValue: 85 * 450,
+        potentialRevenue: 85 * 650,
+        profitMargin: ((650 - 450) / 450 * 100).toFixed(2)
+    }
+];
+
+// Suppliers Database
+let suppliers = [
+    {
+        id: 1,
+        name: 'CleanCorp Ltd',
+        code: 'SUP001',
+        email: 'orders@cleancorp.com',
+        phone: '+234-701-234-5678',
+        contact: 'Johnson Adebayo',
+        category: 'cleaning',
+        address: '15 Industrial Avenue, Ikeja, Lagos State',
+        paymentTerms: 30,
+        status: 'active',
+        notes: 'Reliable supplier for all cleaning supplies. Bulk discount available.',
+        lastOrder: '2025-09-18',
+        totalOrders: 24
+    },
+    {
+        id: 2,
+        name: 'LinenPlus',
+        code: 'SUP002',
+        email: 'sales@linenplus.ng',
+        phone: '+234-802-345-6789',
+        contact: 'Mary Okafor',
+        category: 'linens',
+        address: '8 Textile Road, Kano State',
+        paymentTerms: 21,
+        status: 'active',
+        notes: 'High-quality linens and towels. Fast delivery within 48hrs.',
+        lastOrder: '2025-09-15',
+        totalOrders: 18
+    },
+    {
+        id: 3,
+        name: 'Premium Coffee Co',
+        code: 'SUP003',
+        email: 'orders@premiumcoffee.com',
+        phone: '+234-803-456-7890',
+        contact: 'David Ibrahim',
+        category: 'food-beverage',
+        address: '22 Coffee Street, Jos, Plateau State',
+        paymentTerms: 14,
+        status: 'active',
+        notes: 'Premium coffee beans, competitive pricing for bulk orders.',
+        lastOrder: '2025-09-19',
+        totalOrders: 12
+    },
+    {
+        id: 4,
+        name: 'LuxCare Products',
+        code: 'SUP004',
+        email: 'info@luxcare.ng',
+        phone: '+234-804-567-8901',
+        contact: 'Sarah Mohammed',
+        category: 'cleaning',
+        address: '5 Beauty Complex, Abuja FCT',
+        paymentTerms: 30,
+        status: 'active',
+        notes: 'Luxury amenities and personal care products.',
+        lastOrder: '2025-09-17',
+        totalOrders: 15
     }
 ];
 
@@ -1543,6 +1649,43 @@ app.post('/api/stock-transfer', (req, res) => {
   res.json({ success: true, transfer });
 });
 
+// Suppliers API
+app.get('/api/suppliers', (req, res) => {
+  res.json(suppliers);
+});
+app.post('/api/suppliers', (req, res) => {
+  const supplier = req.body;
+  supplier.id = suppliers.length + 1;
+  supplier.totalOrders = 0;
+  supplier.lastOrder = null;
+  suppliers.push(supplier);
+  res.json({ success: true, supplier });
+});
+
+// Stock Valuation API
+app.get('/api/stock/valuation', (req, res) => {
+  const totalValue = stockItems.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+  const potentialRevenue = stockItems.reduce((sum, item) => sum + (item.potentialRevenue || 0), 0);
+  const averageProfit = stockItems.reduce((sum, item) => sum + parseFloat(item.profitMargin || 0), 0) / stockItems.length;
+  const lowStockItems = stockItems.filter(item => item.currentStock <= item.minStock).length;
+  
+  res.json({
+    totalStockValue: totalValue,
+    afterSalesValue: potentialRevenue,
+    profitMargin: averageProfit.toFixed(2),
+    lowStockAlert: lowStockItems,
+    itemBreakdown: stockItems.map(item => ({
+      name: item.name,
+      category: item.category,
+      currentValue: item.totalValue,
+      potentialValue: item.potentialRevenue,
+      profitMargin: item.profitMargin,
+      stock: item.currentStock,
+      status: item.currentStock <= item.minStock ? 'low' : 'normal'
+    }))
+  });
+});
+
 // Messaging API
 app.get('/api/messaging', (req, res) => {
   res.json(automatedMessages);
@@ -1669,6 +1812,91 @@ app.put('/api/rooms/:id', requireStaffAuth, async (req, res) => {
   if (!room) return res.status(404).json({ error: 'Room not found' });
   Object.assign(room, req.body);
   res.json(room);
+});
+
+// Update room price with audit trail - DIRECTOR ONLY
+app.put('/api/rooms/:id/price', requireDirectorAuth, async (req, res) => {
+  const id = req.params.id;
+  const { price, reason, notes, updatedBy } = req.body;
+  
+  // Validation
+  if (!price || price < 1000 || price > 1000000) {
+    return res.status(400).json({ error: 'Price must be between ₦1,000 and ₦1,000,000' });
+  }
+  
+  try {
+    if (dbConnected && Room) {
+      let room;
+      
+      // Find room by ID or legacy ID
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        room = await Room.findOne({ legacyId: parseInt(id) });
+      } else {
+        room = await Room.findById(id);
+      }
+      
+      if (!room) {
+        return res.status(404).json({ error: 'Room not found' });
+      }
+      
+      // Store old price for audit
+      const oldPrice = room.price;
+      
+      // Update room with new price and audit info
+      const updateData = {
+        price: price,
+        lastPriceUpdate: new Date(),
+        priceUpdateBy: updatedBy,
+        priceChangeReason: reason,
+        priceChangeNotes: notes,
+        previousPrice: oldPrice
+      };
+      
+      let updated;
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        updated = await Room.findOneAndUpdate({ legacyId: parseInt(id) }, updateData, { new: true }).lean();
+      } else {
+        updated = await Room.findByIdAndUpdate(id, updateData, { new: true }).lean();
+      }
+      
+      // Log price change
+      console.log(`💰 Room price updated: ${room.name} - ${oldPrice} → ${price} (${updatedBy})`);
+      
+      return res.json({
+        success: true,
+        room: updated,
+        message: `Room price updated from ₦${oldPrice.toLocaleString()} to ₦${price.toLocaleString()}`
+      });
+      
+    } else {
+      // Fallback to in-memory rooms if DB not available
+      const roomId = parseInt(id);
+      const room = rooms.find(r => r.id === roomId);
+      
+      if (!room) {
+        return res.status(404).json({ error: 'Room not found' });
+      }
+      
+      const oldPrice = room.price;
+      room.price = price;
+      room.lastPriceUpdate = new Date().toISOString();
+      room.priceUpdateBy = updatedBy;
+      room.priceChangeReason = reason;
+      room.priceChangeNotes = notes;
+      room.previousPrice = oldPrice;
+      
+      console.log(`💰 Room price updated: ${room.name} - ${oldPrice} → ${price} (${updatedBy})`);
+      
+      return res.json({
+        success: true,
+        room: room,
+        message: `Room price updated from ₦${oldPrice.toLocaleString()} to ₦${price.toLocaleString()}`
+      });
+    }
+  } catch (err) {
+    console.error('Error updating room price:', err);
+    return res.status(500).json({ error: 'Database error while updating room price' });
+  }
 });
 
 // Customer Management Routes

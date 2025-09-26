@@ -177,6 +177,28 @@
                         <span id="unreadNotifications">0 unread</span>
                     </div>
                 </div>
+                
+                <div class="category-card" onclick="showCategory('laundry')">
+                    <div class="category-icon">
+                        <i class="fas fa-soap"></i>
+                    </div>
+                    <h3>Laundry Service</h3>
+                    <p>Manage laundry tasks, pickup, and delivery</p>
+                    <div class="category-stats">
+                        <span id="laundryTasksCount">0 active tasks</span>
+                    </div>
+                </div>
+                
+                <div class="category-card" onclick="showCategory('stock')">
+                    <div class="category-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <h3>Stock & Inventory</h3>
+                    <p>Inventory valuation, suppliers, and stock management</p>
+                    <div class="category-stats">
+                        <span id="stockValueDisplay">₦0 total value</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -820,14 +842,88 @@
             <!-- Stock Control Tab -->
             <div id="stock" class="tab-content">
                 <div class="section-header">
-                    <h2><i class="fas fa-boxes"></i> Stock Control</h2>
-                    <button class="btn btn-primary" onclick="showStockItemModal()">
-                        <i class="fas fa-plus"></i> Add Stock Item
+                    <h2><i class="fas fa-boxes"></i> Stock Management & Valuation</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showStockItemModal()">
+                            <i class="fas fa-plus"></i> Add Stock Item
+                        </button>
+                        <button class="btn btn-info" onclick="showSupplierModal()">
+                            <i class="fas fa-truck"></i> Add Supplier
+                        </button>
+                        <button class="btn btn-success" onclick="showStockValuationModal()">
+                            <i class="fas fa-chart-bar"></i> View Valuation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stock Overview Cards -->
+                <div class="stock-overview">
+                    <div class="stock-card">
+                        <h3><i class="fas fa-dollar-sign"></i> Total Stock Value</h3>
+                        <div class="stock-value" id="totalStockValue">₦0</div>
+                        <small>Current inventory worth</small>
+                    </div>
+                    <div class="stock-card">
+                        <h3><i class="fas fa-chart-line"></i> After Sales Value</h3>
+                        <div class="stock-value" id="afterSalesValue">₦0</div>
+                        <small>Potential revenue</small>
+                    </div>
+                    <div class="stock-card">
+                        <h3><i class="fas fa-percentage"></i> Profit Margin</h3>
+                        <div class="stock-value" id="profitMargin">0%</div>
+                        <small>Average markup</small>
+                    </div>
+                    <div class="stock-card">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Low Stock Alert</h3>
+                        <div class="stock-value" id="lowStockAlert">0</div>
+                        <small>Items need restocking</small>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="stock-nav-tabs">
+                    <button class="stock-nav-btn active" data-stock-tab="inventory">
+                        <i class="fas fa-boxes"></i> Inventory
+                    </button>
+                    <button class="stock-nav-btn" data-stock-tab="suppliers">
+                        <i class="fas fa-truck"></i> Suppliers
+                    </button>
+                    <button class="stock-nav-btn" data-stock-tab="valuation">
+                        <i class="fas fa-chart-bar"></i> Valuation
+                    </button>
+                    <button class="stock-nav-btn" data-stock-tab="sales">
+                        <i class="fas fa-shopping-cart"></i> Sales Tracking
                     </button>
                 </div>
-                <div class="stock-items-list" id="stockItemsList">
-                    <!-- Stock items will be loaded here -->
+
+                <!-- Inventory Tab -->
+                <div id="stockInventoryTab" class="stock-tab-content active">
+                    <div class="stock-items-list" id="stockItemsList">
+                        <!-- Stock items will be loaded here -->
+                    </div>
                 </div>
+
+                <!-- Suppliers Tab -->
+                <div id="stockSuppliersTab" class="stock-tab-content">
+                    <div class="suppliers-list" id="suppliersList">
+                        <!-- Suppliers will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Valuation Tab -->
+                <div id="stockValuationTab" class="stock-tab-content">
+                    <div class="valuation-summary" id="valuationSummary">
+                        <!-- Valuation details will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Sales Tracking Tab -->
+                <div id="stockSalesTab" class="stock-tab-content">
+                    <div class="sales-tracking" id="salesTracking">
+                        <!-- Sales data will be loaded here -->
+                    </div>
+                </div>
+
                 <div class="stock-transfer-section">
                     <h3>Stock Transfers</h3>
                     <button class="btn btn-info" onclick="showStockTransferModal()">
@@ -1615,6 +1711,69 @@
         </div>
     </div>
 
+    <!-- Room Price Edit Modal -->
+    <div id="roomPriceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('roomPriceModal')">&times;</span>
+            <h3><i class="fas fa-dollar-sign"></i> Edit Room Price</h3>
+            <form id="roomPriceForm" onsubmit="handleRoomPriceSubmit(event)">
+                <div class="price-edit-header">
+                    <div class="room-info">
+                        <h4 id="priceEditRoomName">Room Name</h4>
+                        <p id="priceEditRoomType">Room Type</p>
+                    </div>
+                    <div class="current-price">
+                        <label>Current Price:</label>
+                        <div class="price-display" id="currentPriceDisplay">₦0</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="newRoomPrice">New Price (₦):</label>
+                    <input type="number" id="newRoomPrice" name="price" placeholder="Enter new price" required min="1000" max="1000000" step="100">
+                </div>
+                
+                <div class="price-suggestions">
+                    <label>Quick Price Options:</label>
+                    <div class="price-buttons">
+                        <button type="button" class="btn-price-option" onclick="setQuickPrice(25000)">₦25,000</button>
+                        <button type="button" class="btn-price-option" onclick="setQuickPrice(35000)">₦35,000</button>
+                        <button type="button" class="btn-price-option" onclick="setQuickPrice(50000)">₦50,000</button>
+                        <button type="button" class="btn-price-option" onclick="setQuickPrice(75000)">₦75,000</button>
+                        <button type="button" class="btn-price-option" onclick="setQuickPrice(100000)">₦100,000</button>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <label for="priceChangeReason">Reason for Price Change:</label>
+                    <select id="priceChangeReason" name="reason">
+                        <option value="">Select reason (optional)</option>
+                        <option value="seasonal-adjustment">Seasonal Adjustment</option>
+                        <option value="market-rates">Market Rate Update</option>
+                        <option value="room-upgrade">Room Upgrade</option>
+                        <option value="promotion">Promotional Pricing</option>
+                        <option value="maintenance">Post-Maintenance Adjustment</option>
+                        <option value="management-decision">Management Decision</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <textarea id="priceChangeNotes" name="notes" placeholder="Additional notes (optional)" rows="2"></textarea>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Price
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('roomPriceModal')">
+                        Cancel
+                    </button>
+                </div>
+                
+                <input type="hidden" id="roomIdToEdit" name="roomId">
+            </form>
+        </div>
+    </div>
+
     <!-- Order Status Modal -->
     <div id="orderStatusModal" class="modal">
         <div class="modal-content">
@@ -1949,8 +2108,18 @@
                     <input type="number" id="stockItemMinLevel" placeholder="Minimum Level" required min="0">
                 </div>
                 <div class="form-row">
-                    <input type="number" id="stockItemPrice" placeholder="Unit Price" step="0.01" min="0">
-                    <input type="text" id="stockItemSupplier" placeholder="Supplier (optional)">
+                    <input type="number" id="stockItemPurchasePrice" placeholder="Purchase Price per Unit" step="0.01" min="0" required>
+                    <input type="number" id="stockItemSellingPrice" placeholder="Selling Price per Unit" step="0.01" min="0" required>
+                </div>
+                <div class="form-row">
+                    <select id="stockItemSupplier" required>
+                        <option value="">Select Supplier</option>
+                        <option value="cleancorp">CleanCorp Ltd</option>
+                        <option value="linenplus">LinenPlus</option>
+                        <option value="freshfood">Fresh Food Distributors</option>
+                        <option value="other">Other (specify in description)</option>
+                    </select>
+                    <input type="text" id="stockItemUnit" placeholder="Unit (e.g., pieces, kg, liters)" required>
                 </div>
                 <textarea id="stockItemDescription" placeholder="Description (optional)" rows="2"></textarea>
                 <button type="submit" class="btn btn-primary">Add Stock Item</button>
@@ -1995,6 +2164,64 @@
                 <textarea id="transferReason" placeholder="Reason for Transfer" rows="2" required></textarea>
                 <button type="submit" class="btn btn-info">Transfer Stock</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Supplier Modal -->
+    <div id="supplierModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('supplierModal')">&times;</span>
+            <h3>Add Supplier</h3>
+            <form id="supplierForm" onsubmit="handleSupplierSubmit(event)">
+                <div class="form-row">
+                    <input type="text" id="supplierName" placeholder="Supplier Name" required>
+                    <input type="text" id="supplierCode" placeholder="Supplier Code (e.g., SUP001)" required>
+                </div>
+                <div class="form-row">
+                    <input type="email" id="supplierEmail" placeholder="Email Address" required>
+                    <input type="tel" id="supplierPhone" placeholder="Phone Number" required>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="supplierContact" placeholder="Contact Person">
+                    <select id="supplierCategory" required>
+                        <option value="">Supplier Category</option>
+                        <option value="cleaning">Cleaning Supplies</option>
+                        <option value="food-beverage">Food & Beverage</option>
+                        <option value="linens">Linens & Textiles</option>
+                        <option value="maintenance">Maintenance & Tools</option>
+                        <option value="office">Office Supplies</option>
+                        <option value="technology">Technology</option>
+                        <option value="furniture">Furniture</option>
+                    </select>
+                </div>
+                <textarea id="supplierAddress" placeholder="Full Address" rows="2" required></textarea>
+                <div class="form-row">
+                    <input type="number" id="supplierPaymentTerms" placeholder="Payment Terms (days)" min="0" max="365">
+                    <select id="supplierStatus">
+                        <option value="active">Active</option>
+                        <option value="pending">Pending Approval</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+                <textarea id="supplierNotes" placeholder="Notes & Special Terms" rows="2"></textarea>
+                <button type="submit" class="btn btn-primary">Add Supplier</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stock Valuation Modal -->
+    <div id="stockValuationModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeModal('stockValuationModal')">&times;</span>
+            <h3><i class="fas fa-chart-bar"></i> Stock Valuation Report</h3>
+            <div class="valuation-content">
+                <div class="valuation-overview" id="valuationOverview">
+                    <!-- Valuation overview will be loaded here -->
+                </div>
+                <div class="valuation-details" id="valuationDetails">
+                    <!-- Detailed valuation will be loaded here -->
+                </div>
+            </div>
         </div>
     </div>
 
