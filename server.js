@@ -208,6 +208,10 @@ app.use('/api/guest', (req, res, next) => {
   return requireGuestAuth(req, res, next);
 });
 app.use('/api', (req, res, next) => {
+  // Skip auth for guest routes (they have their own middleware)
+  if (req.originalUrl.startsWith('/api/guest') || req.originalUrl.startsWith('/api/admin')) {
+    return next();
+  }
   // Allow auth endpoints and quick clock endpoint without prior token
   if (req.path === '/staff/authenticate' || 
       req.path === '/staff/logout' || 

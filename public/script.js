@@ -1,6 +1,9 @@
 // Hotel Manager JavaScript
 console.log('Script loading...');
 
+// Global variables
+let customers = []; // Store customers globally for helper functions
+
 // Theme Management System
 function initTheme() {
     // Get saved theme preference or default to light
@@ -836,7 +839,7 @@ async function loadCustomers() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        let customers = await response.json();
+        customers = await response.json(); // Update global customers array
         
         // Clean up any invalid local data first
         const cleanedLocalCustomers = cleanupCustomerData();
@@ -871,13 +874,26 @@ async function loadCustomers() {
             
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td title="Customer ID: ${customer.id}">${customer.id.substring(0, 8)}...</td>
+                <td>
+                    <div class="customer-id-display">
+                        <strong class="customer-id-main">${customer.customerId || `CUST${String(customer.id).padStart(3, '0')}`}</strong>
+                        <button class="copy-id-btn" onclick="copyCustomerId('${customer.customerId || `CUST${String(customer.id).padStart(3, '0')}`}')" title="Copy Customer ID">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <small class="customer-id-note">Give this ID to guest for portal access</small>
+                </td>
                 <td>${customer.name || 'N/A'}</td>
                 <td>${customer.email || 'N/A'}</td>
                 <td>${customer.phone || 'N/A'}</td>
+                <td><span class="room-badge">${customer.roomNumber || 'Not assigned'}</span></td>
+                <td><span class="status-badge ${customer.isActive ? 'status-active' : 'status-inactive'}">${customer.isActive ? 'Active' : 'Inactive'}</span></td>
                 <td>
                     <button class="btn btn-primary" onclick="editCustomer('${customer.id}')" title="Edit Customer">
                         <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-success" onclick="printCustomerCard('${customer.id}')" title="Print Customer Card">
+                        <i class="fas fa-id-card"></i>
                     </button>
                     <button class="btn btn-danger" onclick="deleteCustomer('${customer.id}')" title="Delete Customer">
                         <i class="fas fa-trash"></i>
@@ -903,13 +919,26 @@ async function loadCustomers() {
             localCustomers.forEach(customer => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${customer.id}</td>
+                    <td>
+                        <div class="customer-id-display">
+                            <strong class="customer-id-main">${customer.customerId || `CUST${String(customer.id).padStart(3, '0')}`}</strong>
+                            <button class="copy-id-btn" onclick="copyCustomerId('${customer.customerId || `CUST${String(customer.id).padStart(3, '0')}`}')" title="Copy Customer ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="customer-id-note">Give this ID to guest</small>
+                    </td>
                     <td>${customer.name}</td>
                     <td>${customer.email}</td>
                     <td>${customer.phone}</td>
+                    <td><span class="room-badge">${customer.roomNumber || 'Not assigned'}</span></td>
+                    <td><span class="status-badge ${customer.isActive !== false ? 'status-active' : 'status-inactive'}">${customer.isActive !== false ? 'Active' : 'Inactive'}</span></td>
                     <td>
                         <button class="btn btn-primary" onclick="editCustomer('${customer.id}')">
                             <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-success" onclick="printCustomerCard('${customer.id}')" title="Print Customer Card">
+                            <i class="fas fa-id-card"></i>
                         </button>
                         <button class="btn btn-danger" onclick="deleteCustomer('${customer.id}')">
                             <i class="fas fa-trash"></i>
@@ -2177,6 +2206,87 @@ function cleanupCustomerData() {
         console.error('Error cleaning up customer data:', error);
         return [];
     }
+}
+
+// Copy customer ID to clipboard
+function copyCustomerId(customerId) {
+    navigator.clipboard.writeText(customerId).then(() => {
+        showAlert(`Customer ID ${customerId} copied to clipboard!`, 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = customerId;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showAlert(`Customer ID ${customerId} copied to clipboard!`, 'success');
+    });
+}
+
+// Print customer card with ID
+function printCustomerCard(customerId) {
+    // Find customer data
+    const customer = customers.find(c => c.id == customerId);
+    if (!customer) {
+        showAlert('Customer not found!', 'error');
+        return;
+    }
+    
+    const customerIdFormatted = customer.customerId || `CUST${String(customer.id).padStart(3, '0')}`;
+    
+    // Create printable customer card
+    const cardContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 2px solid #333; border-radius: 10px; max-width: 400px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #2c3e50; margin: 0;">🏨 9JA LUXURY HOTEL</h2>
+                <p style="color: #7f8c8d; margin: 5px 0;">Guest Access Card</p>
+            </div>
+            <hr style="border: 1px solid #bdc3c7; margin: 20px 0;">
+            <div style="margin: 15px 0;">
+                <strong style="color: #e74c3c; font-size: 18px;">CUSTOMER ID:</strong>
+                <div style="font-size: 24px; font-weight: bold; color: #2c3e50; text-align: center; background: #ecf0f1; padding: 10px; border-radius: 5px; margin: 10px 0;">${customerIdFormatted}</div>
+            </div>
+            <div style="margin: 15px 0;">
+                <strong>Guest Name:</strong> ${customer.name}<br>
+                <strong>Room:</strong> ${customer.roomNumber || 'Not assigned'}<br>
+                <strong>Check-in:</strong> ${customer.checkInDate ? new Date(customer.checkInDate).toLocaleDateString() : 'N/A'}
+            </div>
+            <hr style="border: 1px solid #bdc3c7; margin: 20px 0;">
+            <div style="font-size: 12px; color: #7f8c8d;">
+                <p><strong>🌐 Guest Portal Access:</strong></p>
+                <p>1. Go to guest portal on any device</p>
+                <p>2. Enter your Customer ID: <strong>${customerIdFormatted}</strong></p>
+                <p>3. Access kitchen ordering, visitor registration & room services</p>
+            </div>
+        </div>
+    `;
+    
+    // Open print window
+    const printWindow = window.open('', '_blank', 'width=600,height=800');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Customer Card - ${customer.name}</title>
+                <style>
+                    body { margin: 20px; }
+                    @media print {
+                        body { margin: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${cardContent}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(() => window.close(), 100);
+                    };
+                </script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 
 // Delete customer function
