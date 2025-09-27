@@ -170,6 +170,9 @@
             text-align: center;
             margin: 30px 0;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .divider::before {
@@ -180,13 +183,17 @@
             right: 0;
             height: 1px;
             background: var(--border-color);
+            z-index: 1;
         }
         
         .divider span {
-            background: var(--card-bg);
+            background: var(--surface-primary);
             padding: 0 20px;
             color: var(--text-secondary);
             font-weight: 500;
+            position: relative;
+            z-index: 2;
+            display: inline-block;
         }
         
         .login-btn {
@@ -278,6 +285,9 @@
             position: relative;
             margin: 20px 0;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .access-divider:before {
@@ -292,12 +302,13 @@
         }
         
         .access-divider span {
-            background: var(--card-bg);
+            background: var(--surface-primary);
             padding: 0 15px;
             color: var(--text-secondary);
             position: relative;
             z-index: 2;
             font-size: 0.9rem;
+            display: inline-block;
         }
         
         .guest-access-btn {

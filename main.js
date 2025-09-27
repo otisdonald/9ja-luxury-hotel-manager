@@ -22,14 +22,10 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             enableRemoteModule: false,
-            webSecurity: isPackaged, // Enable webSecurity in packaged app, disable in development
+            webSecurity: false, // Disable for localhost development
             preload: path.join(__dirname, 'preload.js'), // Add preload script
-            cache: false, // Disable cache completely
-            allowRunningInsecureContent: !isPackaged, // Allow in development
-            experimentalFeatures: true,
-            // Additional cache-busting options
-            partition: 'persist:hotel-manager', // Use a specific partition
-            session: require('electron').session.fromPartition('persist:hotel-manager')
+            allowRunningInsecureContent: true, // Allow for localhost
+            experimentalFeatures: true
         },
         icon: path.join(__dirname, 'public', 'icons', 'logo.png'), // Use hotel logo
         title: '9JA LUXURY life hotel - Management System',
@@ -46,29 +42,50 @@ function createWindow() {
 
     // Wait a moment for server to start, then load the staff login page
     setTimeout(() => {
-        // Clear all caches first
-        mainWindow.webContents.session.clearCache();
-        mainWindow.webContents.session.clearStorageData({
-            storages: ['appcache', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
-        });
-        
         // Try both ports - the current running server is on 3001
         const serverUrl = 'http://localhost:3001/staff-login.html';
         console.log('Loading URL:', serverUrl);
-        mainWindow.loadURL(serverUrl);
-        mainWindow.show();
         
-        // Force hard refresh after cache clear
-        setTimeout(() => {
-            console.log('Performing hard refresh to load latest updates...');
-            mainWindow.webContents.reloadIgnoringCache();
-        }, 1500);
-    }, 2000);
+        // Load the URL first, then show the window
+        mainWindow.loadURL(serverUrl).then(() => {
+            console.log('✅ Page loaded successfully');
+            mainWindow.show();
+        }).catch((error) => {
+            console.error('❌ Failed to load page:', error);
+            // Try fallback URL
+            console.log('Trying fallback URL: http://localhost:3001/');
+            mainWindow.loadURL('http://localhost:3001/').then(() => {
+                mainWindow.show();
+            });
+        });
+    }, 3000);
 
     // Open DevTools only in development
     if (!isPackaged) {
         mainWindow.webContents.openDevTools();
     }
+
+    // Add navigation event handlers for debugging
+    mainWindow.webContents.on('did-start-loading', () => {
+        console.log('🔄 Page started loading...');
+    });
+
+    mainWindow.webContents.on('did-finish-load', () => {
+        console.log('✅ Page finished loading successfully');
+    });
+
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error('❌ Page failed to load:', errorCode, errorDescription, validatedURL);
+        // Try to load the main page instead
+        if (validatedURL.includes('staff-login.html')) {
+            console.log('🔄 Retrying with main page...');
+            mainWindow.loadURL('http://localhost:3001/');
+        }
+    });
+
+    mainWindow.webContents.on('dom-ready', () => {
+        console.log('🎯 DOM is ready');
+    });
 
     // Handle window closed
     mainWindow.on('closed', () => {
@@ -77,22 +94,12 @@ function createWindow() {
 
     // Handle window ready
     mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-        
-        // Clear all possible caches aggressively
-        const session = mainWindow.webContents.session;
-        session.clearCache();
-        session.clearStorageData({
-            storages: ['appcache', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
-            quotas: ['temporary', 'persistent', 'syncable']
-        });
+        console.log('✅ Window ready to show');
         
         // Focus on window
         if (process.platform === 'darwin') {
             app.dock.show();
         }
-        
-        console.log('✅ All caches cleared, window ready with latest content');
     });
 
     // Create application menu with refresh options
