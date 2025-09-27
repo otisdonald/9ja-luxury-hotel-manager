@@ -448,80 +448,814 @@ function openSection(sectionName) {
     const sectionData = {
         'rooms': {
             title: 'Room Management',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadAdminRooms()">
+                            <i class="fas fa-bed"></i> Manage Rooms
+                        </button>
+                        <button class="btn btn-success" onclick="addNewRoom()">
+                            <i class="fas fa-plus"></i> Add Room
+                        </button>
+                        <button class="btn btn-info" onclick="viewRoomAnalytics()">
+                            <i class="fas fa-chart-line"></i> Room Analytics
+                        </button>
+                    </div>
+                    <div id="adminRoomsContent" class="admin-content-area">
+                        <div class="loading">Loading room data...</div>
+                    </div>
+                </div>
+            `
         },
         'customers': {
-            title: 'Customer Management', 
-            url: '/'
+            title: 'Customer Management',
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadAdminCustomers()">
+                            <i class="fas fa-users"></i> View All Customers
+                        </button>
+                        <button class="btn btn-success" onclick="addNewCustomer()">
+                            <i class="fas fa-user-plus"></i> Add Customer
+                        </button>
+                        <button class="btn btn-info" onclick="exportCustomerData()">
+                            <i class="fas fa-download"></i> Export Data
+                        </button>
+                    </div>
+                    <div id="adminCustomersContent" class="admin-content-area">
+                        <div class="loading">Loading customer data...</div>
+                    </div>
+                </div>
+            `
         },
         'kitchen': {
             title: 'Kitchen Management',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadKitchenOrders()">
+                            <i class="fas fa-list"></i> View Orders
+                        </button>
+                        <button class="btn btn-warning" onclick="loadKitchenInventory()">
+                            <i class="fas fa-boxes"></i> Inventory
+                        </button>
+                        <button class="btn btn-info" onclick="loadKitchenCostAnalysis()">
+                            <i class="fas fa-calculator"></i> Cost Analysis
+                        </button>
+                        <button class="btn btn-success" onclick="loadKitchenReports()">
+                            <i class="fas fa-chart-bar"></i> Reports
+                        </button>
+                    </div>
+                    <div id="adminKitchenContent" class="admin-content-area">
+                        <div class="loading">Loading kitchen data...</div>
+                    </div>
+                </div>
+            `
         },
         'bar': {
             title: 'Bar Management',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadBarInventory()">
+                            <i class="fas fa-wine-glass"></i> Inventory
+                        </button>
+                        <button class="btn btn-success" onclick="addBarItem()">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                        <button class="btn btn-info" onclick="loadBarSales()">
+                            <i class="fas fa-cash-register"></i> Sales Report
+                        </button>
+                        <button class="btn btn-warning" onclick="loadBarAnalytics()">
+                            <i class="fas fa-chart-pie"></i> Analytics
+                        </button>
+                    </div>
+                    <div id="adminBarContent" class="admin-content-area">
+                        <div class="loading">Loading bar data...</div>
+                    </div>
+                </div>
+            `
         },
         'staff': {
             title: 'Staff Management',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadStaffList()">
+                            <i class="fas fa-users"></i> All Staff
+                        </button>
+                        <button class="btn btn-success" onclick="addNewStaff()">
+                            <i class="fas fa-user-plus"></i> Add Staff
+                        </button>
+                        <button class="btn btn-info" onclick="loadStaffSchedules()">
+                            <i class="fas fa-calendar"></i> Schedules
+                        </button>
+                        <button class="btn btn-warning" onclick="loadStaffReports()">
+                            <i class="fas fa-clock"></i> Time Reports
+                        </button>
+                    </div>
+                    <div id="adminStaffContent" class="admin-content-area">
+                        <div class="loading">Loading staff data...</div>
+                    </div>
+                </div>
+            `
         },
         'housekeeping': {
             title: 'Housekeeping Management',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadCleaningTasks()">
+                            <i class="fas fa-broom"></i> Cleaning Tasks
+                        </button>
+                        <button class="btn btn-warning" onclick="loadMaintenanceIssues()">
+                            <i class="fas fa-wrench"></i> Maintenance
+                        </button>
+                        <button class="btn btn-info" onclick="loadSupplies()">
+                            <i class="fas fa-boxes"></i> Supplies
+                        </button>
+                        <button class="btn btn-success" onclick="createMaintenanceRequest()">
+                            <i class="fas fa-plus"></i> New Request
+                        </button>
+                    </div>
+                    <div id="adminHousekeepingContent" class="admin-content-area">
+                        <div class="loading">Loading housekeeping data...</div>
+                    </div>
+                </div>
+            `
         },
         'payments': {
             title: 'Payments & Billing',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadAllPayments()">
+                            <i class="fas fa-credit-card"></i> All Payments
+                        </button>
+                        <button class="btn btn-warning" onclick="loadPendingPayments()">
+                            <i class="fas fa-clock"></i> Pending
+                        </button>
+                        <button class="btn btn-danger" onclick="loadRefunds()">
+                            <i class="fas fa-undo"></i> Refunds
+                        </button>
+                        <button class="btn btn-info" onclick="generatePaymentReport()">
+                            <i class="fas fa-file-invoice"></i> Reports
+                        </button>
+                    </div>
+                    <div id="adminPaymentsContent" class="admin-content-area">
+                        <div class="loading">Loading payment data...</div>
+                    </div>
+                </div>
+            `
         },
         'security': {
             title: 'Security & Reports',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadPoliceReports()">
+                            <i class="fas fa-shield-alt"></i> Police Reports
+                        </button>
+                        <button class="btn btn-danger" onclick="createIncidentReport()">
+                            <i class="fas fa-exclamation-triangle"></i> New Incident
+                        </button>
+                        <button class="btn btn-info" onclick="loadSecurityAnalytics()">
+                            <i class="fas fa-chart-line"></i> Security Analytics
+                        </button>
+                        <button class="btn btn-warning" onclick="loadEmergencyContacts()">
+                            <i class="fas fa-phone"></i> Emergency Contacts
+                        </button>
+                    </div>
+                    <div id="adminSecurityContent" class="admin-content-area">
+                        <div class="loading">Loading security data...</div>
+                    </div>
+                </div>
+            `
         },
         'service': {
             title: 'Customer Service',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadServiceRequests()">
+                            <i class="fas fa-concierge-bell"></i> Service Requests
+                        </button>
+                        <button class="btn btn-info" onclick="loadCustomerFeedback()">
+                            <i class="fas fa-comments"></i> Feedback
+                        </button>
+                        <button class="btn btn-warning" onclick="loadLostAndFound()">
+                            <i class="fas fa-search"></i> Lost & Found
+                        </button>
+                        <button class="btn btn-success" onclick="createServiceRequest()">
+                            <i class="fas fa-plus"></i> New Request
+                        </button>
+                    </div>
+                    <div id="adminServiceContent" class="admin-content-area">
+                        <div class="loading">Loading service data...</div>
+                    </div>
+                </div>
+            `
         },
         'communications': {
             title: 'Communications',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadMessages()">
+                            <i class="fas fa-envelope"></i> Messages
+                        </button>
+                        <button class="btn btn-info" onclick="loadCallLogs()">
+                            <i class="fas fa-phone"></i> Call Logs
+                        </button>
+                        <button class="btn btn-success" onclick="sendBroadcastMessage()">
+                            <i class="fas fa-bullhorn"></i> Broadcast
+                        </button>
+                        <button class="btn btn-warning" onclick="loadNotifications()">
+                            <i class="fas fa-bell"></i> Notifications
+                        </button>
+                    </div>
+                    <div id="adminCommunicationsContent" class="admin-content-area">
+                        <div class="loading">Loading communication data...</div>
+                    </div>
+                </div>
+            `
         },
         'analytics': {
             title: 'Analytics & Reports',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadBusinessAnalytics()">
+                            <i class="fas fa-chart-bar"></i> Business Analytics
+                        </button>
+                        <button class="btn btn-info" onclick="generateDailyReport()">
+                            <i class="fas fa-file-alt"></i> Daily Report
+                        </button>
+                        <button class="btn btn-success" onclick="generateWeeklyReport()">
+                            <i class="fas fa-calendar-week"></i> Weekly Report
+                        </button>
+                        <button class="btn btn-warning" onclick="loadCustomReports()">
+                            <i class="fas fa-cogs"></i> Custom Reports
+                        </button>
+                    </div>
+                    <div id="adminAnalyticsContent" class="admin-content-area">
+                        <div class="loading">Loading analytics data...</div>
+                    </div>
+                </div>
+            `
         },
         'modules': {
             title: 'Additional Modules',
-            url: '/'
+            content: `
+                <div class="admin-section">
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="loadLaundryModule()">
+                            <i class="fas fa-tshirt"></i> Laundry
+                        </button>
+                        <button class="btn btn-info" onclick="loadHRModule()">
+                            <i class="fas fa-user-tie"></i> HR
+                        </button>
+                        <button class="btn btn-warning" onclick="loadStockModule()">
+                            <i class="fas fa-boxes"></i> Stock
+                        </button>
+                        <button class="btn btn-success" onclick="loadScanpayModule()">
+                            <i class="fas fa-qrcode"></i> Scanpay
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadSuppliersModule()">
+                            <i class="fas fa-truck"></i> Suppliers
+                        </button>
+                        <button class="btn btn-dark" onclick="loadLocationsModule()">
+                            <i class="fas fa-map-marker"></i> Locations
+                        </button>
+                    </div>
+                    <div id="adminModulesContent" class="admin-content-area">
+                        <div class="loading">Loading modules data...</div>
+                    </div>
+                </div>
+            `
         }
     };
 
     const section = sectionData[sectionName];
     if (section) {
         title.textContent = section.title;
-        content.innerHTML = `
-            <div class="section-redirect">
-                <p>This section is available in the main staff dashboard.</p>
-                <div class="redirect-actions">
-                    <button class="btn btn-primary" onclick="window.open('${section.url}', '_blank')">
-                        <i class="fas fa-external-link-alt"></i> Open in New Tab
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.location.href='${section.url}'">
-                        <i class="fas fa-arrow-right"></i> Go to Section
-                    </button>
-                    <button class="btn btn-info" onclick="closeHotelSectionModal()">
-                        <i class="fas fa-times"></i> Close
-                    </button>
-                </div>
-            </div>
-        `;
+        content.innerHTML = section.content;
         modal.style.display = 'block';
+        
+        // Auto-load the primary function for each section
+        setTimeout(() => {
+            switch(sectionName) {
+                case 'rooms': loadAdminRooms(); break;
+                case 'customers': loadAdminCustomers(); break;
+                case 'kitchen': loadKitchenOrders(); break;
+                case 'bar': loadBarInventory(); break;
+                case 'staff': loadStaffList(); break;
+                case 'housekeeping': loadCleaningTasks(); break;
+                case 'payments': loadAllPayments(); break;
+                case 'security': loadPoliceReports(); break;
+                case 'service': loadServiceRequests(); break;
+                case 'communications': loadMessages(); break;
+                case 'analytics': loadBusinessAnalytics(); break;
+                case 'modules': loadLaundryModule(); break;
+            }
+        }, 100);
     }
 }
 
 function closeHotelSectionModal() {
     document.getElementById('hotelSectionModal').style.display = 'none';
 }
+
+// ====== ADMIN ROOM MANAGEMENT FUNCTIONS ======
+async function loadAdminRooms() {
+    try {
+        const response = await fetch('/api/rooms', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const rooms = await response.json();
+        
+        const content = document.getElementById('adminRoomsContent');
+        content.innerHTML = `
+            <div class="admin-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Room</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Price</th>
+                            <th>Floor</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rooms.map(room => `
+                            <tr>
+                                <td><strong>${room.name}</strong></td>
+                                <td>${room.type}</td>
+                                <td><span class="status-badge ${room.status}">${room.status}</span></td>
+                                <td>₦${room.price?.toLocaleString() || '0'}</td>
+                                <td>${room.floor}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editRoom('${room._id}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" onclick="editRoomPrice('${room._id}')">
+                                        <i class="fas fa-dollar-sign"></i> Price
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminRoomsContent').innerHTML = `
+            <div class="error">Error loading rooms: ${error.message}</div>
+        `;
+    }
+}
+
+async function editRoom(roomId) {
+    try {
+        const response = await fetch(`/api/rooms/${roomId}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const room = await response.json();
+        
+        const newStatus = prompt(`Change room status for ${room.name}:\nCurrent: ${room.status}\n\nOptions: available, occupied, maintenance, cleaning`, room.status);
+        if (newStatus && newStatus !== room.status) {
+            const updateResponse = await fetch(`/api/rooms/${roomId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            if (updateResponse.ok) {
+                showAlert('Room updated successfully!', 'success');
+                loadAdminRooms(); // Reload the list
+            }
+        }
+    } catch (error) {
+        showAlert('Error updating room: ' + error.message, 'error');
+    }
+}
+
+async function editRoomPrice(roomId) {
+    try {
+        const response = await fetch(`/api/rooms/${roomId}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const room = await response.json();
+        
+        const newPrice = prompt(`Change price for ${room.name}:\nCurrent: ₦${room.price}\n\nEnter new price:`, room.price);
+        if (newPrice && !isNaN(newPrice) && newPrice !== room.price.toString()) {
+            const updateResponse = await fetch(`/api/rooms/${roomId}/price`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+                },
+                body: JSON.stringify({ price: parseFloat(newPrice) })
+            });
+            
+            if (updateResponse.ok) {
+                showAlert('Room price updated successfully!', 'success');
+                loadAdminRooms(); // Reload the list
+            }
+        }
+    } catch (error) {
+        showAlert('Error updating room price: ' + error.message, 'error');
+    }
+}
+
+// ====== ADMIN CUSTOMER MANAGEMENT FUNCTIONS ======
+async function loadAdminCustomers() {
+    try {
+        const response = await fetch('/api/customers', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const customers = await response.json();
+        
+        const content = document.getElementById('adminCustomersContent');
+        content.innerHTML = `
+            <div class="admin-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Customer ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Room</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${customers.map(customer => `
+                            <tr>
+                                <td><strong>${customer.customerId || customer.legacyId || customer._id}</strong></td>
+                                <td>${customer.name}</td>
+                                <td>${customer.email || 'N/A'}</td>
+                                <td>${customer.phone || 'N/A'}</td>
+                                <td>${customer.currentRoom || 'N/A'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editCustomer('${customer._id}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-info" onclick="viewCustomerHistory('${customer._id}')">
+                                        <i class="fas fa-history"></i> History
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminCustomersContent').innerHTML = `
+            <div class="error">Error loading customers: ${error.message}</div>
+        `;
+    }
+}
+
+async function editCustomer(customerId) {
+    try {
+        const response = await fetch(`/api/customers/${customerId}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const customer = await response.json();
+        
+        const newName = prompt(`Edit customer name:\nCurrent: ${customer.name}`, customer.name);
+        if (newName && newName !== customer.name) {
+            const updateResponse = await fetch(`/api/customers/${customerId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+                },
+                body: JSON.stringify({ name: newName })
+            });
+            
+            if (updateResponse.ok) {
+                showAlert('Customer updated successfully!', 'success');
+                loadAdminCustomers();
+            }
+        }
+    } catch (error) {
+        showAlert('Error updating customer: ' + error.message, 'error');
+    }
+}
+
+// ====== ADMIN KITCHEN MANAGEMENT FUNCTIONS ======
+async function loadKitchenOrders() {
+    try {
+        const response = await fetch('/api/kitchen/orders', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const orders = await response.json();
+        
+        const content = document.getElementById('adminKitchenContent');
+        content.innerHTML = `
+            <div class="admin-table">
+                <h4>Kitchen Orders</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => `
+                            <tr>
+                                <td><strong>#${order._id.slice(-6)}</strong></td>
+                                <td>${order.customerName || 'N/A'}</td>
+                                <td>${order.items?.length || 0} items</td>
+                                <td>₦${order.total?.toLocaleString() || '0'}</td>
+                                <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                                <td>${new Date(order.createdAt).toLocaleTimeString()}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning" onclick="updateOrderStatus('${order._id}')">
+                                        <i class="fas fa-edit"></i> Update
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminKitchenContent').innerHTML = `
+            <div class="error">Error loading kitchen orders: ${error.message}</div>
+        `;
+    }
+}
+
+async function loadKitchenCostAnalysis() {
+    try {
+        const response = await fetch('/api/kitchen/cost-analysis', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const analysis = await response.json();
+        
+        const content = document.getElementById('adminKitchenContent');
+        content.innerHTML = `
+            <div class="cost-analysis">
+                <h4>Kitchen Cost Analysis</h4>
+                <div class="analysis-grid">
+                    <div class="analysis-card">
+                        <h5>Today's Costs</h5>
+                        <div class="cost-value">₦${analysis.todayCosts || 0}</div>
+                    </div>
+                    <div class="analysis-card">
+                        <h5>Monthly Budget</h5>
+                        <div class="cost-value">₦${analysis.monthlyBudget || 0}</div>
+                    </div>
+                    <div class="analysis-card">
+                        <h5>Cost Per Order</h5>
+                        <div class="cost-value">₦${analysis.costPerOrder || 0}</div>
+                    </div>
+                    <div class="analysis-card">
+                        <h5>Profit Margin</h5>
+                        <div class="cost-value">${analysis.profitMargin || 0}%</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminKitchenContent').innerHTML = `
+            <div class="error">Error loading cost analysis: ${error.message}</div>
+        `;
+    }
+}
+
+// ====== ADMIN BAR MANAGEMENT FUNCTIONS ======
+async function loadBarInventory() {
+    try {
+        const response = await fetch('/api/bar/inventory', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const inventory = await response.json();
+        
+        const content = document.getElementById('adminBarContent');
+        content.innerHTML = `
+            <div class="admin-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${inventory.map(item => `
+                            <tr>
+                                <td><strong>${item.name}</strong></td>
+                                <td>${item.category}</td>
+                                <td>${item.quantity}</td>
+                                <td>₦${item.price?.toLocaleString() || '0'}</td>
+                                <td><span class="status-badge ${item.quantity < 10 ? 'low-stock' : 'in-stock'}">${item.quantity < 10 ? 'Low Stock' : 'In Stock'}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editBarItem('${item._id}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminBarContent').innerHTML = `
+            <div class="error">Error loading bar inventory: ${error.message}</div>
+        `;
+    }
+}
+
+async function editBarItem(itemId) {
+    try {
+        const newQuantity = prompt('Enter new quantity:');
+        if (newQuantity && !isNaN(newQuantity)) {
+            const response = await fetch(`/api/bar/inventory/${itemId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+                },
+                body: JSON.stringify({ quantity: parseInt(newQuantity) })
+            });
+            
+            if (response.ok) {
+                showAlert('Inventory updated successfully!', 'success');
+                loadBarInventory();
+            }
+        }
+    } catch (error) {
+        showAlert('Error updating inventory: ' + error.message, 'error');
+    }
+}
+
+// ====== ADMIN STAFF MANAGEMENT FUNCTIONS ======
+async function loadStaffList() {
+    try {
+        const response = await fetch('/api/staff', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const staff = await response.json();
+        
+        const content = document.getElementById('adminStaffContent');
+        content.innerHTML = `
+            <div class="admin-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Position</th>
+                            <th>Status</th>
+                            <th>Last Clock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${staff.map(member => `
+                            <tr>
+                                <td><strong>${member.personalId}</strong></td>
+                                <td>${member.name}</td>
+                                <td>${member.position}</td>
+                                <td><span class="status-badge ${member.status || 'unknown'}">${member.status || 'Unknown'}</span></td>
+                                <td>${member.lastClock ? new Date(member.lastClock).toLocaleString() : 'Never'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="viewStaffDetails('${member.personalId}')">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminStaffContent').innerHTML = `
+            <div class="error">Error loading staff: ${error.message}</div>
+        `;
+    }
+}
+
+// ====== ADMIN PAYMENT FUNCTIONS ======
+async function loadAllPayments() {
+    try {
+        const response = await fetch('/api/payments', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('staffToken')}` }
+        });
+        const payments = await response.json();
+        
+        const content = document.getElementById('adminPaymentsContent');
+        content.innerHTML = `
+            <div class="admin-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${payments.map(payment => `
+                            <tr>
+                                <td><strong>#${payment._id?.slice(-6) || 'N/A'}</strong></td>
+                                <td>${payment.customerName || 'N/A'}</td>
+                                <td>₦${payment.amount?.toLocaleString() || '0'}</td>
+                                <td>${payment.method || 'N/A'}</td>
+                                <td><span class="status-badge ${payment.status}">${payment.status}</span></td>
+                                <td>${payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="viewPaymentDetails('${payment._id}')">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('adminPaymentsContent').innerHTML = `
+            <div class="error">Error loading payments: ${error.message}</div>
+        `;
+    }
+}
+
+// ====== UTILITY FUNCTIONS FOR MISSING IMPLEMENTATIONS ======
+function addNewRoom() { showAlert('Add New Room functionality - Coming soon!', 'info'); }
+function viewRoomAnalytics() { showAlert('Room Analytics - Coming soon!', 'info'); }
+function addNewCustomer() { showAlert('Add New Customer functionality - Coming soon!', 'info'); }
+function exportCustomerData() { showAlert('Export Customer Data - Coming soon!', 'info'); }
+function viewCustomerHistory(id) { showAlert('Customer History - Coming soon!', 'info'); }
+function loadKitchenInventory() { showAlert('Kitchen Inventory - Coming soon!', 'info'); }
+function loadKitchenReports() { showAlert('Kitchen Reports - Coming soon!', 'info'); }
+function updateOrderStatus(id) { showAlert('Update Order Status - Coming soon!', 'info'); }
+function addBarItem() { showAlert('Add Bar Item - Coming soon!', 'info'); }
+function loadBarSales() { showAlert('Bar Sales Report - Coming soon!', 'info'); }
+function loadBarAnalytics() { showAlert('Bar Analytics - Coming soon!', 'info'); }
+function addNewStaff() { showAlert('Add New Staff - Coming soon!', 'info'); }
+function loadStaffSchedules() { showAlert('Staff Schedules - Coming soon!', 'info'); }
+function loadStaffReports() { showAlert('Staff Reports - Coming soon!', 'info'); }
+function viewStaffDetails(id) { showAlert('Staff Details - Coming soon!', 'info'); }
+function loadCleaningTasks() { showAlert('Cleaning Tasks - Coming soon!', 'info'); }
+function loadMaintenanceIssues() { showAlert('Maintenance Issues - Coming soon!', 'info'); }
+function loadSupplies() { showAlert('Supplies Management - Coming soon!', 'info'); }
+function createMaintenanceRequest() { showAlert('Create Maintenance Request - Coming soon!', 'info'); }
+function loadPendingPayments() { showAlert('Pending Payments - Coming soon!', 'info'); }
+function loadRefunds() { showAlert('Refunds Management - Coming soon!', 'info'); }
+function generatePaymentReport() { showAlert('Payment Report - Coming soon!', 'info'); }
+function viewPaymentDetails(id) { showAlert('Payment Details - Coming soon!', 'info'); }
+function loadPoliceReports() { showAlert('Police Reports - Coming soon!', 'info'); }
+function createIncidentReport() { showAlert('Create Incident Report - Coming soon!', 'info'); }
+function loadSecurityAnalytics() { showAlert('Security Analytics - Coming soon!', 'info'); }
+function loadEmergencyContacts() { showAlert('Emergency Contacts - Coming soon!', 'info'); }
+function loadServiceRequests() { showAlert('Service Requests - Coming soon!', 'info'); }
+function loadCustomerFeedback() { showAlert('Customer Feedback - Coming soon!', 'info'); }
+function loadLostAndFound() { showAlert('Lost & Found - Coming soon!', 'info'); }
+function createServiceRequest() { showAlert('Create Service Request - Coming soon!', 'info'); }
+function loadMessages() { showAlert('Messages - Coming soon!', 'info'); }
+function loadCallLogs() { showAlert('Call Logs - Coming soon!', 'info'); }
+function sendBroadcastMessage() { showAlert('Broadcast Message - Coming soon!', 'info'); }
+function loadNotifications() { showAlert('Notifications - Coming soon!', 'info'); }
+function loadBusinessAnalytics() { showAlert('Business Analytics - Coming soon!', 'info'); }
+function generateDailyReport() { showAlert('Daily Report - Coming soon!', 'info'); }
+function generateWeeklyReport() { showAlert('Weekly Report - Coming soon!', 'info'); }
+function loadCustomReports() { showAlert('Custom Reports - Coming soon!', 'info'); }
+function loadLaundryModule() { showAlert('Laundry Module - Coming soon!', 'info'); }
+function loadHRModule() { showAlert('HR Module - Coming soon!', 'info'); }
+function loadStockModule() { showAlert('Stock Module - Coming soon!', 'info'); }
+function loadScanpayModule() { showAlert('Scanpay Module - Coming soon!', 'info'); }
+function loadSuppliersModule() { showAlert('Suppliers Module - Coming soon!', 'info'); }
+function loadLocationsModule() { showAlert('Locations Module - Coming soon!', 'info'); }
 
 // Utility function to update element content safely
 function updateElement(id, content) {
