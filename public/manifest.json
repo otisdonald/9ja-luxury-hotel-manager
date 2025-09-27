@@ -5,34 +5,34 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2c3e50",
+  "theme_color": "#D4AF37",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MiIgaGVpZ2h0PSI3MiIgdmlld0JveD0iMCAwIDcyIDcyIj4KICA8cmVjdCB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIGZpbGw9IiMyYzNlNTAiIHJ4PSI3Ii8+CiAgPGcgZmlsbD0id2hpdGUiPgogICAgPHJlY3QgeD0iMTQiIHk9IjIyIiB3aWR0aD0iNDQiIGhlaWdodD0iMzYiIGZpbGw9IiMzNDQ5NWUiLz4KICAgIDxyZWN0IHg9IjE4IiB5PSIyNiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjMyIiBmaWxsPSIjMmMzZTUwIi8+CiAgICA8cmVjdCB4PSIyMiIgeT0iMzAiIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjMwIiB5PSIzMCIgd2lkdGg9IjQiIGhlaWdodD0iNCIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iMzgiIHk9IjMwIiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSI0NiIgeT0iMzAiIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjIyIiB5PSIzOCIgd2lkdGg9IjQiIGhlaWdodD0iNCIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iMzAiIHk9IjM4IiB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIzOCIgeT0iMzgiIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjQ2IiB5PSIzOCIgd2lkdGg9IjQiIGhlaWdodD0iNCIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iMzAiIHk9IjQ2IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIGZpbGw9IiNlNjdlMjIiLz4KICA8L2c+Cjwvc3ZnPg==",
+      "src": "/icons/logo.png",
       "sizes": "72x72",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij4KICA8cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIGZpbGw9IiMyYzNlNTAiIHJ4PSIxMCIvPgogIDxnIGZpbGw9IndoaXRlIj4KICAgIDxyZWN0IHg9IjE5IiB5PSIyOSIgd2lkdGg9IjU4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMzQ0OTVlIi8+CiAgICA8cmVjdCB4PSIyNCIgeT0iMzQiIHdpZHRoPSI0OCIgaGVpZ2h0PSI0MyIgZmlsbD0iIzJjM2U1MCIvPgogICAgPHJlY3QgeD0iMjkiIHk9IjQwIiB3aWR0aD0iNiIgaGVpZ2h0PSI2IiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSI0MCIgeT0iNDAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjUxIiB5PSI0MCIgd2lkdGg9IjYiIGhlaWdodD0iNiIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iNjIiIHk9IjQwIiB3aWR0aD0iNiIgaGVpZ2h0PSI2IiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIyOSIgeT0iNTEiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjQwIiB5PSI1MSIgd2lkdGg9IjYiIGhlaWdodD0iNiIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iNTEiIHk9IjUxIiB3aWR0aD0iNiIgaGVpZ2h0PSI2IiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSI2MiIgeT0iNTEiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjQwIiB5PSI2MiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE1IiBmaWxsPSIjZTY3ZTIyIi8+CiAgPC9nPgo8L3N2Zz4=",
+      "src": "/icons/logo.png",
       "sizes": "96x96",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiB2aWV3Qm94PSIwIDAgMTkyIDE5MiI+CiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9IiMyYzNlNTAiIHJ4PSIyMCIvPgogIDxnIGZpbGw9IndoaXRlIj4KICAgIDxyZWN0IHg9IjM4IiB5PSI1OCIgd2lkdGg9IjExNiIgaGVpZ2h0PSI5NiIgZmlsbD0iIzM0NDk1ZSIvPgogICAgPHJlY3QgeD0iNDgiIHk9IjY4IiB3aWR0aD0iOTYiIGhlaWdodD0iODYiIGZpbGw9IiMyYzNlNTAiLz4KICAgIDxyZWN0IHg9IjU4IiB5PSI4MCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSI4MCIgeT0iODAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iMTAyIiB5PSI4MCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIxMjQiIHk9IjgwIiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIGZpbGw9IiNmMzljMTIiLz4KICAgIDxyZWN0IHg9IjU4IiB5PSIxMDIiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgZmlsbD0iI2YzOWMxMiIvPgogICAgPHJlY3QgeD0iODAiIHk9IjEwMiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIxMDIiIHk9IjEwMiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIxMjQiIHk9IjEwMiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSI4MCIgeT0iMTI0IiB3aWR0aD0iMzIiIGhlaWdodD0iMzAiIGZpbGw9IiNlNjdlMjIiLz4KICA8L2c+Cjwvc3ZnPg==",
+      "src": "/icons/logo.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMyYzNlNTAiIHJ4PSI1MSIvPgogIDxnIGZpbGw9IndoaXRlIj4KICAgIDxyZWN0IHg9IjEwMiIgeT0iMTU0IiB3aWR0aD0iMzA4IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzM0NDk1ZSIvPgogICAgPHJlY3QgeD0iMTI4IiB5PSIxODAiIHdpZHRoPSIyNTYiIGhlaWdodD0iMjMwIiBmaWxsPSIjMmMzZTUwIi8+CiAgICA8cmVjdCB4PSIxNTQiIHk9IjIxMyIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIyMTMiIHk9IjIxMyIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIyNzIiIHk9IjIxMyIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIzMzEiIHk9IjIxMyIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIxNTQiIHk9IjI3MiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIyMTMiIHk9IjI3MiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIyNzIiIHk9IjI3MiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIzMzEiIHk9IjI3MiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjM5YzEyIi8+CiAgICA8cmVjdCB4PSIyMTMiIHk9IjMzMSIgd2lkdGg9Ijg2IiBoZWlnaHQ9Ijc5IiBmaWxsPSIjZTY3ZTIyIi8+CiAgICA8dGV4dCB4PSIyNTYiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+SE9URUw8L3RleHQ+CiAgPC9nPgo8L3N2Zz4=",
+      "src": "/icons/logo.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable any"
     }
   ],
@@ -42,28 +42,28 @@
       "short_name": "Rooms",
       "description": "Manage room bookings and availability",
       "url": "/?tab=rooms",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/logo.png", "sizes": "96x96" }]
     },
     {
       "name": "Kitchen Management",
       "short_name": "Kitchen",
       "description": "Manage kitchen inventory and orders",
       "url": "/?tab=kitchen",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/logo.png", "sizes": "96x96" }]
     },
     {
       "name": "Bar Management",
       "short_name": "Bar",
       "description": "Manage bar inventory and sales",
       "url": "/?tab=bar",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/logo.png", "sizes": "96x96" }]
     },
     {
       "name": "Payments",
       "short_name": "Payments",
       "description": "View and manage payments",
       "url": "/?tab=payments",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/logo.png", "sizes": "96x96" }]
     }
   ],
   "screenshots": [
