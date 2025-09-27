@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const http = require('http');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -44,25 +45,68 @@ function createWindow() {
     // Start the Express server - Use port 3000 to match development server
     startServer();
 
-    // Wait a moment for server to start, then load the staff login page
-    setTimeout(() => {
-        // Clear all caches first
-        mainWindow.webContents.session.clearCache();
-        mainWindow.webContents.session.clearStorageData({
-            storages: ['appcache', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
-        });
-        
-        // Try both ports - the current running server is on 3001
-        const serverUrl = 'http://localhost:3001/staff-login.html';
-        console.log('Loading URL:', serverUrl);
-        mainWindow.loadURL(serverUrl);
-        mainWindow.show();
-        
-        // Force hard refresh after cache clear
-        setTimeout(() => {
-            console.log('Performing hard refresh to load latest updates...');
-            mainWindow.webContents.reloadIgnoringCache();
-        }, 1500);
+    // Wait for server to be ready, then load the staff login page
+    setTimeout(async () => {
+        try {
+            // Clear all caches first
+            mainWindow.webContents.session.clearCache();
+            mainWindow.webContents.session.clearStorageData({
+                storages: ['appcache', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage']
+            });
+            
+            // Test server connectivity first
+            const serverUrl = 'http://localhost:3001/staff-login.html';
+            console.log('Testing server connectivity at:', serverUrl);
+            
+            // Wait for server to be ready
+            let serverReady = false;
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            while (!serverReady && attempts < maxAttempts) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        const req = http.get('http://localhost:3001/', (res) => {
+                            if (res.statusCode === 200) {
+                                serverReady = true;
+                                console.log('✅ Server is ready!');
+                                resolve();
+                            } else {
+                                reject(new Error(`Server returned ${res.statusCode}`));
+                            }
+                        });
+                        req.on('error', reject);
+                        req.setTimeout(2000, () => reject(new Error('Timeout')));
+                    });
+                } catch (error) {
+                    attempts++;
+                    console.log(`⏳ Waiting for server... (${attempts}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+            
+            if (serverReady) {
+                console.log('Loading URL:', serverUrl);
+                mainWindow.loadURL(serverUrl);
+                mainWindow.show();
+                
+                // Force hard refresh after cache clear
+                setTimeout(() => {
+                    console.log('Performing hard refresh to load latest updates...');
+                    mainWindow.webContents.reloadIgnoringCache();
+                }, 1500);
+            } else {
+                console.error('❌ Server not ready after', maxAttempts, 'attempts');
+                // Load local error page instead of data URL
+                const errorPath = path.join(__dirname, 'public', 'server-error.html');
+                console.log('Loading error page:', errorPath);
+                mainWindow.loadFile(errorPath);
+                mainWindow.show();
+            }
+        } catch (error) {
+            console.error('Error loading application:', error);
+            mainWindow.show();
+        }
     }, 2000);
 
     // Open DevTools only in development
@@ -215,6 +259,12 @@ ipcMain.handle('show-confirm-dialog', async (event, options) => {
     });
     
     return result.response === 0;
+});
+
+// Handle app restart
+ipcMain.handle('restart-app', async () => {
+    app.relaunch();
+    app.exit();
 });
 
 app.on('before-quit', () => {
