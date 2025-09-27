@@ -1789,6 +1789,53 @@ app.get('/api/rooms', requireStaffAuth, async (req, res) => {
   return res.json(fallbackRooms);
 });
 
+// Get individual room by ID
+app.get('/api/rooms/:id', requireStaffAuth, async (req, res) => {
+  const id = req.params.id;
+  console.log(`🏠 Fetching room by ID: ${id}`);
+  
+  if (dbConnected && Room) {
+    try {
+      let room;
+      
+      // Check if it's a MongoDB ObjectId or legacy numeric ID
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        // Treat as legacy numeric ID
+        console.log(`🔍 Searching by legacy ID: ${id}`);
+        room = await Room.findOne({ legacyId: parseInt(id) }).lean();
+      } else {
+        // Treat as MongoDB ObjectId
+        console.log(`🔍 Searching by MongoDB ID: ${id}`);
+        room = await Room.findById(id).lean();
+      }
+      
+      if (!room) {
+        console.log(`❌ Room not found in DB: ${id}`);
+        return res.status(404).json({ error: 'Room not found' });
+      }
+      
+      console.log(`✅ Found room: ${room.name} (${room.type})`);
+      return res.json(room);
+      
+    } catch (err) {
+      console.error('Error fetching room from DB:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+  }
+  
+  // Fallback to in-memory rooms if DB not connected
+  const roomId = parseInt(id);
+  const room = rooms.find(r => r.id === roomId);
+  
+  if (!room) {
+    console.log(`❌ Room not found in memory: ${id}`);
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  console.log(`✅ Found room in memory: ${room.name}`);
+  res.json(room);
+});
+
 app.put('/api/rooms/:id', requireStaffAuth, async (req, res) => {
   const id = req.params.id;
   if (dbConnected && Room) {
