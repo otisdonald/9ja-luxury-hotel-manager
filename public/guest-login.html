@@ -3,43 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guest Portal - Hotel Management System</title>
+    <title>9JA LUXURY life hotel - Guest Portal</title>
     
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Guest login for hotel management system">
+    <meta name="description" content="Guest portal for 9JA LUXURY life hotel - Access your room services and manage your stay">
     <meta name="theme-color" content="#2c3e50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="9JA LUXURY Guest">
+    <meta name="msapplication-TileColor" content="#2c3e50">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Cache Prevention -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Manifest -->
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" href="/icons/logo.png">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/logo.png">
+    <link rel="mask-icon" href="/icons/logo.png" color="#D4AF37">
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin-styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* Guest Login Specific Styles */
+        /* 🏨 9JA LUXURY GUEST PORTAL - Professional Premium Design */
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-navy) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .guest-login-container {
-            background: var(--card-bg);
-            border-radius: 20px;
-            box-shadow: var(--shadow-lg);
+            background: var(--surface-primary);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-2xl);
             overflow: hidden;
             width: 100%;
             max-width: 450px;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-light);
+            backdrop-filter: blur(10px);
         }
         
         .guest-login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-navy) 100%);
+            color: var(--white);
             padding: 40px 30px 30px;
             text-align: center;
             position: relative;
@@ -53,34 +74,39 @@
             right: 0;
             bottom: 0;
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="guest-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23guest-grid)"/></svg>');
-            opacity: 0.3;
+            opacity: 0.2;
         }
         
         .guest-login-header h1 {
-            font-size: 2.2em;
-            margin-bottom: 10px;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
             position: relative;
             z-index: 1;
+            color: var(--white);
         }
         
         .guest-login-header p {
             opacity: 0.9;
-            font-size: 1.1em;
+            font-size: 1.1rem;
+            font-weight: 400;
             position: relative;
             z-index: 1;
+            color: var(--white);
         }
         
-        .guest-icon {
-            font-size: 3em;
-            margin-bottom: 20px;
+        .hotel-logo {
+            font-size: 3rem;
+            margin-bottom: 16px;
             display: block;
             position: relative;
             z-index: 1;
+            color: var(--primary-gold);
         }
         
         .guest-login-form {
             padding: 40px 30px;
-            background: var(--card-bg);
+            background: var(--surface-primary);
             position: relative;
         }
         
@@ -90,36 +116,36 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px 20px 0 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-gold) 0%, var(--primary-navy) 100%);
         }
         
         .welcome-section {
-            background: linear-gradient(145deg, var(--light-bg), var(--card-bg));
+            background: linear-gradient(145deg, var(--bg-secondary), var(--surface-primary));
             padding: 25px;
-            border-radius: 16px;
+            border-radius: var(--radius-xl);
             margin-bottom: 30px;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-light);
             box-shadow: var(--shadow-sm);
             text-align: center;
         }
         
         .welcome-section h3 {
-            color: var(--text-primary);
-            margin-bottom: 10px;
-            font-size: 1.3em;
+            color: var(--primary-navy);
+            margin-bottom: 12px;
+            font-size: 1.375rem;
+            font-weight: 600;
         }
         
         .welcome-section p {
             color: var(--text-secondary);
-            font-size: 0.95em;
-            line-height: 1.5;
+            font-size: 0.95rem;
+            line-height: 1.6;
             margin-bottom: 0;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         
         .form-group label {
@@ -127,42 +153,51 @@
             margin-bottom: 8px;
             color: var(--text-primary);
             font-weight: 600;
+            font-size: 0.95rem;
         }
         
         .form-group input {
             width: 100%;
-            padding: 15px 18px;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 1.1rem;
-            background: var(--input-bg);
+            padding: 16px 20px;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            font-size: 1rem;
+            font-family: inherit;
+            background: var(--surface-primary);
             color: var(--text-primary);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .form-group input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
             outline: none;
         }
         
         .guest-login-btn {
             width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%);
+            color: var(--white);
             border: none;
-            border-radius: 14px;
-            font-size: 1.1rem;
+            border-radius: var(--radius-lg);
+            font-size: 1rem;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 12px;
+            box-shadow: var(--shadow-gold);
         }
         
         .guest-login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-xl);
+            background: linear-gradient(135deg, var(--primary-gold-light) 0%, var(--primary-gold) 100%);
+        }
+        
+        .guest-login-btn:active {
+            transform: translateY(0);
         }
         
         .guest-login-btn:disabled {
@@ -172,8 +207,8 @@
         }
         
         .error-message, .success-message {
-            padding: 12px;
-            border-radius: 8px;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
             margin-bottom: 20px;
             font-weight: 500;
             text-align: center;
@@ -181,57 +216,133 @@
         }
         
         .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger-color);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.2);
         }
         
         .success-message {
             background: rgba(16, 185, 129, 0.1);
-            color: var(--success-color);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
         
         .back-link {
             text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
+            margin-top: 30px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-light);
         }
         
         .back-link a {
-            color: #667eea;
+            color: var(--primary-gold);
             text-decoration: none;
             font-weight: 600;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .back-link a:hover {
-            color: #764ba2;
+            color: var(--primary-gold-dark);
+            transform: translateX(-2px);
         }
         
         .customer-id-example {
-            background: var(--info-bg);
-            color: var(--info-color);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.9em;
+            background: var(--info-light);
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--info);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
             margin-top: 8px;
-            border-left: 4px solid var(--info-color);
+            border-left: 4px solid var(--info);
+            line-height: 1.4;
         }
         
         .customer-id-input {
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        /* Theme Toggle for Guest Portal */
+        .guest-theme-toggle {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .guest-theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Dark Theme Adaptations */
+        [data-theme="dark"] .guest-login-container {
+            background: var(--surface-dark);
+            border-color: var(--border-dark);
+        }
+        
+        [data-theme="dark"] .guest-login-form {
+            background: var(--surface-dark);
+        }
+        
+        [data-theme="dark"] .welcome-section {
+            background: var(--surface-dark-secondary);
+            border-color: var(--border-dark);
+        }
+        
+        [data-theme="dark"] .welcome-section h3 {
+            color: var(--primary-gold);
+        }
+        
+        [data-theme="dark"] .form-group input {
+            background: var(--surface-dark-secondary);
+            border-color: var(--border-dark);
+            color: var(--text-inverse);
+        }
+        
+        [data-theme="dark"] .form-group input:focus {
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+        
+        [data-theme="dark"] .back-link {
+            border-color: var(--border-dark);
         }
         
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .guest-login-container {
-                margin: 10px;
                 max-width: none;
+                margin: 0;
+            }
+            
+            .guest-login-header {
+                padding: 30px 25px 25px;
             }
             
             .guest-login-header h1 {
-                font-size: 1.8em;
+                font-size: 1.75rem;
+            }
+            
+            .guest-login-form {
+                padding: 30px 25px;
+            }
+            
+            .guest-theme-toggle {
+                top: 16px;
+                right: 16px;
+                width: 44px;
+                height: 44px;
             }
         }
     </style>
@@ -244,9 +355,9 @@
 
     <div class="guest-login-container">
         <div class="guest-login-header">
-            <div class="guest-icon">👥</div>
-            <h1>Guest Portal</h1>
-            <p>Welcome to Your Stay</p>
+            <div class="hotel-logo">🏨</div>
+            <h1><i class="fas fa-hotel"></i> 9JA LUXURY life hotel</h1>
+            <p>Guest Portal - Welcome to Your Luxury Stay</p>
         </div>
         
         <div class="guest-login-form">
@@ -255,8 +366,8 @@
             
             <!-- Welcome Section -->
             <div class="welcome-section">
-                <h3>🏨 Welcome Dear Guest!</h3>
-                <p>Access your room services, place orders, and manage your stay using your Customer ID provided during check-in.</p>
+                <h3>🏨 Welcome to 9JA LUXURY life hotel!</h3>
+                <p>Access your exclusive room services, place orders from our luxury restaurant and bar, and manage your premium stay using your Customer ID provided during check-in.</p>
             </div>
             
             <form id="guestLoginForm">
