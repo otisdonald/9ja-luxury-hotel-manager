@@ -61,8 +61,7 @@
             overflow: hidden;
             width: 100%;
             max-width: 1200px;
-            max-height: 85vh;
-            min-height: 600px;
+            min-height: 700px;
             display: grid;
             grid-template-columns: 45% 55%;
             position: relative;
@@ -79,7 +78,7 @@
         .staff-login-header {
             background: linear-gradient(135deg, #D4AF37 0%, #E6C659 50%, #B8941F 100%);
             color: #1a2332;
-            padding: 40px 30px;
+            padding: 80px 50px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -110,13 +109,13 @@
         }
         
         .hotel-logo {
-            width: 100px;
-            height: 100px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
             object-fit: cover;
             border: 4px solid rgba(26, 35, 50, 0.2);
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            margin-bottom: 25px;
+            margin-bottom: 40px;
             position: relative;
             z-index: 2;
             animation: logoGlow 3s ease-in-out infinite;
@@ -128,9 +127,9 @@
         }
         
         .staff-login-header h1 {
-            font-size: 2.25rem;
+            font-size: 3rem;
             font-weight: 700;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             position: relative;
             z-index: 2;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -138,12 +137,12 @@
         }
         
         .staff-login-header p {
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             opacity: 0.85;
             position: relative;
             z-index: 2;
             font-weight: 500;
-            margin-bottom: 25px;
+            margin-bottom: 40px;
         }
         
         .hotel-features {
@@ -151,17 +150,17 @@
             z-index: 2;
             text-align: left;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 20px;
         }
         
         .feature-item {
             display: flex;
             align-items: center;
-            margin-bottom: 12px;
-            font-size: 0.95rem;
+            margin-bottom: 20px;
+            font-size: 1.05rem;
             opacity: 0.85;
             transition: all 0.3s ease;
-            padding: 6px 0;
+            padding: 8px 0;
         }
         
         .feature-item:hover {
@@ -178,25 +177,24 @@
         
         /* Right Side - Login Form */
         .staff-login-form {
-            padding: 40px 40px;
+            padding: 80px 60px;
             background: rgba(255, 255, 255, 0.95);
             position: relative;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            overflow-y: auto;
         }
         
         .welcome-text {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 50px;
         }
         
         .welcome-text h2 {
-            font-size: 1.75rem;
+            font-size: 2.25rem;
             font-weight: 600;
             color: #1f2937;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             letter-spacing: -0.025em;
         }
         
@@ -208,9 +206,9 @@
         
         .quick-clock {
             background: linear-gradient(145deg, #f8fafc, #ffffff);
-            padding: 24px 20px;
+            padding: 32px 28px;
             border-radius: 18px;
-            margin-bottom: 25px;
+            margin-bottom: 35px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
@@ -223,8 +221,8 @@
         
         .quick-clock h3 {
             color: #1f2937;
-            margin-bottom: 15px;
-            font-size: 1.2em;
+            margin-bottom: 20px;
+            font-size: 1.3em;
             text-align: center;
             font-weight: 600;
         }
@@ -423,8 +421,8 @@
         
         .admin-access {
             text-align: center;
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
             border-top: 1px solid var(--border-color);
         }
         
@@ -440,7 +438,7 @@
         }
         
         .admin-access p:not(:first-child) {
-            margin-top: 10px;
+            margin-top: 15px;
         }
         
         .guest-portal-link {
@@ -462,7 +460,7 @@
         
         /* Guest Access Section */
         .guest-access-section {
-            margin: 20px 0 15px 0;
+            margin: 30px 0 20px 0;
             text-align: center;
         }
         
@@ -572,44 +570,6 @@
             }
         }
         
-        /* Desktop Height Optimization */
-        @media (min-height: 800px) {
-            .staff-login-container {
-                min-height: 650px;
-            }
-            
-            .staff-login-header {
-                padding: 50px 40px;
-            }
-            
-            .staff-login-form {
-                padding: 50px 50px;
-            }
-            
-            .welcome-text {
-                margin-bottom: 40px;
-            }
-            
-            .quick-clock {
-                margin-bottom: 30px;
-            }
-        }
-        
-        /* Very large desktop screens */
-        @media (min-height: 1000px) {
-            .staff-login-container {
-                min-height: 700px;
-            }
-            
-            .staff-login-header {
-                padding: 60px 50px;
-            }
-            
-            .staff-login-form {
-                padding: 60px 60px;
-            }
-        }
-
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             .staff-login-container {
