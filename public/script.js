@@ -369,7 +369,7 @@ function logoutStaff() {
         fetch('/api/staff/logout', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${staffToken}`
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
             }
         }).finally(() => {
             localStorage.removeItem('staffToken');
@@ -378,6 +378,9 @@ function logoutStaff() {
         });
     }
 }
+
+// Ensure logoutStaff is available globally
+window.logoutStaff = logoutStaff;
 
 // Debug function to clear authentication (can be called from browser console)
 window.clearAuth = function() {
@@ -497,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Global refresh function
-function refreshAllData() {
+async function refreshAllData() {
     // Force cache clear
     if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -538,6 +541,9 @@ function refreshAllData() {
         }, 1000);
     }
 }
+
+// Ensure refreshAllData is available globally
+window.refreshAllData = refreshAllData;
 
 // Helper to compare IDs (string-safe)
 function idEq(a, b) {
