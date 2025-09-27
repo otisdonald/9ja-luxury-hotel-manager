@@ -61,25 +61,6 @@ async function initializeDashboard() {
         const stockResponse = await fetch('/api/stock/valuation');
         const stockValuation = await stockResponse.json();
         updateDashboardStockValue(stockValuation.totalStockValue);
-        
-        // Set up auto-refresh for guest data (every 30 seconds)
-        setInterval(async () => {
-            try {
-                // Only refresh guest data if we're in kitchen or services sections
-                const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
-                if (activeTab === 'kitchen') {
-                    await loadGuestOrders();
-                    console.log('🔄 Auto-refreshed guest orders');
-                }
-                if (activeTab === 'services') {
-                    await loadGuestVisitors();
-                    console.log('🔄 Auto-refreshed guest visitors');
-                }
-            } catch (error) {
-                console.error('❌ Auto-refresh error:', error);
-            }
-        }, 30000); // 30 seconds
-        
     } catch (error) {
         console.error('Error initializing dashboard:', error);
     }
@@ -511,15 +492,6 @@ function refreshAllData() {
     loadTabContent(activeTab);
     updateBadgeCounts();
     
-    // Always refresh guest data since it updates frequently
-    try {
-        await loadGuestOrders();
-        await loadGuestVisitors();
-        console.log('✅ Guest data refreshed');
-    } catch (error) {
-        console.error('❌ Error refreshing guest data:', error);
-    }
-    
     // Update category stats if on overview
     if (document.getElementById('categoryOverview').style.display !== 'none') {
         updateCategoryStats();
@@ -595,7 +567,6 @@ async function loadTabContent(tab) {
         case 'kitchen':
             await loadKitchenInventory();
             await loadKitchenOrders();
-            await loadGuestOrders(); // Load guest orders along with kitchen orders
             await updateKitchenOverview();
             break;
         case 'reports':
@@ -619,7 +590,6 @@ async function loadTabContent(tab) {
             break;
         case 'services':
             await loadServices();
-            await loadGuestVisitors(); // Load guest visitors in services section
             break;
         case 'communication':
             await loadCommunication();
@@ -1007,263 +977,6 @@ async function loadCustomers() {
         } else {
             showAlert('Unable to load customers. Check your connection.', 'error');
         }
-    }
-}
-
-// Guest Orders and Visitors Management
-async function loadGuestOrders() {
-    try {
-        console.log('📋 Loading guest orders...');
-        const response = await fetch('/api/admin/guest-orders');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const orders = await response.json();
-        console.log('📋 Received', orders.length, 'guest orders');
-        
-        // Update kitchen orders section with guest orders
-        const kitchenOrdersContainer = document.getElementById('kitchenOrders');
-        if (kitchenOrdersContainer) {
-            // Clear existing orders
-            kitchenOrdersContainer.innerHTML = '';
-            
-            orders.forEach(order => {
-                const orderCard = document.createElement('div');
-                orderCard.className = `order-card guest-order order-${order.status}`;
-                
-                // Determine order type display
-                const orderTypeDisplay = order.orderType === 'kitchen' ? 'Kitchen Order' : 
-                                       order.orderType === 'room-service' ? 'Room Service' : 
-                                       'Guest Order';
-                
-                orderCard.innerHTML = `
-                    <div class="order-header">
-                        <h4>🏨 ${orderTypeDisplay} #${order._id.slice(-6)}</h4>
-                        <span class="order-status status-${order.status}">${order.status}</span>
-                    </div>
-                    <div class="order-details">
-                        <p><strong>Guest:</strong> ${order.customerInfo?.name || order.customerId}</p>
-                        <p><strong>Room:</strong> ${order.customerInfo?.roomNumber || 'N/A'}</p>
-                        <p><strong>Type:</strong> ${orderTypeDisplay}</p>
-                        ${order.orderType === 'kitchen' ? 
-                            `<p><strong>Items:</strong> ${order.items?.map(item => `${item.name} (${item.quantity})`).join(', ') || 'No items'}</p>
-                             <p><strong>Total:</strong> ₦${order.total || '0.00'}</p>` :
-                            `<p><strong>Service:</strong> ${order.serviceType || 'N/A'}</p>
-                             <p><strong>Description:</strong> ${order.description}</p>
-                             <p><strong>Priority:</strong> ${order.priority || 'Normal'}</p>`
-                        }
-                        <p><strong>Ordered:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
-                        ${order.estimatedTime ? `<p><strong>Estimated:</strong> ${order.estimatedTime}</p>` : ''}
-                    </div>
-                    <div class="order-actions">
-                        <button class="btn btn-primary" onclick="updateGuestOrderStatus('${order._id}', 'preparing')">
-                            <i class="fas fa-utensils"></i> Preparing
-                        </button>
-                        <button class="btn btn-success" onclick="updateGuestOrderStatus('${order._id}', 'completed')">
-                            <i class="fas fa-check"></i> Complete
-                        </button>
-                        <button class="btn btn-warning" onclick="updateGuestOrderStatus('${order._id}', 'delayed')">
-                            <i class="fas fa-clock"></i> Delayed
-                        </button>
-                        <button class="btn btn-danger" onclick="updateGuestOrderStatus('${order._id}', 'cancelled')">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
-                    </div>
-                `;
-                kitchenOrdersContainer.appendChild(orderCard);
-            });
-            
-            // Update order count badge
-            const ordersBadge = document.querySelector('[data-count="orders"]');
-            if (ordersBadge) {
-                ordersBadge.textContent = orders.length;
-            }
-        }
-        
-        return orders;
-    } catch (error) {
-        console.error('❌ Error loading guest orders:', error);
-        showAlert('Failed to load guest orders', 'error');
-        return [];
-    }
-}
-
-async function loadGuestVisitors() {
-    try {
-        console.log('👥 Loading guest visitors...');
-        const response = await fetch('/api/admin/visitors');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const visitors = await response.json();
-        console.log('👥 Received', visitors.length, 'guest visitors');
-        
-        // Find or create visitors section in the main portal
-        let visitorsSection = document.getElementById('guestVisitors');
-        if (!visitorsSection) {
-            // Create visitors section if it doesn't exist
-            const servicesSection = document.getElementById('services');
-            if (servicesSection) {
-                visitorsSection = document.createElement('div');
-                visitorsSection.id = 'guestVisitors';
-                visitorsSection.innerHTML = `
-                    <div class="section-header">
-                        <h3><i class="fas fa-users"></i> Guest Visitors</h3>
-                        <span class="count-badge" data-count="visitors">${visitors.length}</span>
-                    </div>
-                    <div id="visitorsContainer" class="visitors-grid"></div>
-                `;
-                servicesSection.appendChild(visitorsSection);
-            }
-        }
-        
-        const visitorsContainer = document.getElementById('visitorsContainer') || 
-                                 document.querySelector('#guestVisitors .visitors-grid');
-        
-        if (visitorsContainer) {
-            visitorsContainer.innerHTML = '';
-            
-            visitors.forEach(visitor => {
-                const visitorCard = document.createElement('div');
-                visitorCard.className = `visitor-card visitor-${visitor.status}`;
-                
-                const expectedDateTime = new Date(`${visitor.expectedDate}T${visitor.expectedTime}`);
-                const now = new Date();
-                const isToday = expectedDateTime.toDateString() === now.toDateString();
-                const isPast = expectedDateTime < now;
-                
-                visitorCard.innerHTML = `
-                    <div class="visitor-header">
-                        <h4>👤 ${visitor.visitorName}</h4>
-                        <span class="visitor-status status-${visitor.status}">${visitor.status}</span>
-                    </div>
-                    <div class="visitor-details">
-                        <p><strong>Guest:</strong> ${visitor.customerInfo?.name || visitor.customerId}</p>
-                        <p><strong>Room:</strong> ${visitor.customerInfo?.roomNumber || 'N/A'}</p>
-                        <p><strong>Phone:</strong> ${visitor.visitorPhone}</p>
-                        <p><strong>ID:</strong> ${visitor.visitorIdNumber}</p>
-                        <p><strong>Expected:</strong> ${expectedDateTime.toLocaleDateString()} at ${visitor.expectedTime}</p>
-                        <p><strong>Purpose:</strong> ${visitor.purpose}</p>
-                        <p><strong>Duration:</strong> ${visitor.duration}</p>
-                        ${visitor.notes ? `<p><strong>Notes:</strong> ${visitor.notes}</p>` : ''}
-                        <p><strong>Registered:</strong> ${new Date(visitor.createdAt).toLocaleString()}</p>
-                        ${isToday ? '<p class="highlight">📅 <strong>Expected Today!</strong></p>' : ''}
-                        ${isPast && visitor.status === 'pending' ? '<p class="warning">⚠️ <strong>Overdue</strong></p>' : ''}
-                    </div>
-                    <div class="visitor-actions">
-                        <button class="btn btn-success" onclick="approveVisitor('${visitor._id}')">
-                            <i class="fas fa-check"></i> Approve
-                        </button>
-                        <button class="btn btn-warning" onclick="updateVisitorStatus('${visitor._id}', 'arrived')">
-                            <i class="fas fa-sign-in-alt"></i> Arrived
-                        </button>
-                        <button class="btn btn-info" onclick="updateVisitorStatus('${visitor._id}', 'departed')">
-                            <i class="fas fa-sign-out-alt"></i> Departed
-                        </button>
-                        <button class="btn btn-danger" onclick="rejectVisitor('${visitor._id}')">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
-                    </div>
-                `;
-                visitorsContainer.appendChild(visitorCard);
-            });
-            
-            // Update visitors count badge
-            const visitorsBadge = document.querySelector('[data-count="visitors"]');
-            if (visitorsBadge) {
-                visitorsBadge.textContent = visitors.length;
-            }
-        }
-        
-        return visitors;
-    } catch (error) {
-        console.error('❌ Error loading guest visitors:', error);
-        showAlert('Failed to load guest visitors', 'error');
-        return [];
-    }
-}
-
-async function updateGuestOrderStatus(orderId, status) {
-    try {
-        const response = await fetch(`/api/admin/guest-orders/${orderId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status })
-        });
-        
-        if (response.ok) {
-            showAlert(`Order status updated to ${status}`, 'success');
-            await loadGuestOrders(); // Reload to show updated status
-        } else {
-            const error = await response.json();
-            showAlert(error.message || 'Failed to update order status', 'error');
-        }
-    } catch (error) {
-        console.error('Error updating order status:', error);
-        showAlert('Error updating order status', 'error');
-    }
-}
-
-async function approveVisitor(visitorId) {
-    try {
-        const response = await fetch(`/api/admin/visitors/${visitorId}/approve`, {
-            method: 'PUT'
-        });
-        
-        if (response.ok) {
-            showAlert('Visitor approved successfully', 'success');
-            await loadGuestVisitors(); // Reload to show updated status
-        } else {
-            const error = await response.json();
-            showAlert(error.message || 'Failed to approve visitor', 'error');
-        }
-    } catch (error) {
-        console.error('Error approving visitor:', error);
-        showAlert('Error approving visitor', 'error');
-    }
-}
-
-async function rejectVisitor(visitorId) {
-    try {
-        const response = await fetch(`/api/admin/visitors/${visitorId}/reject`, {
-            method: 'PUT'
-        });
-        
-        if (response.ok) {
-            showAlert('Visitor rejected', 'success');
-            await loadGuestVisitors(); // Reload to show updated status
-        } else {
-            const error = await response.json();
-            showAlert(error.message || 'Failed to reject visitor', 'error');
-        }
-    } catch (error) {
-        console.error('Error rejecting visitor:', error);
-        showAlert('Error rejecting visitor', 'error');
-    }
-}
-
-async function updateVisitorStatus(visitorId, status) {
-    try {
-        const response = await fetch(`/api/admin/visitors/${visitorId}/${status.toLowerCase()}`, {
-            method: 'PUT'
-        });
-        
-        if (response.ok) {
-            showAlert(`Visitor status updated to ${status}`, 'success');
-            await loadGuestVisitors(); // Reload to show updated status
-        } else {
-            const error = await response.json();
-            showAlert(error.message || `Failed to update visitor to ${status}`, 'error');
-        }
-    } catch (error) {
-        console.error(`Error updating visitor status to ${status}:`, error);
-        showAlert(`Error updating visitor status`, 'error');
     }
 }
 
