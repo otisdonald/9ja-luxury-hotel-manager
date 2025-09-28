@@ -83,6 +83,9 @@
             <button class="tab-btn" onclick="showTab('guest-portal')">
                 <i class="fas fa-user-friends"></i> Guest Portal
             </button>
+            <button class="tab-btn" onclick="showTab('stock-section')">
+                <i class="fas fa-warehouse"></i> Stock Management
+            </button>
         </nav>
 
         <div class="admin-content">
@@ -358,6 +361,16 @@
                             </div>
                         </div>
 
+                        <!-- Guest Orders for Kitchen -->
+                        <div class="section-card" id="guestOrdersKitchenSection">
+                            <div class="section-icon"><i class="fas fa-concierge-bell"></i></div>
+                            <h3>Guest Orders (Kitchen)</h3>
+                            <p>Pending and preparing guest food orders</p>
+                            <div id="kitchenGuestOrdersContainer">
+                                <div class="loading">Loading guest orders...</div>
+                            </div>
+                        </div>
+
                         <!-- Bar Management -->
                         <div class="section-card" onclick="openSection('bar')">
                             <div class="section-icon"><i class="fas fa-wine-glass"></i></div>
@@ -369,6 +382,16 @@
                             </div>
                         </div>
 
+                        <!-- Guest Orders for Room Service -->
+                        <div class="section-card" id="guestOrdersRoomServiceSection">
+                            <div class="section-icon"><i class="fas fa-room-service"></i></div>
+                            <h3>Guest Orders (Room Service)</h3>
+                            <p>Room service requests and delivery orders</p>
+                            <div id="roomServiceGuestOrdersContainer">
+                                <div class="loading">Loading room service orders...</div>
+                            </div>
+                        </div>
+
                         <!-- Staff Management -->
                         <div class="section-card" onclick="openSection('staff')">
                             <div class="section-icon"><i class="fas fa-users-cog"></i></div>
@@ -377,6 +400,26 @@
                             <div class="section-stats">
                                 <span class="stat">On Duty: <span id="sectionStaffOnDuty">0</span></span>
                                 <span class="stat">Total: <span id="sectionTotalStaff">4</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Guest Orders for Security -->
+                        <div class="section-card" id="guestOrdersSecuritySection">
+                            <div class="section-icon"><i class="fas fa-shield-alt"></i></div>
+                            <h3>Guest Security Requests</h3>
+                            <p>Security alerts, visitor requests, and urgent matters</p>
+                            <div id="securityGuestOrdersContainer">
+                                <div class="loading">Loading security requests...</div>
+                            </div>
+                        </div>
+
+                        <!-- Guest Orders for Housekeeping -->
+                        <div class="section-card" id="guestOrdersHousekeepingSection">
+                            <div class="section-icon"><i class="fas fa-broom"></i></div>
+                            <h3>Guest Housekeeping Requests</h3>
+                            <p>Cleaning, laundry, maintenance, and room service requests</p>
+                            <div id="housekeepingGuestOrdersContainer">
+                                <div class="loading">Loading housekeeping requests...</div>
                             </div>
                         </div>
 
@@ -443,6 +486,18 @@
                             <div class="section-stats">
                                 <span class="stat">Revenue: <span id="sectionAnalyticsRevenue">₦0</span></span>
                                 <span class="stat">Growth: <span id="sectionGrowthRate">0%</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Stock & Inventory Management -->
+                        <div class="section-card" onclick="openSection('stock')">
+                            <div class="section-icon"><i class="fas fa-warehouse"></i></div>
+                            <h3>Stock & Inventory</h3>
+                            <p>Comprehensive stock management, suppliers, and purchase orders</p>
+                            <div class="section-stats">
+                                <span class="stat">Items: <span id="sectionStockItems">0</span></span>
+                                <span class="stat">Alerts: <span id="sectionLowStock">0</span></span>
+                                <span class="stat">Value: <span id="sectionStockValue">₦0</span></span>
                             </div>
                         </div>
 
@@ -1286,8 +1341,480 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Stock Management Section -->
+            <div id="stock-section-tab" class="tab-content" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-warehouse"></i> Stock & Inventory Management</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="showModal('addStockItemModal')">
+                            <i class="fas fa-plus"></i> Add Stock Item
+                        </button>
+                        <button class="btn btn-success" onclick="showModal('addSupplierModal')">
+                            <i class="fas fa-truck"></i> Add Supplier
+                        </button>
+                        <button class="btn btn-info" onclick="showModal('createPurchaseOrderModal')">
+                            <i class="fas fa-file-invoice"></i> Create PO
+                        </button>
+                        <button class="btn btn-secondary" onclick="generateStockReport()">
+                            <i class="fas fa-chart-bar"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stock Overview Cards -->
+                <div class="overview-cards">
+                    <div class="overview-card">
+                        <div class="card-icon"><i class="fas fa-boxes"></i></div>
+                        <div class="card-info">
+                            <h3 id="totalStockItems">0</h3>
+                            <p>Total Stock Items</p>
+                        </div>
+                    </div>
+                    <div class="overview-card warning">
+                        <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="card-info">
+                            <h3 id="lowStockAlerts">0</h3>
+                            <p>Low Stock Alerts</p>
+                        </div>
+                    </div>
+                    <div class="overview-card success">
+                        <div class="card-icon"><i class="fas fa-money-bill-wave"></i></div>
+                        <div class="card-info">
+                            <h3 id="totalStockValue">₦0</h3>
+                            <p>Total Stock Value</p>
+                        </div>
+                    </div>
+                    <div class="overview-card info">
+                        <div class="card-icon"><i class="fas fa-truck"></i></div>
+                        <div class="card-info">
+                            <h3 id="activeSuppliers">0</h3>
+                            <p>Active Suppliers</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Management Tabs -->
+                <div class="stock-tabs">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" onclick="switchStockTab('inventory')">
+                            <i class="fas fa-boxes"></i> Inventory
+                        </button>
+                        <button class="tab-btn" onclick="switchStockTab('suppliers')">
+                            <i class="fas fa-truck"></i> Suppliers
+                        </button>
+                        <button class="tab-btn" onclick="switchStockTab('purchase-orders')">
+                            <i class="fas fa-file-invoice"></i> Purchase Orders
+                        </button>
+                        <button class="tab-btn" onclick="switchStockTab('movements')">
+                            <i class="fas fa-exchange-alt"></i> Stock Movements
+                        </button>
+                        <button class="tab-btn" onclick="switchStockTab('alerts')">
+                            <i class="fas fa-bell"></i> Alerts
+                        </button>
+                    </div>
+
+                    <!-- Inventory Tab -->
+                    <div id="inventory-tab" class="stock-tab-content active">
+                        <div class="tab-header">
+                            <h3>Stock Inventory</h3>
+                            <div class="search-filters">
+                                <input type="text" id="stockSearch" placeholder="Search items..." onkeyup="filterStockItems()">
+                                <select id="categoryFilter" onchange="filterStockItems()">
+                                    <option value="">All Categories</option>
+                                    <option value="Cleaning Supplies">Cleaning Supplies</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Office Supplies">Office Supplies</option>
+                                    <option value="Guest Amenities">Guest Amenities</option>
+                                    <option value="Linens">Linens</option>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Safety Equipment">Safety Equipment</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="stockItemsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Category</th>
+                                        <th>Current Stock</th>
+                                        <th>Min Stock</th>
+                                        <th>Unit</th>
+                                        <th>Cost/Unit</th>
+                                        <th>Total Value</th>
+                                        <th>Supplier</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stockItemsTableBody">
+                                    <!-- Stock items will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Suppliers Tab -->
+                    <div id="suppliers-tab" class="stock-tab-content">
+                        <div class="tab-header">
+                            <h3>Suppliers Management</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="suppliersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Supplier Name</th>
+                                        <th>Contact Person</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Category</th>
+                                        <th>Payment Terms</th>
+                                        <th>Total Orders</th>
+                                        <th>Rating</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="suppliersTableBody">
+                                    <!-- Suppliers will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Purchase Orders Tab -->
+                    <div id="purchase-orders-tab" class="stock-tab-content">
+                        <div class="tab-header">
+                            <h3>Purchase Orders</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="purchaseOrdersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Order Number</th>
+                                        <th>Supplier</th>
+                                        <th>Order Date</th>
+                                        <th>Expected Delivery</th>
+                                        <th>Total Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchaseOrdersTableBody">
+                                    <!-- Purchase orders will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Stock Movements Tab -->
+                    <div id="movements-tab" class="stock-tab-content">
+                        <div class="tab-header">
+                            <h3>Stock Movement History</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="stockMovementsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Item</th>
+                                        <th>Movement Type</th>
+                                        <th>Quantity</th>
+                                        <th>Previous Stock</th>
+                                        <th>New Stock</th>
+                                        <th>Reference</th>
+                                        <th>Staff</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stockMovementsTableBody">
+                                    <!-- Stock movements will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Alerts Tab -->
+                    <div id="alerts-tab" class="stock-tab-content">
+                        <div class="tab-header">
+                            <h3>Stock Alerts</h3>
+                        </div>
+                        <div class="alerts-container" id="stockAlertsContainer">
+                            <!-- Stock alerts will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div> <!-- End of adminDashboard -->
+
+    <!-- Stock Management Modals -->
+
+    <!-- Add Stock Item Modal -->
+    <div id="addStockItemModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h2>Add Stock Item</h2>
+                <span class="close" onclick="closeModal('addStockItemModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addStockItemForm" onsubmit="addStockItem(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockItemName">Item Name *</label>
+                            <input type="text" id="stockItemName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockItemCategory">Category *</label>
+                            <select id="stockItemCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="Cleaning Supplies">Cleaning Supplies</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Office Supplies">Office Supplies</option>
+                                <option value="Guest Amenities">Guest Amenities</option>
+                                <option value="Linens">Linens</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Safety Equipment">Safety Equipment</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockItemCurrentStock">Current Stock *</label>
+                            <input type="number" id="stockItemCurrentStock" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockItemMinStock">Minimum Stock Level *</label>
+                            <input type="number" id="stockItemMinStock" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockItemMaxStock">Maximum Stock Level</label>
+                            <input type="number" id="stockItemMaxStock" min="1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockItemUnit">Unit *</label>
+                            <input type="text" id="stockItemUnit" placeholder="pcs, kg, liters, boxes" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockItemCostPerUnit">Cost per Unit (₦) *</label>
+                            <input type="number" id="stockItemCostPerUnit" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockItemSupplier">Primary Supplier</label>
+                            <select id="stockItemSupplier">
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockItemLocation">Storage Location</label>
+                            <input type="text" id="stockItemLocation" placeholder="Warehouse A, Shelf 1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="stockItemDescription">Description</label>
+                        <textarea id="stockItemDescription" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('addStockItemModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Stock Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Supplier Modal -->
+    <div id="addSupplierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Supplier</h2>
+                <span class="close" onclick="closeModal('addSupplierModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addSupplierForm" onsubmit="addSupplier(event)">
+                    <div class="form-group">
+                        <label for="supplierName">Company Name *</label>
+                        <input type="text" id="supplierName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplierContactPerson">Contact Person *</label>
+                            <input type="text" id="supplierContactPerson" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="supplierPhone">Phone Number *</label>
+                            <input type="tel" id="supplierPhone" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplierEmail">Email *</label>
+                        <input type="email" id="supplierEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplierAddress">Address</label>
+                        <textarea id="supplierAddress" rows="2"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplierCategory">Category *</label>
+                            <select id="supplierCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="Food & Beverage">Food & Beverage</option>
+                                <option value="Cleaning Supplies">Cleaning Supplies</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Office Supplies">Office Supplies</option>
+                                <option value="Linens">Linens</option>
+                                <option value="General">General</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="supplierPaymentTerms">Payment Terms</label>
+                            <select id="supplierPaymentTerms">
+                                <option value="Cash on Delivery">Cash on Delivery</option>
+                                <option value="Net 7">Net 7 days</option>
+                                <option value="Net 15">Net 15 days</option>
+                                <option value="Net 30">Net 30 days</option>
+                                <option value="Net 60">Net 60 days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('addSupplierModal')">Cancel</button>
+                        <button type="submit" class="btn btn-success">Add Supplier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Purchase Order Modal -->
+    <div id="createPurchaseOrderModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h2>Create Purchase Order</h2>
+                <span class="close" onclick="closeModal('createPurchaseOrderModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="createPurchaseOrderForm" onsubmit="createPurchaseOrder(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="poSupplier">Supplier *</label>
+                            <select id="poSupplier" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="poExpectedDelivery">Expected Delivery Date *</label>
+                            <input type="date" id="poExpectedDelivery" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="poNotes">Notes</label>
+                        <textarea id="poNotes" rows="2" placeholder="Special instructions or notes"></textarea>
+                    </div>
+                    
+                    <div class="po-items-section">
+                        <h4>Items</h4>
+                        <div id="poItemsList">
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addPOItem()">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                    
+                    <div class="po-totals">
+                        <div class="total-line">
+                            <span>Subtotal: ₦<span id="poSubtotal">0.00</span></span>
+                        </div>
+                        <div class="total-line">
+                            <span>Tax (7.5%): ₦<span id="poTax">0.00</span></span>
+                        </div>
+                        <div class="total-line grand-total">
+                            <span>Total: ₦<span id="poTotal">0.00</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('createPurchaseOrderModal')">Cancel</button>
+                        <button type="submit" class="btn btn-info">Create Purchase Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Adjustment Modal -->
+    <div id="stockAdjustmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Stock Adjustment</h2>
+                <span class="close" onclick="closeModal('stockAdjustmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="stockAdjustmentForm" onsubmit="adjustStock(event)">
+                    <input type="hidden" id="adjustmentItemId">
+                    <div class="form-group">
+                        <label for="adjustmentItemName">Item</label>
+                        <input type="text" id="adjustmentItemName" readonly>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adjustmentCurrentStock">Current Stock</label>
+                            <input type="number" id="adjustmentCurrentStock" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="adjustmentType">Adjustment Type *</label>
+                            <select id="adjustmentType" required onchange="updateAdjustmentFields()">
+                                <option value="">Select Type</option>
+                                <option value="add">Add Stock</option>
+                                <option value="remove">Remove Stock</option>
+                                <option value="set">Set Stock Level</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adjustmentQuantity">Quantity *</label>
+                            <input type="number" id="adjustmentQuantity" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adjustmentNewStock">New Stock Level</label>
+                            <input type="number" id="adjustmentNewStock" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adjustmentReason">Reason *</label>
+                        <select id="adjustmentReason" required>
+                            <option value="">Select Reason</option>
+                            <option value="Purchase Received">Purchase Received</option>
+                            <option value="Stock Count Correction">Stock Count Correction</option>
+                            <option value="Damaged/Expired">Damaged/Expired</option>
+                            <option value="Used in Operations">Used in Operations</option>
+                            <option value="Returned to Supplier">Returned to Supplier</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="adjustmentReference">Reference</label>
+                        <input type="text" id="adjustmentReference" placeholder="PO number, invoice, etc.">
+                    </div>
+                    <div class="form-group">
+                        <label for="adjustmentNotes">Notes</label>
+                        <textarea id="adjustmentNotes" rows="2"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('stockAdjustmentModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Apply Adjustment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="admin-script.js"></script>
 </body>

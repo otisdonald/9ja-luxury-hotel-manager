@@ -173,6 +173,14 @@ function showTab(tabName) {
             loadGuestPortalData();
             loadGuestOrders(); // Load default tab content
             break;
+        case 'stock-section':
+            // Show the stock section and initialize
+            const stockSection = document.getElementById('stock-section-tab');
+            if (stockSection) {
+                stockSection.style.display = 'block';
+            }
+            initializeStockManagement();
+            break;
     }
 }
 
@@ -2376,3 +2384,791 @@ function refreshGuestData() {
 function exportGuestReport() {
     alert('Exporting guest portal report...\nThis would generate and download a comprehensive guest activity report.');
 }
+
+// ========================================
+// STOCK MANAGEMENT FUNCTIONS
+// ========================================
+
+// Stock Management State
+let stockItems = [];
+let suppliers = [];
+let purchaseOrders = [];
+let stockMovements = [];
+let stockAlerts = [];
+
+// Initialize Stock Management
+function initializeStockManagement() {
+    loadStockOverview();
+    loadStockItems();
+    loadSuppliers();
+    loadPurchaseOrders();
+    loadStockMovements();
+    loadStockAlerts();
+    populateSupplierDropdowns();
+}
+
+// Switch between stock tabs
+function switchStockTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.stock-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab content
+    const selectedTab = document.getElementById(`${tabName}-tab`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // Add active class to selected tab button
+    const selectedBtn = event.target.closest('.tab-btn');
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+    
+    // Load data for the selected tab
+    switch(tabName) {
+        case 'inventory':
+            loadStockItems();
+            break;
+        case 'suppliers':
+            loadSuppliers();
+            break;
+        case 'purchase-orders':
+            loadPurchaseOrders();
+            break;
+        case 'movements':
+            loadStockMovements();
+            break;
+        case 'alerts':
+            loadStockAlerts();
+            break;
+    }
+}
+
+// Load Stock Overview
+async function loadStockOverview() {
+    try {
+        const response = await fetchWithAuth('/api/stock/overview');
+        if (response.ok) {
+            const overview = await response.json();
+            updateOverviewCards(overview);
+        } else {
+            console.error('Failed to load stock overview');
+        }
+    } catch (error) {
+        console.error('Error loading stock overview:', error);
+        // Set default values
+        updateOverviewCards({
+            totalItems: 0,
+            lowStockCount: 0,
+            totalValue: 0,
+            activeSuppliers: 0
+        });
+    }
+}
+
+// Update Overview Cards
+function updateOverviewCards(overview) {
+    document.getElementById('totalStockItems').textContent = overview.totalItems || 0;
+    document.getElementById('lowStockAlerts').textContent = overview.lowStockCount || 0;
+    document.getElementById('totalStockValue').textContent = `₦${(overview.totalValue || 0).toLocaleString()}`;
+    document.getElementById('activeSuppliers').textContent = overview.activeSuppliers || 0;
+}
+
+// Load Stock Items
+async function loadStockItems() {
+    try {
+        const response = await fetchWithAuth('/api/stock/items');
+        if (response.ok) {
+            stockItems = await response.json();
+            displayStockItems(stockItems);
+        } else {
+            console.error('Failed to load stock items');
+            stockItems = [];
+            displayStockItems([]);
+        }
+    } catch (error) {
+        console.error('Error loading stock items:', error);
+        stockItems = [];
+        displayStockItems([]);
+    }
+}
+
+// Display Stock Items
+function displayStockItems(items) {
+    const tableBody = document.getElementById('stockItemsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!items || items.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center">
+                    <div style="padding: 40px; color: #666;">
+                        <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p style="margin: 0; font-size: 1.1rem;">No stock items found</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Add your first stock item to get started</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = items.map(item => {
+        const status = getStockStatus(item.currentStock, item.minStock);
+        const totalValue = (item.currentStock * item.costPerUnit).toFixed(2);
+        
+        return `
+            <tr>
+                <td>
+                    <strong>${item.name}</strong>
+                    ${item.description ? `<br><small style="color: #666;">${item.description}</small>` : ''}
+                </td>
+                <td>
+                    <span class="badge badge-secondary">${item.category}</span>
+                </td>
+                <td>
+                    <strong>${item.currentStock}</strong>
+                    ${item.location ? `<br><small style="color: #666;">📍 ${item.location}</small>` : ''}
+                </td>
+                <td>${item.minStock}</td>
+                <td>${item.unit}</td>
+                <td>₦${item.costPerUnit.toFixed(2)}</td>
+                <td><strong>₦${totalValue}</strong></td>
+                <td>${item.supplier ? item.supplier.name : 'N/A'}</td>
+                <td>
+                    <span class="status-badge ${status.class}">${status.text}</span>
+                </td>
+                <td>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editStockItem('${item._id}')" title="Edit Item">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="adjustStockModal('${item._id}')" title="Adjust Stock">
+                            <i class="fas fa-plus-minus"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteStockItem('${item._id}')" title="Delete Item">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Get Stock Status
+function getStockStatus(currentStock, minStock) {
+    if (currentStock <= 0) {
+        return { class: 'out-of-stock', text: 'Out of Stock' };
+    } else if (currentStock <= minStock) {
+        return { class: 'low-stock', text: 'Low Stock' };
+    } else {
+        return { class: 'in-stock', text: 'In Stock' };
+    }
+}
+
+// Filter Stock Items
+function filterStockItems() {
+    const searchTerm = document.getElementById('stockSearch').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    
+    let filteredItems = stockItems;
+    
+    if (searchTerm) {
+        filteredItems = filteredItems.filter(item => 
+            item.name.toLowerCase().includes(searchTerm) ||
+            item.description.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (categoryFilter) {
+        filteredItems = filteredItems.filter(item => item.category === categoryFilter);
+    }
+    
+    displayStockItems(filteredItems);
+}
+
+// Add Stock Item
+async function addStockItem(event) {
+    event.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('stockItemName').value,
+        category: document.getElementById('stockItemCategory').value,
+        currentStock: parseInt(document.getElementById('stockItemCurrentStock').value),
+        minStock: parseInt(document.getElementById('stockItemMinStock').value),
+        maxStock: parseInt(document.getElementById('stockItemMaxStock').value) || null,
+        unit: document.getElementById('stockItemUnit').value,
+        costPerUnit: parseFloat(document.getElementById('stockItemCostPerUnit').value),
+        supplier: document.getElementById('stockItemSupplier').value || null,
+        location: document.getElementById('stockItemLocation').value,
+        description: document.getElementById('stockItemDescription').value
+    };
+    
+    try {
+        const response = await fetchWithAuth('/api/stock/items', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            closeModal('addStockItemModal');
+            document.getElementById('addStockItemForm').reset();
+            loadStockItems();
+            loadStockOverview();
+            showNotification('Stock item added successfully', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.message || 'Failed to add stock item', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding stock item:', error);
+        showNotification('Error adding stock item', 'error');
+    }
+}
+
+// Load Suppliers
+async function loadSuppliers() {
+    try {
+        const response = await fetchWithAuth('/api/suppliers');
+        if (response.ok) {
+            suppliers = await response.json();
+            displaySuppliers(suppliers);
+        } else {
+            console.error('Failed to load suppliers');
+            suppliers = [];
+            displaySuppliers([]);
+        }
+    } catch (error) {
+        console.error('Error loading suppliers:', error);
+        suppliers = [];
+        displaySuppliers([]);
+    }
+}
+
+// Display Suppliers
+function displaySuppliers(suppliers) {
+    const tableBody = document.getElementById('suppliersTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!suppliers || suppliers.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center">
+                    <div style="padding: 40px; color: #666;">
+                        <i class="fas fa-truck" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p style="margin: 0; font-size: 1.1rem;">No suppliers found</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Add your first supplier to get started</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = suppliers.map(supplier => `
+        <tr>
+            <td><strong>${supplier.name}</strong></td>
+            <td>${supplier.contactPerson}</td>
+            <td>${supplier.phone}</td>
+            <td>${supplier.email}</td>
+            <td><span class="badge badge-info">${supplier.category}</span></td>
+            <td>${supplier.paymentTerms}</td>
+            <td>${supplier.totalOrders || 0}</td>
+            <td>
+                <div class="rating">
+                    ${'★'.repeat(supplier.rating || 0)}${'☆'.repeat(5 - (supplier.rating || 0))}
+                </div>
+            </td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editSupplier('${supplier._id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSupplier('${supplier._id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Add Supplier
+async function addSupplier(event) {
+    event.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('supplierName').value,
+        contactPerson: document.getElementById('supplierContactPerson').value,
+        phone: document.getElementById('supplierPhone').value,
+        email: document.getElementById('supplierEmail').value,
+        address: document.getElementById('supplierAddress').value,
+        category: document.getElementById('supplierCategory').value,
+        paymentTerms: document.getElementById('supplierPaymentTerms').value
+    };
+    
+    try {
+        const response = await fetchWithAuth('/api/suppliers', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            closeModal('addSupplierModal');
+            document.getElementById('addSupplierForm').reset();
+            loadSuppliers();
+            populateSupplierDropdowns();
+            loadStockOverview();
+            showNotification('Supplier added successfully', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.message || 'Failed to add supplier', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding supplier:', error);
+        showNotification('Error adding supplier', 'error');
+    }
+}
+
+// Populate Supplier Dropdowns
+function populateSupplierDropdowns() {
+    const stockItemSupplierSelect = document.getElementById('stockItemSupplier');
+    const poSupplierSelect = document.getElementById('poSupplier');
+    
+    if (stockItemSupplierSelect) {
+        stockItemSupplierSelect.innerHTML = '<option value="">Select Supplier</option>' + 
+            suppliers.map(supplier => `<option value="${supplier._id}">${supplier.name}</option>`).join('');
+    }
+    
+    if (poSupplierSelect) {
+        poSupplierSelect.innerHTML = '<option value="">Select Supplier</option>' + 
+            suppliers.map(supplier => `<option value="${supplier._id}">${supplier.name}</option>`).join('');
+    }
+}
+
+// Load Purchase Orders
+async function loadPurchaseOrders() {
+    try {
+        const response = await fetchWithAuth('/api/purchase-orders');
+        if (response.ok) {
+            purchaseOrders = await response.json();
+            displayPurchaseOrders(purchaseOrders);
+        } else {
+            console.error('Failed to load purchase orders');
+            purchaseOrders = [];
+            displayPurchaseOrders([]);
+        }
+    } catch (error) {
+        console.error('Error loading purchase orders:', error);
+        purchaseOrders = [];
+        displayPurchaseOrders([]);
+    }
+}
+
+// Display Purchase Orders
+function displayPurchaseOrders(orders) {
+    const tableBody = document.getElementById('purchaseOrdersTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!orders || orders.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">
+                    <div style="padding: 40px; color: #666;">
+                        <i class="fas fa-file-invoice" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p style="margin: 0; font-size: 1.1rem;">No purchase orders found</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Create your first purchase order to get started</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = orders.map(order => `
+        <tr>
+            <td><strong>${order.orderNumber}</strong></td>
+            <td>${order.supplier ? order.supplier.name : 'N/A'}</td>
+            <td>${new Date(order.orderDate).toLocaleDateString()}</td>
+            <td>${new Date(order.expectedDelivery).toLocaleDateString()}</td>
+            <td><strong>₦${order.totalAmount.toLocaleString()}</strong></td>
+            <td><span class="status-badge ${order.status.toLowerCase()}">${order.status}</span></td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewPurchaseOrder('${order._id}')" title="View">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="markPODelivered('${order._id}')" title="Mark Delivered">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Create Purchase Order
+let poItemCounter = 0;
+
+function addPOItem() {
+    const poItemsList = document.getElementById('poItemsList');
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'po-item';
+    itemDiv.id = `po-item-${poItemCounter}`;
+    
+    itemDiv.innerHTML = `
+        <select class="item-select" onchange="updatePOItemPrice(${poItemCounter})">
+            <option value="">Select Item</option>
+            ${stockItems.map(item => `<option value="${item._id}" data-price="${item.costPerUnit}">${item.name}</option>`).join('')}
+        </select>
+        <input type="number" class="quantity-input" placeholder="Qty" min="1" value="1" onchange="calculatePOItemTotal(${poItemCounter})">
+        <input type="number" class="price-input" placeholder="Price" min="0" step="0.01" onchange="calculatePOItemTotal(${poItemCounter})">
+        <div class="total-display">₦0.00</div>
+        <button type="button" class="remove-item" onclick="removePOItem(${poItemCounter})">×</button>
+    `;
+    
+    poItemsList.appendChild(itemDiv);
+    poItemCounter++;
+}
+
+function updatePOItemPrice(itemId) {
+    const itemSelect = document.querySelector(`#po-item-${itemId} .item-select`);
+    const priceInput = document.querySelector(`#po-item-${itemId} .price-input`);
+    const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+    
+    if (selectedOption.dataset.price) {
+        priceInput.value = selectedOption.dataset.price;
+        calculatePOItemTotal(itemId);
+    }
+}
+
+function calculatePOItemTotal(itemId) {
+    const quantity = parseFloat(document.querySelector(`#po-item-${itemId} .quantity-input`).value) || 0;
+    const price = parseFloat(document.querySelector(`#po-item-${itemId} .price-input`).value) || 0;
+    const total = quantity * price;
+    
+    document.querySelector(`#po-item-${itemId} .total-display`).textContent = `₦${total.toFixed(2)}`;
+    calculatePOTotals();
+}
+
+function removePOItem(itemId) {
+    const itemDiv = document.getElementById(`po-item-${itemId}`);
+    if (itemDiv) {
+        itemDiv.remove();
+        calculatePOTotals();
+    }
+}
+
+function calculatePOTotals() {
+    const items = document.querySelectorAll('.po-item');
+    let subtotal = 0;
+    
+    items.forEach(item => {
+        const totalText = item.querySelector('.total-display').textContent;
+        const total = parseFloat(totalText.replace('₦', '').replace(',', '')) || 0;
+        subtotal += total;
+    });
+    
+    const tax = subtotal * 0.075; // 7.5% tax
+    const total = subtotal + tax;
+    
+    document.getElementById('poSubtotal').textContent = subtotal.toFixed(2);
+    document.getElementById('poTax').textContent = tax.toFixed(2);
+    document.getElementById('poTotal').textContent = total.toFixed(2);
+}
+
+async function createPurchaseOrder(event) {
+    event.preventDefault();
+    
+    const items = [];
+    document.querySelectorAll('.po-item').forEach(itemDiv => {
+        const itemSelect = itemDiv.querySelector('.item-select');
+        const quantity = parseInt(itemDiv.querySelector('.quantity-input').value);
+        const price = parseFloat(itemDiv.querySelector('.price-input').value);
+        
+        if (itemSelect.value && quantity && price) {
+            items.push({
+                item: itemSelect.value,
+                quantity: quantity,
+                unitPrice: price
+            });
+        }
+    });
+    
+    if (items.length === 0) {
+        showNotification('Please add at least one item to the purchase order', 'error');
+        return;
+    }
+    
+    const formData = {
+        supplier: document.getElementById('poSupplier').value,
+        items: items,
+        expectedDelivery: document.getElementById('poExpectedDelivery').value,
+        notes: document.getElementById('poNotes').value
+    };
+    
+    try {
+        const response = await fetchWithAuth('/api/purchase-orders', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            closeModal('createPurchaseOrderModal');
+            document.getElementById('createPurchaseOrderForm').reset();
+            document.getElementById('poItemsList').innerHTML = '';
+            poItemCounter = 0;
+            loadPurchaseOrders();
+            loadStockOverview();
+            showNotification('Purchase order created successfully', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.message || 'Failed to create purchase order', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating purchase order:', error);
+        showNotification('Error creating purchase order', 'error');
+    }
+}
+
+// Load Stock Movements
+async function loadStockMovements() {
+    try {
+        const response = await fetchWithAuth('/api/stock/movements');
+        if (response.ok) {
+            stockMovements = await response.json();
+            displayStockMovements(stockMovements);
+        } else {
+            console.error('Failed to load stock movements');
+            stockMovements = [];
+            displayStockMovements([]);
+        }
+    } catch (error) {
+        console.error('Error loading stock movements:', error);
+        stockMovements = [];
+        displayStockMovements([]);
+    }
+}
+
+// Display Stock Movements
+function displayStockMovements(movements) {
+    const tableBody = document.getElementById('stockMovementsTableBody');
+    
+    if (!tableBody) return;
+    
+    if (!movements || movements.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center">
+                    <div style="padding: 40px; color: #666;">
+                        <i class="fas fa-exchange-alt" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p style="margin: 0; font-size: 1.1rem;">No stock movements found</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = movements.map(movement => `
+        <tr>
+            <td>${new Date(movement.date).toLocaleDateString()}</td>
+            <td>${movement.item ? movement.item.name : 'N/A'}</td>
+            <td>
+                <span class="badge ${movement.type === 'in' ? 'badge-success' : 'badge-danger'}">
+                    ${movement.type === 'in' ? 'Stock In' : 'Stock Out'}
+                </span>
+            </td>
+            <td>${movement.quantity}</td>
+            <td>${movement.previousStock}</td>
+            <td>${movement.newStock}</td>
+            <td>${movement.reference || 'N/A'}</td>
+            <td>${movement.staff || 'System'}</td>
+        </tr>
+    `).join('');
+}
+
+// Load Stock Alerts
+async function loadStockAlerts() {
+    try {
+        const response = await fetchWithAuth('/api/stock/alerts');
+        if (response.ok) {
+            stockAlerts = await response.json();
+            displayStockAlerts(stockAlerts);
+        } else {
+            console.error('Failed to load stock alerts');
+            stockAlerts = [];
+            displayStockAlerts([]);
+        }
+    } catch (error) {
+        console.error('Error loading stock alerts:', error);
+        stockAlerts = [];
+        displayStockAlerts([]);
+    }
+}
+
+// Display Stock Alerts
+function displayStockAlerts(alerts) {
+    const container = document.getElementById('stockAlertsContainer');
+    
+    if (!container) return;
+    
+    if (!alerts || alerts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center" style="padding: 40px; color: #666;">
+                <i class="fas fa-bell-slash" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p style="margin: 0; font-size: 1.1rem;">No stock alerts</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem;">All stock levels are healthy</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = alerts.map(alert => `
+        <div class="stock-alert ${alert.type}">
+            <div class="alert-header">
+                <div class="alert-title">
+                    <i class="fas ${alert.type === 'critical' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
+                    ${alert.item.name}
+                    <span class="alert-badge ${alert.type}">${alert.type.toUpperCase()}</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="adjustStockModal('${alert.item._id}')">
+                    <i class="fas fa-plus"></i> Restock
+                </button>
+            </div>
+            <div class="alert-details">
+                <p><strong>Current Stock:</strong> ${alert.item.currentStock} ${alert.item.unit}</p>
+                <p><strong>Minimum Required:</strong> ${alert.item.minStock} ${alert.item.unit}</p>
+                <p><strong>Supplier:</strong> ${alert.item.supplier ? alert.item.supplier.name : 'No supplier assigned'}</p>
+                <p><strong>Category:</strong> ${alert.item.category}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Stock Adjustment Modal
+function adjustStockModal(itemId) {
+    const item = stockItems.find(i => i._id === itemId);
+    if (!item) return;
+    
+    document.getElementById('adjustmentItemId').value = itemId;
+    document.getElementById('adjustmentItemName').value = item.name;
+    document.getElementById('adjustmentCurrentStock').value = item.currentStock;
+    document.getElementById('adjustmentQuantity').value = '';
+    document.getElementById('adjustmentNewStock').value = '';
+    document.getElementById('adjustmentType').value = '';
+    document.getElementById('adjustmentReason').value = '';
+    document.getElementById('adjustmentReference').value = '';
+    document.getElementById('adjustmentNotes').value = '';
+    
+    showModal('stockAdjustmentModal');
+}
+
+// Update Adjustment Fields
+function updateAdjustmentFields() {
+    const currentStock = parseInt(document.getElementById('adjustmentCurrentStock').value);
+    const adjustmentType = document.getElementById('adjustmentType').value;
+    const quantity = parseInt(document.getElementById('adjustmentQuantity').value) || 0;
+    
+    let newStock = currentStock;
+    
+    switch(adjustmentType) {
+        case 'add':
+            newStock = currentStock + quantity;
+            break;
+        case 'remove':
+            newStock = Math.max(0, currentStock - quantity);
+            break;
+        case 'set':
+            newStock = quantity;
+            break;
+    }
+    
+    document.getElementById('adjustmentNewStock').value = newStock;
+}
+
+// Adjust Stock
+async function adjustStock(event) {
+    event.preventDefault();
+    
+    const formData = {
+        itemId: document.getElementById('adjustmentItemId').value,
+        type: document.getElementById('adjustmentType').value,
+        quantity: parseInt(document.getElementById('adjustmentQuantity').value),
+        reason: document.getElementById('adjustmentReason').value,
+        reference: document.getElementById('adjustmentReference').value,
+        notes: document.getElementById('adjustmentNotes').value
+    };
+    
+    try {
+        const response = await fetchWithAuth('/api/stock/adjust', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            closeModal('stockAdjustmentModal');
+            document.getElementById('stockAdjustmentForm').reset();
+            loadStockItems();
+            loadStockMovements();
+            loadStockOverview();
+            loadStockAlerts();
+            showNotification('Stock adjustment applied successfully', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.message || 'Failed to adjust stock', 'error');
+        }
+    } catch (error) {
+        console.error('Error adjusting stock:', error);
+        showNotification('Error adjusting stock', 'error');
+    }
+}
+
+// Generate Stock Report
+function generateStockReport() {
+    const reportData = {
+        totalItems: stockItems.length,
+        lowStockItems: stockItems.filter(item => item.currentStock <= item.minStock).length,
+        outOfStockItems: stockItems.filter(item => item.currentStock <= 0).length,
+        totalValue: stockItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0),
+        recentMovements: stockMovements.slice(0, 10)
+    };
+    
+    // This would typically generate and download a PDF or CSV report
+    alert(`Stock Report Summary:
+    
+Total Items: ${reportData.totalItems}
+Low Stock Items: ${reportData.lowStockItems}
+Out of Stock Items: ${reportData.outOfStockItems}
+Total Inventory Value: ₦${reportData.totalValue.toLocaleString()}
+
+Report generation feature would create a detailed PDF/CSV file.`);
+}
+
+// Add event listeners when stock section becomes active
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listener for adjustment quantity changes
+    const adjustmentQuantity = document.getElementById('adjustmentQuantity');
+    if (adjustmentQuantity) {
+        adjustmentQuantity.addEventListener('input', updateAdjustmentFields);
+    }
+    
+    // Initialize stock management when the section is first accessed
+    const stockMenuItem = document.querySelector('nav a[onclick*="stock-section"]');
+    if (stockMenuItem) {
+        stockMenuItem.addEventListener('click', function() {
+            setTimeout(initializeStockManagement, 100);
+        });
+    }
+});

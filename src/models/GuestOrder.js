@@ -9,7 +9,7 @@ const GuestOrderSchema = new Schema({
   },
   orderType: { 
     type: String, 
-    enum: ['kitchen', 'room-service', 'maintenance', 'housekeeping', 'other'], 
+    enum: ['kitchen', 'room-service', 'maintenance', 'housekeeping', 'security', 'other'], 
     required: true 
   },
   // Kitchen/Food orders

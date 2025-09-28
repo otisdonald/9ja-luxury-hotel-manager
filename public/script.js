@@ -1,3 +1,272 @@
+// Load and display guest kitchen orders for kitchen staff
+async function loadKitchenGuestOrders() {
+    const container = document.getElementById('kitchenGuestOrdersContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">Loading guest orders...</div>';
+    try {
+        const response = await fetch('/api/kitchen/guest-orders', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch guest kitchen orders');
+        const orders = await response.json();
+        if (!orders.length) {
+            container.innerHTML = '<div class="empty">No guest food orders at the moment.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'order-card guest-order-card';
+            card.innerHTML = `
+                <div>
+                    <h4>Order #${order.id}</h4>
+                    <p><strong>Room:</strong> ${order.roomNumber}</p>
+                    <p><strong>Customer:</strong> ${order.customerId}</p>
+                    <p><strong>Priority:</strong> ${order.priority || 'medium'}</p>
+                    <p><strong>Items:</strong> ${order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}</p>
+                    <p><strong>Requested:</strong> ${order.requestedTime ? new Date(order.requestedTime).toLocaleString() : ''}</p>
+                    <p><strong>Description:</strong> ${order.description || ''}</p>
+                </div>
+                <div>
+                    <span class="order-status status-${order.status}">${order.status}</span>
+                    <button class="btn btn-success" onclick="updateGuestOrderStatus('${order.id}', '${order.status}')">
+                        <i class="fas fa-check"></i> Next Status
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = '<div class="error">Error loading guest orders.</div>';
+        console.error('Error loading guest kitchen orders:', err);
+    }
+}
+
+// Update guest order status (advance to next stage)
+async function updateGuestOrderStatus(orderId, currentStatus) {
+    const statusFlow = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed'];
+    const idx = statusFlow.indexOf(currentStatus);
+    const nextStatus = idx >= 0 && idx < statusFlow.length - 1 ? statusFlow[idx + 1] : null;
+    if (!nextStatus) {
+        showAlert('Order is already completed or cannot be advanced.', 'info');
+        return;
+    }
+    try {
+        const response = await fetch(`/api/guest/orders/${orderId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            },
+            body: JSON.stringify({ status: nextStatus })
+        });
+        if (!response.ok) throw new Error('Failed to update order status');
+        showAlert('Order status updated!', 'success');
+        // Refresh all department order lists
+        loadKitchenGuestOrders();
+        loadRoomServiceGuestOrders();
+        loadSecurityGuestOrders();
+        loadHousekeepingGuestOrders();
+    } catch (err) {
+        showAlert('Error updating order status', 'error');
+        console.error('Error updating guest order status:', err);
+    }
+}
+
+// Load and display room service guest orders
+async function loadRoomServiceGuestOrders() {
+    const container = document.getElementById('roomServiceGuestOrdersContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">Loading room service orders...</div>';
+    try {
+        const response = await fetch('/api/room-service/guest-orders', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch room service orders');
+        const orders = await response.json();
+        if (!orders.length) {
+            container.innerHTML = '<div class="empty">No room service orders at the moment.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'order-card guest-order-card room-service-order';
+            card.innerHTML = `
+                <div>
+                    <h4>Order #${order.id.slice(-6)}</h4>
+                    <p><strong>Room:</strong> ${order.roomNumber}</p>
+                    <p><strong>Customer:</strong> ${order.customerId}</p>
+                    <p><strong>Service:</strong> ${order.serviceType || 'Room Service'}</p>
+                    <p><strong>Priority:</strong> ${order.priority || 'medium'}</p>
+                    ${order.items && order.items.length ? `<p><strong>Items:</strong> ${order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}</p>` : ''}
+                    <p><strong>Request:</strong> ${order.description}</p>
+                    <p><strong>Requested:</strong> ${order.requestedTime ? new Date(order.requestedTime).toLocaleString() : ''}</p>
+                </div>
+                <div>
+                    <span class="order-status status-${order.status}">${order.status}</span>
+                    <button class="btn btn-success" onclick="updateGuestOrderStatus('${order.id}', '${order.status}')">
+                        <i class="fas fa-check"></i> Next Status
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = '<div class="error">Error loading room service orders.</div>';
+        console.error('Error loading room service guest orders:', err);
+    }
+}
+
+// Load and display security guest orders
+async function loadSecurityGuestOrders() {
+    const container = document.getElementById('securityGuestOrdersContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">Loading security requests...</div>';
+    try {
+        const response = await fetch('/api/security/guest-orders', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch security requests');
+        const orders = await response.json();
+        if (!orders.length) {
+            container.innerHTML = '<div class="empty">No security requests at the moment.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = `order-card guest-order-card security-order priority-${order.priority}`;
+            card.innerHTML = `
+                <div>
+                    <h4>Request #${order.id.slice(-6)}</h4>
+                    <p><strong>Room:</strong> ${order.roomNumber}</p>
+                    <p><strong>Customer:</strong> ${order.customerId}</p>
+                    <p><strong>Type:</strong> ${order.serviceType || order.orderType}</p>
+                    <p><strong>Priority:</strong> <span class="priority-${order.priority}">${(order.priority || 'medium').toUpperCase()}</span></p>
+                    <p><strong>Description:</strong> ${order.description}</p>
+                    <p><strong>Requested:</strong> ${order.requestedTime ? new Date(order.requestedTime).toLocaleString() : ''}</p>
+                    ${order.assignedTo ? `<p><strong>Assigned to:</strong> ${order.assignedTo}</p>` : ''}
+                </div>
+                <div>
+                    <span class="order-status status-${order.status}">${order.status}</span>
+                    <button class="btn btn-warning" onclick="assignSecurityOrder('${order.id}')">
+                        <i class="fas fa-user-shield"></i> Assign
+                    </button>
+                    <button class="btn btn-success" onclick="updateGuestOrderStatus('${order.id}', '${order.status}')">
+                        <i class="fas fa-check"></i> Update
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = '<div class="error">Error loading security requests.</div>';
+        console.error('Error loading security guest orders:', err);
+    }
+}
+
+// Load and display housekeeping guest orders
+async function loadHousekeepingGuestOrders() {
+    const container = document.getElementById('housekeepingGuestOrdersContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">Loading housekeeping requests...</div>';
+    try {
+        const response = await fetch('/api/housekeeping/guest-orders', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch housekeeping requests');
+        const orders = await response.json();
+        if (!orders.length) {
+            container.innerHTML = '<div class="empty">No housekeeping requests at the moment.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        orders.forEach(order => {
+            const card = document.createElement('div');
+            card.className = 'order-card guest-order-card housekeeping-order';
+            card.innerHTML = `
+                <div>
+                    <h4>Request #${order.id.slice(-6)}</h4>
+                    <p><strong>Room:</strong> ${order.roomNumber}</p>
+                    <p><strong>Customer:</strong> ${order.customerId}</p>
+                    <p><strong>Type:</strong> ${order.serviceType || order.orderType}</p>
+                    <p><strong>Priority:</strong> ${order.priority || 'medium'}</p>
+                    <p><strong>Description:</strong> ${order.description}</p>
+                    <p><strong>Requested:</strong> ${order.requestedTime ? new Date(order.requestedTime).toLocaleString() : ''}</p>
+                    ${order.assignedTo ? `<p><strong>Assigned to:</strong> ${order.assignedTo}</p>` : ''}
+                </div>
+                <div>
+                    <span class="order-status status-${order.status}">${order.status}</span>
+                    <button class="btn btn-info" onclick="assignHousekeepingOrder('${order.id}')">
+                        <i class="fas fa-user-check"></i> Assign
+                    </button>
+                    <button class="btn btn-success" onclick="updateGuestOrderStatus('${order.id}', '${order.status}')">
+                        <i class="fas fa-check"></i> Next Status
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = '<div class="error">Error loading housekeeping requests.</div>';
+        console.error('Error loading housekeeping guest orders:', err);
+    }
+}
+
+// Helper function to assign security orders
+async function assignSecurityOrder(orderId) {
+    const staffName = prompt('Assign to security staff member:');
+    if (!staffName) return;
+    
+    try {
+        const response = await fetch(`/api/guest/orders/${orderId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            },
+            body: JSON.stringify({ assignedTo: staffName })
+        });
+        if (!response.ok) throw new Error('Failed to assign order');
+        showAlert('Security request assigned successfully!', 'success');
+        loadSecurityGuestOrders();
+    } catch (err) {
+        showAlert('Error assigning security request', 'error');
+        console.error('Error assigning security order:', err);
+    }
+}
+
+// Helper function to assign housekeeping orders
+async function assignHousekeepingOrder(orderId) {
+    const staffName = prompt('Assign to housekeeping staff member:');
+    if (!staffName) return;
+    
+    try {
+        const response = await fetch(`/api/guest/orders/${orderId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            },
+            body: JSON.stringify({ assignedTo: staffName })
+        });
+        if (!response.ok) throw new Error('Failed to assign order');
+        showAlert('Housekeeping request assigned successfully!', 'success');
+        loadHousekeepingGuestOrders();
+    } catch (err) {
+        showAlert('Error assigning housekeeping request', 'error');
+        console.error('Error assigning housekeeping order:', err);
+    }
+}
 // Hotel Manager JavaScript
 console.log('Script loading...');
 
@@ -47,22 +316,47 @@ function applyTheme(theme) {
 document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initializeDashboard();
+    // Load guest orders for all departments if containers are present
+    if (document.getElementById('kitchenGuestOrdersContainer')) {
+        loadKitchenGuestOrders();
+    }
+    if (document.getElementById('roomServiceGuestOrdersContainer')) {
+        loadRoomServiceGuestOrders();
+    }
+    if (document.getElementById('securityGuestOrdersContainer')) {
+        loadSecurityGuestOrders();
+    }
+    if (document.getElementById('housekeepingGuestOrdersContainer')) {
+        loadHousekeepingGuestOrders();
+    }
 });
 
 // Initialize dashboard counts
 async function initializeDashboard() {
+    // Check if user is authenticated before making API calls
+    const currentToken = localStorage.getItem('staffToken');
+    if (!currentToken) {
+        console.log('No authentication token, skipping dashboard initialization');
+        return;
+    }
+    
     try {
         // Load laundry tasks count
         const laundryResponse = await fetch('/api/laundry');
-        const laundryTasks = await laundryResponse.json();
-        updateLaundryCount(laundryTasks);
+        if (laundryResponse.ok) {
+            const laundryTasks = await laundryResponse.json();
+            updateLaundryCount(laundryTasks);
+        }
         
         // Load stock valuation for dashboard
         const stockResponse = await fetch('/api/stock/valuation');
-        const stockValuation = await stockResponse.json();
-        updateDashboardStockValue(stockValuation.totalStockValue);
+        if (stockResponse.ok) {
+            const stockValuation = await stockResponse.json();
+            updateDashboardStockValue(stockValuation.totalStockValue);
+        }
     } catch (error) {
         console.error('Error initializing dashboard:', error);
+        // Don't redirect here, just log the error
     }
 }
 
@@ -181,10 +475,30 @@ let staffInfo = JSON.parse(localStorage.getItem('staffInfo') || '{}');
 
 console.log('Initial token check:', staffToken ? 'Token found' : 'No token');
 
-if (!staffToken) {
+// Check if we're on the staff login page
+const isStaffLoginPage = window.location.pathname.includes('staff-login');
+const isGuestPortal = window.location.pathname.includes('guest');
+const isAdminPage = window.location.pathname.includes('admin');
+
+if (!staffToken && !isStaffLoginPage && !isGuestPortal && !isAdminPage) {
     console.log('No token found, redirecting to login');
-    window.location.href = '/staff-login.html';
-} else {
+    // Show a brief message before redirect
+    document.body.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Inter', sans-serif; background: #2c3e50; color: white; text-align: center;">
+            <div>
+                <i class="fas fa-lock" style="font-size: 3rem; margin-bottom: 1rem; color: #D4AF37;"></i>
+                <h2>Authentication Required</h2>
+                <p>Redirecting to staff login...</p>
+                <div style="margin-top: 1rem;">
+                    <a href="/staff-login.html" style="color: #D4AF37; text-decoration: none; font-weight: 500;">Click here if not redirected automatically</a>
+                </div>
+            </div>
+        </div>
+    `;
+    setTimeout(() => {
+        window.location.href = '/staff-login.html';
+    }, 2000);
+} else if (staffToken && !isStaffLoginPage) {
     console.log('Token found, verifying...');
     // Verify token validity (stay on staff portal; no admin routing here)
     verifyStaffToken();
@@ -200,6 +514,8 @@ window.fetch = function(url, options = {}) {
         
         if (!currentToken) {
             console.warn('⚠️ No auth token found for API call:', url);
+            // Return a rejected promise for unauthorized requests
+            return Promise.reject(new Error('Authentication required'));
         }
         
         // Ensure headers object exists
@@ -216,7 +532,18 @@ window.fetch = function(url, options = {}) {
             options.headers['Content-Type'] = options.headers['Content-Type'] || 'application/json';
         }
     }
-    return originalFetch(url, options);
+    return originalFetch(url, options)
+        .then(response => {
+            // Handle 401 unauthorized responses
+            if (response.status === 401 && !window.location.pathname.includes('staff-login')) {
+                console.warn('🔒 Unauthorized request, redirecting to login');
+                localStorage.removeItem('staffToken');
+                localStorage.removeItem('staffInfo');
+                window.location.href = '/staff-login.html';
+                return Promise.reject(new Error('Authentication expired'));
+            }
+            return response;
+        });
 };
 
 async function verifyStaffToken() {

@@ -1360,7 +1360,7 @@ const connectDB = require('./src/db');
 let dbConnected = false;
 
 // Load models immediately (they handle their own mongoose connection)
-let Room, Customer, BarItem, KitchenOrder, Booking, Payment, Visitor, GuestOrder;
+let Room, Customer, BarItem, KitchenOrder, Booking, Payment, Visitor, GuestOrder, StockItem, Supplier, PurchaseOrder, StockMovement;
 try {
   Room = require('./src/models/Room');
   Customer = require('./src/models/Customer');
@@ -1371,6 +1371,12 @@ try {
   Payment = require('./src/models/Payment');
   Visitor = require('./src/models/Visitor');
   GuestOrder = require('./src/models/GuestOrder');
+  // Stock Management Models
+  const StockModels = require('./src/models/StockModels');
+  StockItem = StockModels.StockItem;
+  Supplier = StockModels.Supplier;
+  PurchaseOrder = StockModels.PurchaseOrder;
+  StockMovement = StockModels.StockMovement;
   console.log('✅ Models loaded successfully');
 } catch (err) {
   console.warn('⚠️ Models not available:', err.message);
@@ -1684,6 +1690,295 @@ app.get('/api/stock/valuation', (req, res) => {
       status: item.currentStock <= item.minStock ? 'low' : 'normal'
     }))
   });
+});
+
+// =========================== COMPREHENSIVE STOCK MANAGEMENT API ===========================
+
+// Stock Items Management
+app.get('/api/stock/items', requireStaffAuth, async (req, res) => {
+  if (dbConnected && StockItem) {
+    try {
+      const items = await StockItem.find()
+        .populate('supplier', 'name contactPerson')
+        .sort({ name: 1 })
+        .lean();
+      return res.json(items);
+    } catch (err) {
+      console.error('Error fetching stock items:', err);
+    }
+  }
+  // Fallback data
+  res.json(stockItems || []);
+});
+
+app.post('/api/stock/items', requireStaffAuth, async (req, res) => {
+  if (dbConnected && StockItem) {
+    try {
+      const item = await StockItem.create(req.body);
+      return res.status(201).json(item);
+    } catch (err) {
+      console.error('Error creating stock item:', err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  // Fallback
+  const item = { id: Date.now(), ...req.body };
+  stockItems.push(item);
+  res.status(201).json(item);
+});
+
+app.put('/api/stock/items/:id', requireStaffAuth, async (req, res) => {
+  const itemId = req.params.id;
+  if (dbConnected && StockItem) {
+    try {
+      const updated = await StockItem.findByIdAndUpdate(itemId, req.body, { new: true }).lean();
+      if (!updated) return res.status(404).json({ error: 'Item not found' });
+      return res.json(updated);
+    } catch (err) {
+      console.error('Error updating stock item:', err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  // Fallback
+  const itemIndex = stockItems.findIndex(item => item.id == itemId);
+  if (itemIndex === -1) return res.status(404).json({ error: 'Item not found' });
+  Object.assign(stockItems[itemIndex], req.body);
+  res.json(stockItems[itemIndex]);
+});
+
+app.delete('/api/stock/items/:id', requireStaffAuth, async (req, res) => {
+  const itemId = req.params.id;
+  if (dbConnected && StockItem) {
+    try {
+      await StockItem.findByIdAndDelete(itemId);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+  // Fallback
+  const itemIndex = stockItems.findIndex(item => item.id == itemId);
+  if (itemIndex === -1) return res.status(404).json({ error: 'Item not found' });
+  stockItems.splice(itemIndex, 1);
+  res.json({ success: true });
+});
+
+// Low Stock Alert
+app.get('/api/stock/alerts', requireStaffAuth, async (req, res) => {
+  if (dbConnected && StockItem) {
+    try {
+      const lowStockItems = await StockItem.find({
+        $expr: { $lte: ['$currentStock', '$minStock'] },
+        status: 'active'
+      }).select('name category currentStock minStock supplier').lean();
+      return res.json(lowStockItems);
+    } catch (err) {
+      console.error('Error fetching low stock alerts:', err);
+    }
+  }
+  // Fallback
+  const alerts = stockItems.filter(item => item.currentStock <= item.minStock);
+  res.json(alerts);
+});
+
+// Suppliers Management
+app.get('/api/suppliers', requireStaffAuth, async (req, res) => {
+  if (dbConnected && Supplier) {
+    try {
+      const suppliers = await Supplier.find({ isActive: true })
+        .sort({ name: 1 })
+        .lean();
+      return res.json(suppliers);
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+    }
+  }
+  res.json(suppliers || []);
+});
+
+app.post('/api/suppliers', requireStaffAuth, async (req, res) => {
+  if (dbConnected && Supplier) {
+    try {
+      const supplier = await Supplier.create(req.body);
+      return res.status(201).json(supplier);
+    } catch (err) {
+      console.error('Error creating supplier:', err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  // Fallback
+  const supplier = { id: Date.now(), ...req.body, totalOrders: 0, totalValue: 0 };
+  suppliers.push(supplier);
+  res.status(201).json(supplier);
+});
+
+app.put('/api/suppliers/:id', requireStaffAuth, async (req, res) => {
+  const supplierId = req.params.id;
+  if (dbConnected && Supplier) {
+    try {
+      const updated = await Supplier.findByIdAndUpdate(supplierId, req.body, { new: true }).lean();
+      if (!updated) return res.status(404).json({ error: 'Supplier not found' });
+      return res.json(updated);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  // Fallback
+  const supplierIndex = suppliers.findIndex(s => s.id == supplierId);
+  if (supplierIndex === -1) return res.status(404).json({ error: 'Supplier not found' });
+  Object.assign(suppliers[supplierIndex], req.body);
+  res.json(suppliers[supplierIndex]);
+});
+
+// Purchase Orders Management
+app.get('/api/purchase-orders', requireStaffAuth, async (req, res) => {
+  if (dbConnected && PurchaseOrder) {
+    try {
+      const orders = await PurchaseOrder.find()
+        .populate('supplier', 'name contactPerson')
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
+      return res.json(orders);
+    } catch (err) {
+      console.error('Error fetching purchase orders:', err);
+    }
+  }
+  res.json([]);
+});
+
+app.post('/api/purchase-orders', requireStaffAuth, async (req, res) => {
+  if (dbConnected && PurchaseOrder) {
+    try {
+      const order = await PurchaseOrder.create({
+        ...req.body,
+        createdBy: req.staff?.name || 'Admin'
+      });
+      return res.status(201).json(order);
+    } catch (err) {
+      console.error('Error creating purchase order:', err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  res.status(500).json({ error: 'Database not available' });
+});
+
+app.put('/api/purchase-orders/:id/receive', requireStaffAuth, async (req, res) => {
+  const orderId = req.params.id;
+  const { receivedItems } = req.body;
+  
+  if (dbConnected && PurchaseOrder && StockItem && StockMovement) {
+    try {
+      const order = await PurchaseOrder.findById(orderId);
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+      
+      // Update received quantities and stock levels
+      for (const receivedItem of receivedItems) {
+        const orderItem = order.items.find(item => item._id.toString() === receivedItem.itemId);
+        if (orderItem && receivedItem.quantityReceived > 0) {
+          orderItem.quantityReceived = (orderItem.quantityReceived || 0) + receivedItem.quantityReceived;
+          
+          // Update stock item
+          const stockItem = await StockItem.findById(orderItem.stockItem);
+          if (stockItem) {
+            const previousStock = stockItem.currentStock;
+            stockItem.currentStock += receivedItem.quantityReceived;
+            stockItem.lastPurchaseDate = new Date();
+            stockItem.lastPurchasePrice = orderItem.unitPrice;
+            await stockItem.save();
+            
+            // Record stock movement
+            await StockMovement.create({
+              stockItem: stockItem._id,
+              itemName: stockItem.name,
+              movementType: 'purchase',
+              quantity: receivedItem.quantityReceived,
+              previousStock,
+              newStock: stockItem.currentStock,
+              unitPrice: orderItem.unitPrice,
+              totalValue: receivedItem.quantityReceived * orderItem.unitPrice,
+              reference: order.orderNumber,
+              performedBy: req.staff?.name || 'Admin'
+            });
+          }
+        }
+      }
+      
+      // Update order status
+      const allItemsReceived = order.items.every(item => 
+        item.quantityReceived >= item.quantityOrdered
+      );
+      order.status = allItemsReceived ? 'completed' : 'partially-received';
+      order.receivedBy = req.staff?.name || 'Admin';
+      order.receivedDate = new Date();
+      
+      await order.save();
+      return res.json(order);
+      
+    } catch (err) {
+      console.error('Error receiving purchase order:', err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  res.status(500).json({ error: 'Database not available' });
+});
+
+// Stock Movements (History)
+app.get('/api/stock/movements', requireStaffAuth, async (req, res) => {
+  if (dbConnected && StockMovement) {
+    try {
+      const { itemId, type, limit = 50 } = req.query;
+      const filter = {};
+      if (itemId) filter.stockItem = itemId;
+      if (type) filter.movementType = type;
+      
+      const movements = await StockMovement.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .lean();
+      return res.json(movements);
+    } catch (err) {
+      console.error('Error fetching stock movements:', err);
+    }
+  }
+  res.json([]);
+});
+
+// Stock Adjustment
+app.post('/api/stock/adjust', requireStaffAuth, async (req, res) => {
+  const { itemId, newQuantity, reason, notes } = req.body;
+  
+  if (dbConnected && StockItem && StockMovement) {
+    try {
+      const stockItem = await StockItem.findById(itemId);
+      if (!stockItem) return res.status(404).json({ error: 'Item not found' });
+      
+      const previousStock = stockItem.currentStock;
+      const adjustment = newQuantity - previousStock;
+      
+      stockItem.currentStock = newQuantity;
+      await stockItem.save();
+      
+      // Record movement
+      await StockMovement.create({
+        stockItem: itemId,
+        itemName: stockItem.name,
+        movementType: 'adjustment',
+        quantity: adjustment,
+        previousStock,
+        newStock: newQuantity,
+        reason: reason || 'Manual adjustment',
+        notes,
+        performedBy: req.staff?.name || 'Admin'
+      });
+      
+      return res.json({ success: true, stockItem });
+    } catch (err) {
+      console.error('Error adjusting stock:', err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+  res.status(500).json({ error: 'Database not available' });
 });
 
 // Messaging API
@@ -2597,6 +2892,167 @@ app.put('/api/kitchen/orders/:id', requireStaffAuth, async (req, res) => {
   res.json(order);
 });
 
+// Kitchen fetches guest food orders (for kitchen staff dashboard)
+app.get('/api/kitchen/guest-orders', requireStaffAuth, async (req, res) => {
+  // Only show guest orders of type 'kitchen' and status 'pending', 'preparing', or 'confirmed'
+  const allowedStatuses = ['pending', 'confirmed', 'preparing', 'ready'];
+  if (dbConnected && GuestOrder) {
+    try {
+      const orders = await GuestOrder.find({
+        orderType: 'kitchen',
+        status: { $in: allowedStatuses }
+      })
+        .sort({ requestedTime: 1 })
+        .lean();
+      return res.json(orders.map(order => ({
+        id: order._id,
+        customerId: order.customerId,
+        roomNumber: order.roomNumber,
+        status: order.status,
+        description: order.description,
+        items: order.items,
+        requestedTime: order.requestedTime,
+        estimatedTime: order.estimatedTime,
+        priority: order.priority,
+        serviceType: order.serviceType,
+        assignedTo: order.assignedTo
+      })));
+    } catch (err) {
+      console.error('Error fetching guest kitchen orders:', err);
+    }
+  }
+  // Fallback: empty array
+  res.json([]);
+});
+
+// Room Service fetches guest service orders
+app.get('/api/room-service/guest-orders', requireStaffAuth, async (req, res) => {
+  const allowedStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
+  if (dbConnected && GuestOrder) {
+    try {
+      const orders = await GuestOrder.find({
+        orderType: 'room-service',
+        status: { $in: allowedStatuses }
+      })
+        .sort({ requestedTime: 1 })
+        .lean();
+      return res.json(orders.map(order => ({
+        id: order._id,
+        customerId: order.customerId,
+        roomNumber: order.roomNumber,
+        status: order.status,
+        description: order.description,
+        serviceType: order.serviceType,
+        items: order.items || [],
+        requestedTime: order.requestedTime,
+        priority: order.priority,
+        assignedTo: order.assignedTo,
+        notes: order.notes
+      })));
+    } catch (err) {
+      console.error('Error fetching guest room service orders:', err);
+    }
+  }
+  res.json([]);
+});
+
+// Security fetches security-related guest requests
+app.get('/api/security/guest-orders', requireStaffAuth, async (req, res) => {
+  const allowedStatuses = ['pending', 'confirmed', 'investigating', 'resolved'];
+  if (dbConnected && GuestOrder) {
+    try {
+      const orders = await GuestOrder.find({
+        $or: [
+          { orderType: 'security' },
+          { serviceType: { $regex: /(security|visitor|access|emergency)/i } },
+          { priority: 'urgent' }
+        ],
+        status: { $in: allowedStatuses }
+      })
+        .sort({ priority: -1, requestedTime: 1 })
+        .lean();
+      return res.json(orders.map(order => ({
+        id: order._id,
+        customerId: order.customerId,
+        roomNumber: order.roomNumber,
+        status: order.status,
+        description: order.description,
+        serviceType: order.serviceType,
+        requestedTime: order.requestedTime,
+        priority: order.priority,
+        assignedTo: order.assignedTo,
+        orderType: order.orderType
+      })));
+    } catch (err) {
+      console.error('Error fetching guest security orders:', err);
+    }
+  }
+  res.json([]);
+});
+
+// Laundry/Housekeeping fetches housekeeping and maintenance orders
+app.get('/api/housekeeping/guest-orders', requireStaffAuth, async (req, res) => {
+  const allowedStatuses = ['pending', 'confirmed', 'in-progress', 'completed'];
+  if (dbConnected && GuestOrder) {
+    try {
+      const orders = await GuestOrder.find({
+        $or: [
+          { orderType: 'housekeeping' },
+          { orderType: 'maintenance' },
+          { serviceType: { $regex: /(cleaning|laundry|towel|bedding|maintenance|repair)/i } }
+        ],
+        status: { $in: allowedStatuses }
+      })
+        .sort({ requestedTime: 1 })
+        .lean();
+      return res.json(orders.map(order => ({
+        id: order._id,
+        customerId: order.customerId,
+        roomNumber: order.roomNumber,
+        status: order.status,
+        description: order.description,
+        serviceType: order.serviceType,
+        requestedTime: order.requestedTime,
+        priority: order.priority,
+        assignedTo: order.assignedTo,
+        orderType: order.orderType
+      })));
+    } catch (err) {
+      console.error('Error fetching guest housekeeping orders:', err);
+    }
+  }
+  res.json([]);
+});
+
+// Update guest order status (for all departments)
+app.put('/api/guest/orders/:id', requireStaffAuth, async (req, res) => {
+  const orderId = req.params.id;
+  const { status, assignedTo, notes, completedAt } = req.body;
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const updateData = { status };
+      if (assignedTo) updateData.assignedTo = assignedTo;
+      if (notes) updateData.notes = notes;
+      if (status === 'completed' && !completedAt) updateData.completedAt = new Date();
+      
+      const updated = await GuestOrder.findByIdAndUpdate(orderId, updateData, { new: true }).lean();
+      if (!updated) return res.status(404).json({ error: 'Order not found' });
+      
+      return res.json({
+        id: updated._id,
+        status: updated.status,
+        assignedTo: updated.assignedTo,
+        notes: updated.notes,
+        completedAt: updated.completedAt
+      });
+    } catch (err) {
+      console.error('Error updating guest order:', err);
+      return res.status(500).json({ error: 'Failed to update order' });
+    }
+  }
+  res.status(500).json({ error: 'Database not available' });
+});
 // Kitchen Inventory Routes
 app.get('/api/kitchen/inventory', requireStaffAuth, async (req, res) => {
   try {
