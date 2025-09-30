@@ -2936,89 +2936,9 @@ app.get('/api/staff/guest-orders', requireStaffAuth, async (req, res) => {
   console.log('📋 Staff fetching all guest orders');
   const { status, orderType, limit = 50 } = req.query;
   
-  // For now, return empty array until we have guest orders functionality
-  // This prevents the CastError issues with customer ID population
-  console.log('⚠️ Guest orders feature is under development - returning empty array');
+  // Return empty array for now - guest orders functionality needs customer ID population fix
+  console.log('⚠️ Guest orders feature temporarily disabled due to customer ID population issues');
   return res.json([]);
-  
-  /* TODO: Fix customer ID population issue before enabling this code
-  if (dbConnected && GuestOrder) {
-    try {
-      let query = {};
-      
-      // Filter by status if provided
-      if (status && status !== 'all') {
-        query.status = status;
-      }
-      
-      // Filter by order type if provided
-      if (orderType && orderType !== 'all') {
-        query.orderType = orderType;
-      }
-      
-      const orders = await GuestOrder.find(query)
-        .sort({ createdAt: -1 })
-        .limit(parseInt(limit))
-        .lean();
-      
-      console.log(`✅ Found ${orders.length} guest orders for staff`);
-      
-      // Manually fetch customer data for each order
-      const formattedOrders = await Promise.all(orders.map(async (order) => {
-        let customer = { name: 'Unknown', roomNumber: 'N/A', customerId: order.customerId || 'Unknown' };
-        
-        if (order.customerId && Customer) {
-          try {
-            // Use a safer query that doesn't cause casting errors
-            const customerData = await Customer.findOne({ customerId: order.customerId }).select('name roomNumber customerId').lean();
-            if (customerData) {
-              customer = {
-                name: customerData.name,
-                roomNumber: customerData.roomNumber || 'N/A',
-                customerId: customerData.customerId
-              };
-            } else {
-              console.warn(`⚠️ Customer not found: ${order.customerId}`);
-            }
-          } catch (err) {
-            console.warn(`⚠️ Could not fetch customer ${order.customerId}:`, err.message);
-            // Use the order.customerId as fallback
-            customer.customerId = order.customerId;
-          }
-        }
-        
-        return {
-          id: order._id,
-          orderNumber: `GO-${order._id.toString().slice(-6).toUpperCase()}`,
-          customer: customer,
-          orderType: order.orderType,
-          status: order.status,
-          description: order.description,
-          items: order.items || [],
-          serviceType: order.serviceType,
-          priority: order.priority || 'medium',
-          totalAmount: order.totalAmount || 0,
-          roomNumber: order.roomNumber || customer.roomNumber || 'N/A',
-          requestedTime: order.requestedTime,
-          estimatedTime: order.estimatedTime,
-          completedAt: order.completedAt,
-          notes: order.notes || '',
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt
-        };
-      }));
-      
-      return res.json(formattedOrders);
-    } catch (err) {
-      console.error('❌ Error fetching guest orders for staff:', err);
-      return res.status(500).json({ error: 'Failed to fetch guest orders' });
-    }
-  }
-  */
-  
-  // Fallback: empty array
-  console.log('⚠️ Using fallback empty guest orders array');
-  res.json([]);
 });
 
 // Update guest order status

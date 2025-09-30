@@ -7240,3 +7240,25 @@ tr:last-child td {
         grid-template-columns: 1fr;
     }
 }
+ 
+ / *   U t i l i t y   C l a s s e s   f o r   B e t t e r   C o d e   Q u a l i t y   * / 
+ . u p p e r c a s e - i n p u t   { 
+         t e x t - t r a n s f o r m :   u p p e r c a s e ; 
+ } 
+ 
+ . h i d d e n   { 
+         d i s p l a y :   n o n e ; 
+ } 
+ 
+ . s r - o n l y   { 
+         p o s i t i o n :   a b s o l u t e ; 
+         w i d t h :   1 p x ; 
+         h e i g h t :   1 p x ; 
+         p a d d i n g :   0 ; 
+         m a r g i n :   - 1 p x ; 
+         o v e r f l o w :   h i d d e n ; 
+         c l i p :   r e c t ( 0 ,   0 ,   0 ,   0 ) ; 
+         w h i t e - s p a c e :   n o w r a p ; 
+         b o r d e r :   0 ; 
+ }  
+ 

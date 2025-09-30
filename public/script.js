@@ -6695,7 +6695,21 @@ async function loadLoungeBookings() {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorData = await response.json();
+            console.error('❌ API Error response:', errorData);
+            
+            // Handle specific authentication/authorization errors
+            if (response.status === 401) {
+                showNotification('Please log in to access lounge bookings', 'error');
+                window.location.href = '/staff-login.html';
+                return;
+            } else if (response.status === 403) {
+                // Show access denied message with proper instructions
+                showLoungeAccessDenied(errorData);
+                return;
+            }
+            
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorData.error || 'Unknown error'}`);
         }
         
         loungeBookings = await response.json();
@@ -6710,6 +6724,42 @@ async function loadLoungeBookings() {
         loungeBookings = [];
         displayLoungeBookings();
     }
+}
+
+// Show access denied message for lounge bookings
+function showLoungeAccessDenied(errorData) {
+    const tableBody = document.querySelector('#loungeBookingsTable tbody');
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 3rem;">
+                    <div style="background: rgba(220, 38, 38, 0.1); border: 2px solid #dc2626; border-radius: 12px; padding: 2rem; margin: 1rem; color: #dc2626;">
+                        <i class="fas fa-lock" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <h3 style="color: #dc2626; margin-bottom: 1rem;">Manager Access Required</h3>
+                        <p style="margin-bottom: 1rem; color: #374151;">
+                            <strong>Lounge booking management requires Manager or Director level access.</strong>
+                        </p>
+                        <div style="background: rgba(255, 255, 255, 0.8); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                            <p style="margin: 0.5rem 0; color: #1f2937;"><strong>Authorized Personnel:</strong></p>
+                            <p style="margin: 0.5rem 0; color: #1f2937;">🏛️ Hotel Director (PIN: 1001)</p>
+                            <p style="margin: 0.5rem 0; color: #1f2937;">👨‍💼 Hotel Manager (PIN: 2001)</p>
+                        </div>
+                        <p style="color: #6b7280; font-size: 0.9rem; margin-top: 1rem;">
+                            Please contact your supervisor or log in with appropriate credentials to access lounge bookings.
+                        </p>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Also update overview cards
+    updateElementText('monthlyBookings', 'Access Denied');
+    updateElementText('monthlyLoungeRevenue', 'Manager Required');
+    updateElementText('todayEvents', 'Access Denied');
+    updateElementText('pendingBookings', 'Manager Required');
+    
+    showNotification('Manager access required for lounge bookings', 'error');
 }
 
 // Load lounge pricing
@@ -7011,8 +7061,15 @@ function proceedToBooking() {
 function showLoungeBookingModal() {
     console.log('📝 Opening lounge booking form...');
     
+    const form = document.getElementById('loungeBookingForm');
+    
     // Reset form
-    document.getElementById('loungeBookingForm').reset();
+    form.reset();
+    
+    // Clear any edit mode data
+    if (form.dataset.editingId) {
+        delete form.dataset.editingId;
+    }
     
     // Setup form handlers
     setupLoungeFormHandlers();
@@ -7132,7 +7189,12 @@ function calculateLoungePrice() {
 async function handleLoungeBookingSubmit(event) {
     event.preventDefault();
     
-    console.log('📝 Submitting lounge booking...');
+    // Check if this is an edit operation
+    const form = document.getElementById('loungeBookingForm');
+    const editingId = form.dataset.editingId;
+    const isEdit = editingId && editingId !== '';
+    
+    console.log(isEdit ? `✏️ Updating lounge booking ${editingId}...` : '📝 Creating lounge booking...');
     
     // Get form data directly from elements (more reliable than FormData for this form)
     const bookingData = {
@@ -7169,8 +7231,12 @@ async function handleLoungeBookingSubmit(event) {
     }
     
     try {
-        const response = await fetch('/api/lounge/bookings', {
-            method: 'POST',
+        // Determine API endpoint and method based on operation type
+        const url = isEdit ? `/api/lounge/bookings/${editingId}` : '/api/lounge/bookings';
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
@@ -7180,21 +7246,26 @@ async function handleLoungeBookingSubmit(event) {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to create booking');
+            throw new Error(errorData.error || `Failed to ${isEdit ? 'update' : 'create'} booking`);
         }
         
-        const newBooking = await response.json();
-        console.log('✅ Lounge booking created:', newBooking.id);
+        const bookingResult = await response.json();
+        console.log(`✅ Lounge booking ${isEdit ? 'updated' : 'created'}:`, bookingResult.id);
         
-        showNotification('Lounge booking created successfully!', 'success');
+        showNotification(`Lounge booking ${isEdit ? 'updated' : 'created'} successfully!`, 'success');
         closeModal('loungeBookingModal');
+        
+        // Clear edit mode
+        if (isEdit) {
+            delete form.dataset.editingId;
+        }
         
         // Refresh data
         loadLoungeBookings();
         
     } catch (error) {
-        console.error('❌ Error creating lounge booking:', error);
-        showNotification('Failed to create booking: ' + error.message, 'error');
+        console.error(`❌ Error ${isEdit ? 'updating' : 'creating'} lounge booking:`, error);
+        showNotification(`Failed to ${isEdit ? 'update' : 'create'} booking: ` + error.message, 'error');
     }
 }
 
@@ -7282,18 +7353,27 @@ function displayAvailability(data, requestedStart, requestedEnd) {
 
 // View lounge booking details
 function viewLoungeBooking(bookingId) {
-    const booking = loungeBookings.find(b => b.id === bookingId);
-    if (!booking) return;
+    const booking = loungeBookings.find(b => b.id == bookingId);
     
-    // You can implement a detailed view modal here
+    if (!booking) {
+        console.error('❌ Booking not found for ID:', bookingId);
+        showNotification('Booking not found!', 'error');
+        return;
+    }
+    
     console.log('👁️ Viewing booking:', booking);
     showNotification('Booking details view - to be implemented', 'info');
 }
 
 // Edit lounge booking
 function editLoungeBooking(bookingId) {
-    const booking = loungeBookings.find(b => b.id === bookingId);
-    if (!booking) return;
+    const booking = loungeBookings.find(b => b.id == bookingId);
+    
+    if (!booking) {
+        console.error('❌ Booking not found for ID:', bookingId);
+        showNotification('Booking not found!', 'error');
+        return;
+    }
     
     // Pre-fill the booking form with existing data
     showLoungeBookingModal();
@@ -7325,8 +7405,13 @@ function editLoungeBooking(bookingId) {
 
 // Cancel lounge booking
 async function cancelLoungeBooking(bookingId) {
-    const booking = loungeBookings.find(b => b.id === bookingId);
-    if (!booking) return;
+    const booking = loungeBookings.find(b => b.id == bookingId);
+    
+    if (!booking) {
+        console.error('❌ Booking not found for ID:', bookingId);
+        showNotification('Booking not found!', 'error');
+        return;
+    }
     
     if (!confirm(`Are you sure you want to cancel "${booking.eventName}"?\n\nCancellation penalties may apply based on the timing.`)) {
         return;
@@ -7341,13 +7426,15 @@ async function cancelLoungeBooking(bookingId) {
         });
         
         if (!response.ok) {
-            throw new Error('Failed to cancel booking');
+            const errorText = await response.text();
+            console.error('❌ Response error:', errorText);
+            throw new Error('Failed to cancel booking: ' + errorText);
         }
         
         const result = await response.json();
         console.log('✅ Booking cancelled:', result);
         
-        showNotification(`Booking cancelled. Refund amount: ₦${result.refundAmount.toLocaleString()}`, 'success');
+        showNotification(`Booking cancelled. Refund amount: ₦${result.refundAmount?.toLocaleString() || 0}`, 'success');
         
         // Refresh data
         loadLoungeBookings();
@@ -7357,6 +7444,17 @@ async function cancelLoungeBooking(bookingId) {
         showNotification('Failed to cancel booking: ' + error.message, 'error');
     }
 }
+
+// Ensure functions are globally accessible
+window.viewLoungeBooking = viewLoungeBooking;
+window.editLoungeBooking = editLoungeBooking;
+window.cancelLoungeBooking = cancelLoungeBooking;
+
+console.log('🌐 Lounge booking functions attached to window:', {
+    viewLoungeBooking: typeof window.viewLoungeBooking,
+    editLoungeBooking: typeof window.editLoungeBooking,
+    cancelLoungeBooking: typeof window.cancelLoungeBooking
+});
 
 // Refresh event calendar
 function refreshEventCalendar() {

@@ -418,6 +418,7 @@
                                 <i class="fas fa-plus"></i> New Booking
                             </button>
                         </div>
+                        </div>
                     </div>
                     
                     <!-- Lounge Overview Cards -->
@@ -1340,14 +1341,16 @@
             </div>
             <div class="modal-body">
                 <form id="bookingForm">
-                    <select id="roomSelect" name="roomId" required>
+                    <select id="roomSelect" name="roomId" required aria-label="Select Room">
                         <option value="">Select Room</option>
                     </select>
-                    <select id="customerSelect" name="customerId" required>
+                    <select id="customerSelect" name="customerId" required aria-label="Select Customer">
                         <option value="">Select Customer</option>
                     </select>
+                    <label for="checkIn">Check-in Date:</label>
                     <input type="date" id="checkIn" name="checkIn" required>
-                    <input type="date" id="checkOut" name="checkOut" required>
+                    <label for="checkOut">Check-out Date:</label>
+                    <input type="date" id="checkOut" name="checkOut" required title="Check-out date">
                     <button type="submit" class="btn btn-primary">Create Booking</button>
                 </form>
             </div>
@@ -1362,9 +1365,9 @@
             </div>
             <div class="modal-body">
                 <form id="customerForm">
-                    <input type="text" id="customerName" name="name" placeholder="Full Name" required>
-                    <input type="email" id="customerEmail" name="email" placeholder="Email" required>
-                    <input type="tel" id="customerPhone" name="phone" placeholder="Phone" required>
+                    <input type="text" id="customerNameBooking" name="name" placeholder="Full Name" required>
+                    <input type="email" id="customerEmailBooking" name="email" placeholder="Email" required>
+                    <input type="tel" id="customerPhoneBooking" name="phone" placeholder="Phone" required>
                     <textarea id="customerNotes" name="notes" placeholder="Notes (optional)"></textarea>
                     <button type="submit" class="btn btn-primary">Add Customer</button>
                 </form>
@@ -1383,7 +1386,7 @@
                     <input type="text" id="itemName" name="name" placeholder="Item Name" required>
                     <input type="number" id="itemPrice" name="price" placeholder="Price" step="0.01" required>
                     <input type="number" id="itemStock" name="stock" placeholder="Stock Quantity" required>
-                    <select id="itemCategory" name="category" required>
+                    <select id="itemCategory" name="category" required aria-label="Select Category">
                         <option value="">Select Category</option>
                         <option value="beer">Beer</option>
                         <option value="wine">Wine</option>
@@ -1528,7 +1531,7 @@
                     </div>
                     <div class="payment-summary">
                         <div class="total-amount">
-                            <strong>Total: ₦<span id="totalAmount">0.00</span></strong>
+                            <strong>Total: ₦<span id="totalAmountPayment">0.00</span></strong>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-success">Process Payment</button>
@@ -1685,14 +1688,14 @@
                     <option value="">Select Staff Member</option>
                 </select>
                 <div class="form-row">
-                    <select id="clockAction" required title="Select Action">
+                    <select id="clockActionStaff" required title="Select Action">
                         <option value="">Action</option>
                         <option value="clock-in">Clock In</option>
                         <option value="clock-out">Clock Out</option>
                         <option value="break-start">Start Break</option>
                         <option value="break-end">End Break</option>
                     </select>
-                    <input type="datetime-local" id="clockTime" required title="Time">
+                    <input type="datetime-local" id="clockTimeEntry" required title="Time">
                 </div>
                 <textarea id="clockNotes" placeholder="Notes (optional)" rows="2"></textarea>
                 <button type="submit" class="btn btn-info">Record Time</button>
@@ -1989,7 +1992,7 @@
             <form id="clockInForm">
                 <div class="form-row">
                     <input type="text" id="clockPersonalId" placeholder="Personal ID (e.g., EMP001)" required>
-                    <select id="clockAction" required title="Select Action">
+                    <select id="clockActionForm" required title="Select Action">
                         <option value="">Action</option>
                         <option value="clock-in">Clock In</option>
                         <option value="clock-out">Clock Out</option>
@@ -1999,9 +2002,9 @@
                 </div>
                 <div class="form-row">
                     <input type="text" id="clockLocation" placeholder="Location (optional)">
-                    <input type="datetime-local" id="clockTime" title="Time (leave empty for current time)">
+                    <input type="datetime-local" id="clockTimeForm" title="Time (leave empty for current time)">
                 </div>
-                <textarea id="clockNotes" placeholder="Notes (optional)" rows="2"></textarea>
+                <textarea id="clockNotesForm" placeholder="Notes (optional)" rows="2"></textarea>
                 <button type="submit" class="btn btn-info">Record Time</button>
             </form>
         </div>
@@ -2781,7 +2784,7 @@
                 <form id="departmentForm" onsubmit="handleDepartmentSubmit(event)">
                     <div class="form-row">
                         <input type="text" id="deptName" placeholder="Department Name" required>
-                        <input type="text" id="deptCode" placeholder="Department Code (e.g., FO, HK)" required maxlength="5" style="text-transform: uppercase">
+                        <input type="text" id="deptCode" placeholder="Department Code (e.g., FO, HK)" required maxlength="5" class="uppercase-input">
                     </div>
                     <div class="form-row">
                         <select id="deptCategory" required>
