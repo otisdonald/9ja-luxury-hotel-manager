@@ -133,6 +133,18 @@
                     </div>
                 </div>
 
+                <!-- Department Finance -->
+                <div class="category-card" onclick="showCategory('departments')">
+                    <div class="category-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <h3>Department Finance</h3>
+                    <p>Department budgets, loans, and inter-dept transactions</p>
+                    <div class="category-stats">
+                        <span id="departmentLoans">0 active loans</span>
+                    </div>
+                </div>
+
                 <!-- Security & Reports -->
                 <div class="category-card" onclick="showCategory('reports')">
                     <div class="category-icon">
@@ -202,6 +214,18 @@
                         <span id="stockValueDisplay">₦0 total value</span>
                     </div>
                 </div>
+
+                <!-- Guest Order Management -->
+                <div class="category-card" onclick="showCategory('guest-orders')">
+                    <div class="category-icon">
+                        <i class="fas fa-concierge-bell"></i>
+                    </div>
+                    <h3>Guest Order Management</h3>
+                    <p>Food orders, room service, and guest requests</p>
+                    <div class="category-stats">
+                        <span id="guestOrdersCount">0 active orders</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -234,6 +258,9 @@
                 </button>
                 <button class="tab-btn" data-tab="kitchen">
                     <i class="fas fa-utensils"></i> Kitchen
+                </button>
+                <button class="tab-btn" data-tab="guest-orders">
+                    <i class="fas fa-user-friends"></i> Guest Orders
                 </button>
                 <button class="tab-btn" data-tab="reports">
                     <i class="fas fa-shield-alt"></i> Security
@@ -344,13 +371,113 @@
             <!-- Bar Tab -->
             <div id="bar" class="tab-content">
                 <div class="section-header">
-                    <h2>Bar Inventory</h2>
-                    <button class="btn btn-primary" onclick="showBarItemModal()">
-                        <i class="fas fa-plus"></i> Add Item
+                    <h2>
+                        <i class="fas fa-wine-glass-alt"></i>
+                        Bar & Lounge Management
+                    </h2>
+                </div>
+                
+                <!-- Bar Sub-tabs -->
+                <div class="bar-tabs">
+                    <button class="bar-tab-btn active" data-bar-tab="inventory">
+                        <i class="fas fa-boxes"></i> Bar Inventory
+                    </button>
+                    <button class="bar-tab-btn" data-bar-tab="lounge">
+                        <i class="fas fa-building"></i> Lounge Rentals
+                    </button>
+                    <button class="bar-tab-btn" data-bar-tab="events">
+                        <i class="fas fa-calendar-alt"></i> Event Calendar
                     </button>
                 </div>
-                <div class="inventory-grid" id="barInventory">
-                    <!-- Bar inventory will be loaded here -->
+
+                <!-- Bar Inventory Sub-tab -->
+                <div id="bar-inventory" class="bar-tab-content active">
+                    <div class="section-header">
+                        <h3>Bar Inventory</h3>
+                        <button class="btn btn-primary" onclick="showBarItemModal()">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                    <div class="inventory-grid" id="barInventory">
+                        <!-- Bar inventory will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Lounge Rentals Sub-tab -->
+                <div id="bar-lounge" class="bar-tab-content">
+                    <div class="section-header">
+                        <h3>Lounge Bookings</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="loadLoungeBookings()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button class="btn btn-success" onclick="showLoungePricingModal()">
+                                <i class="fas fa-calculator"></i> Price Calculator
+                            </button>
+                            <button class="btn btn-primary" onclick="showLoungeBookingModal()">
+                                <i class="fas fa-plus"></i> New Booking
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Lounge Overview Cards -->
+                    <div class="lounge-overview">
+                        <div class="lounge-card">
+                            <h4><i class="fas fa-calendar-check"></i> This Month</h4>
+                            <div class="lounge-stat" id="monthlyBookings">0 Bookings</div>
+                        </div>
+                        <div class="lounge-card">
+                            <h4><i class="fas fa-dollar-sign"></i> Monthly Revenue</h4>
+                            <div class="lounge-stat" id="monthlyLoungeRevenue">₦0.00</div>
+                        </div>
+                        <div class="lounge-card">
+                            <h4><i class="fas fa-clock"></i> Today's Events</h4>
+                            <div class="lounge-stat" id="todayEvents">0 Events</div>
+                        </div>
+                        <div class="lounge-card">
+                            <h4><i class="fas fa-hourglass-half"></i> Pending</h4>
+                            <div class="lounge-stat" id="pendingBookings">0 Pending</div>
+                        </div>
+                    </div>
+
+                    <!-- Lounge Bookings Table -->
+                    <div class="table-container">
+                        <table class="lounge-bookings-table" id="loungeBookingsTable">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Event Name</th>
+                                    <th>Customer</th>
+                                    <th>Event Type</th>
+                                    <th>Date & Time</th>
+                                    <th>Guests</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Lounge bookings will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Event Calendar Sub-tab -->
+                <div id="bar-events" class="bar-tab-content">
+                    <div class="section-header">
+                        <h3>Event Calendar</h3>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="refreshEventCalendar()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="calendar-container">
+                        <div id="eventCalendar">
+                            <!-- Calendar will be loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -650,6 +777,76 @@
                 </div>
             </div>
 
+            <!-- Guest Orders Tab -->
+            <div id="guest-orders" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-friends"></i> Guest Orders Management</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-success" onclick="refreshGuestOrders()">
+                            <i class="fas fa-sync"></i> Refresh Orders
+                        </button>
+                        <select id="guestOrderFilter" onchange="filterGuestOrders()">
+                            <option value="all">All Orders</option>
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <select id="guestOrderType" onchange="filterGuestOrders()">
+                            <option value="all">All Types</option>
+                            <option value="kitchen">Kitchen Orders</option>
+                            <option value="room-service">Room Service</option>
+                            <option value="housekeeping">Housekeeping</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="amenities">Amenities</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Order Statistics Cards -->
+                <div class="guest-order-stats">
+                    <div class="stat-card pending">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-content">
+                            <h3 id="pendingOrdersCount">0</h3>
+                            <p>Pending Orders</p>
+                        </div>
+                    </div>
+                    <div class="stat-card in-progress">
+                        <div class="stat-icon"><i class="fas fa-cogs"></i></div>
+                        <div class="stat-content">
+                            <h3 id="inProgressOrdersCount">0</h3>
+                            <p>In Progress</p>
+                        </div>
+                    </div>
+                    <div class="stat-card completed">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-content">
+                            <h3 id="completedOrdersCount">0</h3>
+                            <p>Completed Today</p>
+                        </div>
+                    </div>
+                    <div class="stat-card revenue">
+                        <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
+                        <div class="stat-content">
+                            <h3 id="guestOrderRevenue">₦0</h3>
+                            <p>Today's Revenue</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Container -->
+                <div class="guest-orders-container">
+                    <div class="orders-grid" id="guestOrdersList">
+                        <!-- Guest orders will be loaded here -->
+                        <div class="loading-placeholder">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading guest orders...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Analytics Tab -->
             <div id="analytics" class="tab-content">
                 <div class="section-header">
@@ -698,11 +895,11 @@
                         <div class="summary-stats">
                             <div class="summary-card">
                                 <h4>Average Daily Rate</h4>
-                                <div class="value" id="averageRate">$0.00</div>
+                                <div class="value" id="averageRate">₦0.00</div>
                             </div>
                             <div class="summary-card">
                                 <h4>RevPAR</h4>
-                                <div class="value" id="revpar">$0.00</div>
+                                <div class="value" id="revpar">₦0.00</div>
                             </div>
                             <div class="summary-card">
                                 <h4>Customer Retention</h4>
@@ -961,6 +1158,174 @@
                 </div>
                 <div class="location-branches-list" id="locationBranchesList">
                     <!-- Location branches will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Department Finance Tab -->
+            <div id="departments" class="tab-content">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-building"></i>
+                        Department Finance Management
+                        <span class="badge" id="departmentsCount">0 Departments</span>
+                    </h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="loadDepartments()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary" onclick="showDepartmentModal()">
+                            <i class="fas fa-plus"></i> New Department
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Department Finance Sub-tabs -->
+                <div class="sub-tabs">
+                    <button class="sub-tab-btn active" onclick="showDepartmentSubTab('overview')">
+                        <i class="fas fa-chart-pie"></i> Overview
+                    </button>
+                    <button class="sub-tab-btn" onclick="showDepartmentSubTab('departments')">
+                        <i class="fas fa-building"></i> Departments
+                    </button>
+                    <button class="sub-tab-btn" onclick="showDepartmentSubTab('loans')">
+                        <i class="fas fa-handshake"></i> Loans
+                    </button>
+                    <button class="sub-tab-btn" onclick="showDepartmentSubTab('assignments')">
+                        <i class="fas fa-clipboard-list"></i> Payment Assignments
+                    </button>
+                    <button class="sub-tab-btn" onclick="showDepartmentSubTab('transactions')">
+                        <i class="fas fa-exchange-alt"></i> Transactions
+                    </button>
+                </div>
+
+                <!-- Department Overview -->
+                <div id="dept-overview" class="sub-tab-content active">
+                    <div class="dept-stats-grid">
+                        <div class="dept-stat-card">
+                            <div class="dept-stat-icon"><i class="fas fa-building"></i></div>
+                            <div class="dept-stat-content">
+                                <h3 id="totalDepartments">5</h3>
+                                <p>Total Departments</p>
+                            </div>
+                        </div>
+                        <div class="dept-stat-card">
+                            <div class="dept-stat-icon"><i class="fas fa-money-bill-wave"></i></div>
+                            <div class="dept-stat-content">
+                                <h3 id="totalBudget">₦2.6M</h3>
+                                <p>Total Monthly Budget</p>
+                            </div>
+                        </div>
+                        <div class="dept-stat-card">
+                            <div class="dept-stat-icon"><i class="fas fa-handshake"></i></div>
+                            <div class="dept-stat-content">
+                                <h3 id="activeLoans">0</h3>
+                                <p>Active Loans</p>
+                            </div>
+                        </div>
+                        <div class="dept-stat-card">
+                            <div class="dept-stat-icon"><i class="fas fa-clipboard-list"></i></div>
+                            <div class="dept-stat-content">
+                                <h3 id="pendingAssignments">0</h3>
+                                <p>Pending Assignments</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dept-overview-grid">
+                        <div class="dept-overview-card">
+                            <h3><i class="fas fa-chart-line"></i> Budget Utilization</h3>
+                            <div id="budgetChart" class="chart-container">
+                                <!-- Budget chart will be rendered here -->
+                            </div>
+                        </div>
+                        <div class="dept-overview-card">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Alerts & Warnings</h3>
+                            <div id="departmentAlerts" class="alerts-list">
+                                <!-- Alerts will be displayed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Departments Management -->
+                <div id="dept-departments" class="sub-tab-content">
+                    <div class="departments-grid" id="departmentsGrid">
+                        <!-- Departments will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Loans Management -->
+                <div id="dept-loans" class="sub-tab-content">
+                    <div class="loans-header">
+                        <button class="btn btn-primary" onclick="showLoanModal()">
+                            <i class="fas fa-plus"></i> Create New Loan
+                        </button>
+                        <div class="loans-filters">
+                            <select id="loanStatusFilter" onchange="filterLoans()">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="defaulted">Defaulted</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="loans-list" id="loansList">
+                        <!-- Loans will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Payment Assignments -->
+                <div id="dept-assignments" class="sub-tab-content">
+                    <div class="assignments-header">
+                        <button class="btn btn-primary" onclick="showPaymentAssignmentModal()">
+                            <i class="fas fa-plus"></i> Create Payment Assignment
+                        </button>
+                        <div class="assignments-filters">
+                            <select id="assignmentStatusFilter" onchange="filterAssignments()">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="partially_paid">Partially Paid</option>
+                                <option value="fully_paid">Fully Paid</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="assignments-list" id="assignmentsList">
+                        <!-- Assignments will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Transactions -->
+                <div id="dept-transactions" class="sub-tab-content">
+                    <div class="transactions-filters">
+                        <div class="filter-group">
+                            <label>Department:</label>
+                            <select id="transactionDeptFilter" onchange="filterTransactions()">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Type:</label>
+                            <select id="transactionTypeFilter" onchange="filterTransactions()">
+                                <option value="">All Types</option>
+                                <option value="payment">Payment</option>
+                                <option value="loan_disbursement">Loan Disbursement</option>
+                                <option value="loan_repayment">Loan Repayment</option>
+                                <option value="budget_allocation">Budget Allocation</option>
+                                <option value="transfer">Transfer</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Date Range:</label>
+                            <input type="date" id="transactionStartDate" onchange="filterTransactions()">
+                            <input type="date" id="transactionEndDate" onchange="filterTransactions()">
+                        </div>
+                    </div>
+                    <div class="transactions-list" id="transactionsList">
+                        <!-- Transactions will be loaded here -->
+                    </div>
                 </div>
             </div>
         </main>
@@ -1837,6 +2202,8 @@
                         <option value="">Select Status</option>
                         <option value="on-duty">On Duty</option>
                         <option value="off-duty">Off Duty</option>
+                        <option value="break">On Break</option>
+                        <option value="sick">Sick Leave</option>
                     </select>
                 </div>
                 <div class="form-actions">
@@ -1869,17 +2236,7 @@
                 <div class="form-row">
                     <select id="laundryTaskRoom" name="roomName" required>
                         <option value="">Select Room</option>
-                        <option value="101">Room 101</option>
-                        <option value="102">Room 102</option>
-                        <option value="103">Room 103</option>
-                        <option value="104">Room 104</option>
-                        <option value="105">Room 105</option>
-                        <option value="106">Room 106</option>
-                        <option value="107">Room 107</option>
-                        <option value="108">Room 108</option>
-                        <option value="109">Room 109</option>
-                        <option value="110">Room 110</option>
-                        <option value="111">Room 111</option>
+                        <!-- Room options will be populated dynamically -->
                     </select>
                     <select id="laundryTaskPriority" name="priority" required>
                         <option value="">Select Priority</option>
@@ -2224,6 +2581,405 @@
                 <div class="valuation-details" id="valuationDetails">
                     <!-- Detailed valuation will be loaded here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lounge Pricing Calculator Modal -->
+    <div id="loungePricingModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-calculator"></i> Lounge Pricing Calculator</h3>
+                <span class="close" onclick="closeModal('loungePricingModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="pricing-calculator">
+                    <div class="calculator-section">
+                        <h4>Event Details</h4>
+                        <div class="form-row">
+                            <select id="calcEventType" required>
+                                <option value="">Select Event Type</option>
+                                <option value="Birthday Party">Birthday Party</option>
+                                <option value="Wedding Reception">Wedding Reception</option>
+                                <option value="Corporate Event">Corporate Event</option>
+                                <option value="Anniversary Celebration">Anniversary Celebration</option>
+                                <option value="Graduation Party">Graduation Party</option>
+                                <option value="Private Meeting">Private Meeting</option>
+                            </select>
+                            <input type="number" id="calcDuration" placeholder="Duration (hours)" min="1" max="12" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="number" id="calcGuestCount" placeholder="Number of Guests" min="1" max="200" required>
+                        </div>
+                    </div>
+
+                    <div class="calculator-section">
+                        <h4>Add-ons</h4>
+                        <div class="form-row">
+                            <label>
+                                <input type="checkbox" id="calcDecorations" value="basic">
+                                Decorations
+                            </label>
+                            <select id="calcDecorationsType" disabled>
+                                <option value="basic">Basic (₦15,000)</option>
+                                <option value="premium">Premium (₦35,000)</option>
+                                <option value="luxury">Luxury (₦60,000)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>
+                                <input type="checkbox" id="calcCatering">
+                                Catering
+                            </label>
+                            <span class="addon-note">₦3,500 per person (min. 10 guests)</span>
+                        </div>
+                        <div class="form-row">
+                            <label>
+                                <input type="checkbox" id="calcAudioVisual" value="basic">
+                                Audio/Visual
+                            </label>
+                            <select id="calcAVType" disabled>
+                                <option value="basic">Basic (₦20,000)</option>
+                                <option value="premium">Premium (₦45,000)</option>
+                                <option value="professional">Professional (₦80,000)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>
+                                <input type="checkbox" id="calcPhotography" value="basic">
+                                Photography
+                            </label>
+                            <select id="calcPhotoType" disabled>
+                                <option value="basic">Basic - 2 hours (₦25,000)</option>
+                                <option value="full">Full Event (₦50,000)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pricing-breakdown" id="pricingBreakdown">
+                        <!-- Pricing breakdown will be displayed here -->
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" onclick="calculateLoungeCost()">
+                            <i class="fas fa-calculator"></i> Calculate Cost
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="proceedToBooking()">
+                            <i class="fas fa-arrow-right"></i> Proceed to Booking
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('loungePricingModal')">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lounge Booking Modal -->
+    <div id="loungeBookingModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> New Lounge Booking</h3>
+                <span class="close" onclick="closeModal('loungeBookingModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="loungeBookingForm">
+                    <div class="booking-section">
+                        <h4>Event Information</h4>
+                        <div class="form-row">
+                            <input type="text" id="eventName" name="eventName" placeholder="Event Name" required>
+                            <select id="eventType" name="eventType" required>
+                                <option value="">Select Event Type</option>
+                                <option value="Birthday Party">Birthday Party</option>
+                                <option value="Wedding Reception">Wedding Reception</option>
+                                <option value="Corporate Event">Corporate Event</option>
+                                <option value="Anniversary Celebration">Anniversary Celebration</option>
+                                <option value="Graduation Party">Graduation Party</option>
+                                <option value="Private Meeting">Private Meeting</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <input type="date" id="eventDate" name="eventDate" required>
+                            <input type="time" id="startTime" name="startTime" required>
+                            <input type="time" id="endTime" name="endTime" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="number" id="guestCount" name="guestCount" placeholder="Number of Guests" min="1" max="200" required>
+                            <input type="number" id="duration" name="duration" placeholder="Duration (hours)" min="1" max="12" step="0.5" required>
+                        </div>
+                    </div>
+
+                    <div class="booking-section">
+                        <h4>Customer Details</h4>
+                        <div class="form-row">
+                            <input type="text" id="customerName" name="customerName" placeholder="Customer Name" required>
+                            <input type="tel" id="customerPhone" name="customerPhone" placeholder="Phone Number" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="email" id="customerEmail" name="customerEmail" placeholder="Email Address">
+                        </div>
+                    </div>
+
+                    <div class="booking-section">
+                        <h4>Event Requirements</h4>
+                        <div class="form-row">
+                            <label>
+                                <input type="checkbox" id="cateringIncluded" name="cateringIncluded">
+                                Catering Included
+                            </label>
+                            <label>
+                                <input type="checkbox" id="decorationsIncluded" name="decorationsIncluded">
+                                Decorations Included
+                            </label>
+                        </div>
+                        <div class="form-row">
+                            <textarea id="specialRequests" name="specialRequests" placeholder="Special Requests" rows="2"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <textarea id="setupRequirements" name="setupRequirements" placeholder="Setup Requirements" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="booking-section">
+                        <h4>Payment Information</h4>
+                        <div class="form-row">
+                            <input type="number" id="totalAmount" name="totalAmount" placeholder="Total Amount (₦)" readonly>
+                            <input type="number" id="depositPaid" name="depositPaid" placeholder="Deposit Paid (₦)" min="0">
+                        </div>
+                        <div class="form-row">
+                            <textarea id="bookingNotes" name="notes" placeholder="Internal Notes" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="availability-check" id="availabilityCheck">
+                        <!-- Availability will be checked here -->
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-info" onclick="checkAvailability()">
+                            <i class="fas fa-search"></i> Check Availability
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Booking
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('loungeBookingModal')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Finance Modals -->
+    
+    <!-- New Department Modal -->
+    <div id="departmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-building"></i> Create New Department</h3>
+                <span class="close" onclick="closeModal('departmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="departmentForm" onsubmit="handleDepartmentSubmit(event)">
+                    <div class="form-row">
+                        <input type="text" id="deptName" placeholder="Department Name" required>
+                        <input type="text" id="deptCode" placeholder="Department Code (e.g., FO, HK)" required maxlength="5" style="text-transform: uppercase">
+                    </div>
+                    <div class="form-row">
+                        <select id="deptCategory" required>
+                            <option value="">Select Category</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Food & Beverage">Food & Beverage</option>
+                            <option value="Housekeeping">Housekeeping</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Administration">Administration</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Security">Security</option>
+                            <option value="IT">IT</option>
+                        </select>
+                        <input type="number" id="deptBudget" placeholder="Monthly Budget (₦)" min="0">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="deptManagerName" placeholder="Department Manager Name">
+                        <input type="tel" id="deptManagerContact" placeholder="Manager Contact">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="deptCreditLimit" placeholder="Credit Limit (₦)" min="0">
+                    </div>
+                    <div class="form-row">
+                        <textarea id="deptDescription" placeholder="Department Description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Department
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('departmentModal')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Loan Modal -->
+    <div id="loanModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-handshake"></i> Create Inter-Department Loan</h3>
+                <span class="close" onclick="closeModal('loanModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="loanForm" onsubmit="handleLoanSubmit(event)">
+                    <div class="loan-section">
+                        <h4>Loan Parties</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Borrower Department:</label>
+                                <select id="loanBorrowerDept" required>
+                                    <option value="">Select Borrowing Department</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Lender Department:</label>
+                                <select id="loanLenderDept" required>
+                                    <option value="">Select Lending Department</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="loan-section">
+                        <h4>Loan Terms</h4>
+                        <div class="form-row">
+                            <input type="number" id="loanAmount" placeholder="Principal Amount (₦)" min="1" required>
+                            <input type="number" id="loanInterestRate" placeholder="Annual Interest Rate (%)" min="0" max="100" step="0.1" value="5">
+                        </div>
+                        <div class="form-row">
+                            <input type="number" id="loanTermDays" placeholder="Term (Days)" min="1" max="365" required>
+                            <select id="loanPurpose" required>
+                                <option value="">Select Purpose</option>
+                                <option value="Equipment Purchase">Equipment Purchase</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Salary Payment">Salary Payment</option>
+                                <option value="Utility Bills">Utility Bills</option>
+                                <option value="Emergency Expense">Emergency Expense</option>
+                                <option value="Inventory Purchase">Inventory Purchase</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <textarea id="loanPurposeDescription" placeholder="Purpose Description" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="loan-section">
+                        <h4>Loan Summary</h4>
+                        <div class="loan-summary" id="loanSummary">
+                            <div class="summary-item">
+                                <span>Principal Amount:</span>
+                                <span id="summaryPrincipal">₦0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Interest Amount:</span>
+                                <span id="summaryInterest">₦0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Total Amount Due:</span>
+                                <span id="summaryTotal">₦0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Due Date:</span>
+                                <span id="summaryDueDate">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Loan
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('loanModal')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Assignment Modal -->
+    <div id="paymentAssignmentModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-list"></i> Create Payment Assignment</h3>
+                <span class="close" onclick="closeModal('paymentAssignmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="paymentAssignmentForm" onsubmit="handlePaymentAssignmentSubmit(event)">
+                    <div class="assignment-section">
+                        <h4>Order Information</h4>
+                        <div class="form-row">
+                            <select id="assignmentOrderType" required onchange="loadOrdersForAssignment()">
+                                <option value="">Select Order Type</option>
+                                <option value="kitchen_order">Kitchen Order</option>
+                                <option value="bar_order">Bar Order</option>
+                                <option value="guest_order">Guest Order</option>
+                                <option value="maintenance_request">Maintenance Request</option>
+                                <option value="supply_order">Supply Order</option>
+                                <option value="service_request">Service Request</option>
+                            </select>
+                            <select id="assignmentOrderId" required onchange="loadOrderDetails()">
+                                <option value="">Select Order</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <input type="number" id="assignmentOriginalAmount" placeholder="Original Amount (₦)" readonly>
+                            <select id="assignmentPriority">
+                                <option value="normal">Normal Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="urgent">Urgent Priority</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <input type="date" id="assignmentDueDate" required>
+                            <select id="assignmentSplitCriteria" onchange="updateSplitMethod()">
+                                <option value="custom">Custom Split</option>
+                                <option value="equal">Equal Split</option>
+                                <option value="percentage">Percentage Split</option>
+                                <option value="usage_based">Usage Based</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <textarea id="assignmentReason" placeholder="Assignment Reason" required rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="assignment-section">
+                        <h4>Department Assignments</h4>
+                        <div class="assignments-container" id="assignmentsContainer">
+                            <div class="assignment-row">
+                                <select class="dept-select" required>
+                                    <option value="">Select Department</option>
+                                </select>
+                                <input type="number" class="dept-amount" placeholder="Amount (₦)" min="0" required>
+                                <input type="number" class="dept-percentage" placeholder="%" min="0" max="100" readonly>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="removeAssignmentRow(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="assignment-actions">
+                            <button type="button" class="btn btn-secondary" onclick="addAssignmentRow()">
+                                <i class="fas fa-plus"></i> Add Department
+                            </button>
+                            <div class="assignment-total">
+                                <strong>Total Assigned: ₦<span id="totalAssigned">0</span></strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Assignment
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('paymentAssignmentModal')">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

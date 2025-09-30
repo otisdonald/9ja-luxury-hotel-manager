@@ -469,6 +469,25 @@ function closeModal(modalId) {
     }
 }
 
+// Show modal function
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+        
+        // Focus on first input after a short delay
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input, select');
+            if (firstInput) firstInput.focus();
+        }, 100);
+        
+        console.log(`Modal ${modalId} opened`);
+    } else {
+        console.warn(`Modal with ID ${modalId} not found`);
+    }
+}
+
 // Authentication check and setup
 let staffToken = localStorage.getItem('staffToken');
 let staffInfo = JSON.parse(localStorage.getItem('staffInfo') || '{}');
@@ -890,6 +909,7 @@ async function loadTabContent(tab) {
             break;
         case 'bar':
             await loadBarInventory();
+            initializeLoungeManagement();
             break;
         case 'kitchen':
             await loadKitchenInventory();
@@ -920,6 +940,9 @@ async function loadTabContent(tab) {
             break;
         case 'communication':
             await loadCommunication();
+            break;
+        case 'guest-orders':
+            await loadGuestOrders();
             break;
             case 'laundry':
                 await loadLaundryTasks();
@@ -3044,20 +3067,37 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (newStatus && currentStaffId) {
                 try {
-                    await fetch(`/api/staff/${currentStaffId}`, {
+                    console.log(`🔄 Updating staff status for ID: ${currentStaffId} to: ${newStatus}`);
+                    
+                    const response = await fetch(`/api/staff/${currentStaffId}/status`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
                         body: JSON.stringify({ status: newStatus })
                     });
                     
-                    loadStaff();
-                    closeModal('staffStatusModal');
-                    showAlert('Staff status updated!', 'success');
-                    currentStaffId = null;
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Staff status updated successfully:', result);
+                        
+                        await loadStaff(); // Reload staff list
+                        await loadCurrentStaffStatus(); // Update current status display
+                        closeModal('staffStatusModal');
+                        showAlert('Staff status updated successfully!', 'success');
+                        currentStaffId = null;
+                    } else {
+                        const error = await response.json();
+                        console.error('❌ Error response:', error);
+                        showAlert(error.error || 'Error updating staff status', 'error');
+                    }
                 } catch (error) {
-                    console.error('Error updating staff status:', error);
-                    showAlert('Error updating staff status', 'error');
+                    console.error('❌ Network error updating staff status:', error);
+                    showAlert('Network error: Could not update staff status', 'error');
                 }
+            } else {
+                showAlert('Please select a status', 'error');
             }
         });
     }
@@ -3564,12 +3604,29 @@ async function markAllAsRead() {
 // STAFF MANAGEMENT FUNCTIONALITY
 async function loadStaff() {
     try {
-        const response = await fetch('/api/staff');
+        console.log('🔄 Loading staff data...');
+        const response = await fetch('/api/staff', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const staff = await response.json();
+        console.log('✅ Staff data loaded:', staff.length, 'members');
+        console.log('📊 Staff statuses:', staff.map(s => `${s.name}: ${s.status}`));
+        
+        // Store staff globally for reference
+        window.staff = staff;
+        
         displayStaff(staff);
         updateStaffStats(staff);
     } catch (error) {
-        console.error('Error loading staff:', error);
+        console.error('❌ Error loading staff:', error);
+        showAlert('Failed to load staff data', 'error');
     }
 }
 
@@ -4206,6 +4263,334 @@ async function loadServices() {
     await loadLostFoundItems();
     }
 
+    // =================== GUEST ORDERS MANAGEMENT ===================
+
+let guestOrders = [];
+let guestOrderFilters = {
+  status: 'all',
+  orderType: 'all',
+  search: ''
+};
+
+// Load guest orders data
+async function loadGuestOrders() {
+  console.log('🔄 Loading guest orders...');
+  
+  try {
+    const response = await fetch('/api/staff/guest-orders', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    guestOrders = data || [];
+    
+    console.log(`✅ Loaded ${guestOrders.length} guest orders`);
+    
+    // Load statistics
+    await loadGuestOrderStats();
+    
+    // Display orders
+    displayGuestOrders();
+    
+  } catch (error) {
+    console.error('❌ Error loading guest orders:', error);
+    showNotification('Failed to load guest orders', 'error');
+    guestOrders = [];
+    displayGuestOrders();
+  }
+}
+
+// Load guest order statistics
+async function loadGuestOrderStats() {
+  try {
+    const response = await fetch('/api/staff/guest-orders/stats', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const stats = await response.json();
+    
+    // Update stat cards
+    document.getElementById('pending-orders-count').textContent = stats.pending || 0;
+    document.getElementById('progress-orders-count').textContent = stats.inProgress || 0;
+    document.getElementById('completed-orders-count').textContent = stats.completed || 0;
+    document.getElementById('today-revenue-count').textContent = `₦${(stats.todayRevenue || 0).toLocaleString()}`;
+    
+    console.log('✅ Updated guest order statistics');
+    
+  } catch (error) {
+    console.error('❌ Error loading guest order stats:', error);
+    // Set default values
+    document.getElementById('pending-orders-count').textContent = '0';
+    document.getElementById('progress-orders-count').textContent = '0';
+    document.getElementById('completed-orders-count').textContent = '0';
+    document.getElementById('today-revenue-count').textContent = '₦0';
+  }
+}
+
+// Display guest orders with filtering
+function displayGuestOrders() {
+  const container = document.getElementById('guest-orders-grid');
+  if (!container) {
+    console.warn('Guest orders grid container not found');
+    return;
+  }
+  
+  // Filter orders
+  let filteredOrders = guestOrders.filter(order => {
+    const matchesStatus = guestOrderFilters.status === 'all' || order.status === guestOrderFilters.status;
+    const matchesType = guestOrderFilters.orderType === 'all' || order.orderType === guestOrderFilters.orderType;
+    const matchesSearch = !guestOrderFilters.search || 
+      order.orderNumber.toLowerCase().includes(guestOrderFilters.search.toLowerCase()) ||
+      (order.customer.name && order.customer.name.toLowerCase().includes(guestOrderFilters.search.toLowerCase())) ||
+      order.description.toLowerCase().includes(guestOrderFilters.search.toLowerCase());
+    
+    return matchesStatus && matchesType && matchesSearch;
+  });
+  
+  if (filteredOrders.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>No guest orders found matching your filters.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = filteredOrders.map(order => `
+    <div class="guest-order-card" data-order-id="${order.id}">
+      <div class="order-header">
+        <div class="order-info">
+          <h4 class="order-number">${order.orderNumber}</h4>
+          <span class="order-type">${order.orderType}</span>
+        </div>
+        <span class="status-badge status-${order.status}">${order.status}</span>
+      </div>
+      
+      <div class="order-details">
+        <div class="customer-info">
+          <strong>${order.customer.name || 'Unknown Guest'}</strong>
+          <span class="room-number">Room ${order.roomNumber}</span>
+        </div>
+        
+        <div class="order-description">
+          <p>${order.description}</p>
+        </div>
+        
+        ${order.items && order.items.length > 0 ? `
+          <div class="order-items">
+            <strong>Items:</strong>
+            <ul>
+              ${order.items.map(item => `
+                <li>${item.name} x${item.quantity} - ₦${item.price}</li>
+              `).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        <div class="order-meta">
+          <div class="time-info">
+            <span class="created-time">Created: ${formatDateTime(order.createdAt)}</span>
+            ${order.requestedTime ? `<span class="requested-time">Requested: ${formatDateTime(order.requestedTime)}</span>` : ''}
+            ${order.estimatedTime ? `<span class="estimated-time">Estimated: ${formatDateTime(order.estimatedTime)}</span>` : ''}
+            ${order.completedAt ? `<span class="completed-time">Completed: ${formatDateTime(order.completedAt)}</span>` : ''}
+          </div>
+          
+          ${order.totalAmount ? `
+            <div class="amount-info">
+              <strong>Total: ₦${order.totalAmount.toLocaleString()}</strong>
+            </div>
+          ` : ''}
+        </div>
+        
+        ${order.notes ? `
+          <div class="order-notes">
+            <strong>Notes:</strong> ${order.notes}
+          </div>
+        ` : ''}
+      </div>
+      
+      <div class="order-actions">
+        ${order.status === 'pending' ? `
+          <button class="btn btn-primary" onclick="updateGuestOrderStatus('${order.id}', 'in-progress')">
+            Start Processing
+          </button>
+        ` : ''}
+        
+        ${order.status === 'in-progress' ? `
+          <button class="btn btn-success" onclick="updateGuestOrderStatus('${order.id}', 'completed')">
+            Mark Complete
+          </button>
+        ` : ''}
+        
+        ${order.status !== 'completed' && order.status !== 'cancelled' ? `
+          <button class="btn btn-secondary" onclick="showOrderNotesModal('${order.id}')">
+            Add Notes
+          </button>
+          <button class="btn btn-danger" onclick="cancelGuestOrder('${order.id}')">
+            Cancel
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+  
+  console.log(`📋 Displayed ${filteredOrders.length} guest orders`);
+}
+
+// Update guest order status
+async function updateGuestOrderStatus(orderId, newStatus, notes = '', estimatedTime = null) {
+  console.log(`🔄 Updating guest order ${orderId} to status: ${newStatus}`);
+  
+  try {
+    const updateData = { status: newStatus };
+    if (notes) updateData.notes = notes;
+    if (estimatedTime) updateData.estimatedTime = estimatedTime;
+    if (newStatus === 'completed') updateData.completedAt = new Date().toISOString();
+    
+    const response = await fetch(`/api/staff/guest-orders/${orderId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification(`Order status updated to ${newStatus}`, 'success');
+      await loadGuestOrders(); // Reload to get fresh data
+    } else {
+      throw new Error(result.error || 'Failed to update order');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error updating guest order status:', error);
+    showNotification('Failed to update order status', 'error');
+  }
+}
+
+// Cancel guest order
+async function cancelGuestOrder(orderId) {
+  if (!confirm('Are you sure you want to cancel this guest order?')) {
+    return;
+  }
+  
+  console.log(`🗑️ Cancelling guest order ${orderId}`);
+  
+  try {
+    const response = await fetch(`/api/staff/guest-orders/${orderId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification('Guest order cancelled successfully', 'success');
+      await loadGuestOrders(); // Reload to get fresh data
+    } else {
+      throw new Error(result.error || 'Failed to cancel order');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error cancelling guest order:', error);
+    showNotification('Failed to cancel order', 'error');
+  }
+}
+
+// Filter guest orders
+function filterGuestOrders() {
+  const statusFilter = document.getElementById('order-status-filter');
+  const typeFilter = document.getElementById('order-type-filter');
+  const searchInput = document.getElementById('order-search');
+  
+  if (statusFilter) guestOrderFilters.status = statusFilter.value;
+  if (typeFilter) guestOrderFilters.orderType = typeFilter.value;
+  if (searchInput) guestOrderFilters.search = searchInput.value;
+  
+  console.log('🔍 Filtering guest orders:', guestOrderFilters);
+  displayGuestOrders();
+}
+
+// Show order notes modal
+function showOrderNotesModal(orderId) {
+  const order = guestOrders.find(o => o.id === orderId);
+  if (!order) return;
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+      <h3>Add Notes - ${order.orderNumber}</h3>
+      
+      <form onsubmit="handleOrderNotesSubmit(event, '${orderId}')">
+        <div class="form-group">
+          <label for="order-notes">Notes:</label>
+          <textarea id="order-notes" name="notes" rows="4" 
+                    placeholder="Add notes about this order...">${order.notes || ''}</textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="estimated-time">Estimated Completion Time (optional):</label>
+          <input type="datetime-local" id="estimated-time" name="estimatedTime" 
+                 value="${order.estimatedTime ? new Date(order.estimatedTime).toISOString().slice(0, 16) : ''}">
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Update Notes</button>
+          <button type="button" class="btn btn-secondary" 
+                  onclick="this.closest('.modal').remove()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  modal.style.display = 'block';
+}
+
+// Handle order notes form submission
+async function handleOrderNotesSubmit(event, orderId) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const notes = formData.get('notes');
+  const estimatedTime = formData.get('estimatedTime') || null;
+  
+  const order = guestOrders.find(o => o.id === orderId);
+  await updateGuestOrderStatus(orderId, order.status, notes, estimatedTime);
+  
+  // Close modal
+  event.target.closest('.modal').remove();
+}
+
+// =================== END GUEST ORDERS MANAGEMENT ===================
+
     // LAUNDRY FUNCTIONALITY
     async function loadLaundryTasks() {
         try {
@@ -4231,22 +4616,177 @@ async function loadServices() {
     function displayLaundryTasks(tasks) {
         const container = document.getElementById('laundryTasksList');
         if (!container) return;
-        container.innerHTML = tasks.map(task => `
-            <div class="laundry-task">
-                <h4>${task.type} - ${task.status}</h4>
-                <p><strong>Assigned to:</strong> ${task.assignee || 'Unassigned'}</p>
-                <p><strong>Instructions:</strong> ${task.instructions || ''}</p>
-                <p><strong>Created:</strong> ${new Date(task.createdAt).toLocaleString()}</p>
-            </div>
-        `).join('');
+        
+        if (!tasks || tasks.length === 0) {
+            container.innerHTML = '<div class="no-data">No laundry tasks found</div>';
+            return;
+        }
+        
+        container.innerHTML = tasks.map(task => {
+            const createdDate = new Date(task.createdAt);
+            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+            const isOverdue = dueDate && dueDate < new Date();
+            const priorityClass = task.priority ? `priority-${task.priority}` : '';
+            const statusClass = task.status ? task.status.toLowerCase().replace(' ', '-') : 'pending';
+            
+            return `
+                <div class="laundry-task ${priorityClass} ${statusClass}" data-type="${task.type}">
+                    <div class="task-header">
+                        <h4>${task.title || 'Laundry Task'}</h4>
+                        <span class="status-badge ${statusClass}">${task.status || 'Pending'}</span>
+                    </div>
+                    <div class="task-details">
+                        <div class="task-detail-item">
+                            <i class="fas fa-cogs"></i>
+                            <span class="task-detail-label">Type:</span>
+                            <span class="task-detail-value">${task.type || 'General'}</span>
+                        </div>
+                        <div class="task-detail-item">
+                            <i class="fas fa-door-open"></i>
+                            <span class="task-detail-label">Room:</span>
+                            <span class="task-detail-value">${task.roomName || 'N/A'}</span>
+                        </div>
+                        <div class="task-detail-item">
+                            <i class="fas fa-user"></i>
+                            <span class="task-detail-label">Assigned to:</span>
+                            <span class="task-detail-value">${task.assignee || 'Unassigned'}</span>
+                        </div>
+                        ${task.priority ? `
+                        <div class="task-detail-item">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span class="task-detail-label">Priority:</span>
+                            <span class="task-detail-value priority-${task.priority}">${task.priority.toUpperCase()}</span>
+                        </div>` : ''}
+                        ${task.instructions && task.instructions !== 'No additional instructions' ? `
+                        <div class="task-detail-item">
+                            <i class="fas fa-sticky-note"></i>
+                            <span class="task-detail-label">Instructions:</span>
+                            <span class="task-detail-value">${task.instructions}</span>
+                        </div>` : ''}
+                        <div class="task-detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span class="task-detail-label">Created:</span>
+                            <span class="task-detail-value">${createdDate.toLocaleString()}</span>
+                        </div>
+                        ${dueDate ? `
+                        <div class="task-detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span class="task-detail-label">Due:</span>
+                            <span class="task-detail-value ${isOverdue ? 'overdue' : ''}">${dueDate.toLocaleString()}</span>
+                        </div>` : ''}
+                    </div>
+                    <div class="task-actions">
+                        ${task.status !== 'Completed' ? `
+                            <button class="btn btn-sm btn-primary" onclick="updateTaskStatus(${task.id}, 'In Progress')">
+                                <i class="fas fa-play"></i> Start
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="updateTaskStatus(${task.id}, 'Completed')">
+                                <i class="fas fa-check"></i> Complete
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="assignTask(${task.id})">
+                                <i class="fas fa-user"></i> Assign
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-danger" onclick="archiveLaundryTask(${task.id})">
+                                <i class="fas fa-trash"></i> Remove from List
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="assignTask(${task.id})">
+                                <i class="fas fa-user"></i> Assign
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
-    function showLaundryTaskModal() {
-        document.getElementById('laundryTaskModal').style.display = 'block';
+    async function showLaundryTaskModal() {
+        console.log('Opening laundry task modal...');
+        const modal = document.getElementById('laundryTaskModal');
+        if (modal) {
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            
+            // Reset form
+            const form = modal.querySelector('#laundryTaskForm');
+            if (form) {
+                form.reset();
+                console.log('Laundry task form reset');
+            }
+            
+            // Load and populate room options
+            await populateRoomOptions();
+        } else {
+            console.error('Laundry task modal not found!');
+        }
+    }
+
+    async function populateRoomOptions() {
+        try {
+            console.log('🏠 Loading rooms for laundry task dropdown...');
+            const token = localStorage.getItem('staffToken');
+            
+            const response = await fetch('/api/rooms', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const rooms = await response.json();
+            console.log('✅ Loaded rooms for dropdown:', rooms.length);
+            
+            const roomSelect = document.getElementById('laundryTaskRoom');
+            if (roomSelect) {
+                // Clear existing options except the first one
+                roomSelect.innerHTML = '<option value="">Select Room</option>';
+                
+                // Add room options with proper names
+                rooms.forEach(room => {
+                    const roomName = room.name || room.number || `Room ${room.legacyId || room.id}` || 'Unnamed Room';
+                    const roomValue = room.name || room.number || room.legacyId || room.id;
+                    
+                    const option = document.createElement('option');
+                    option.value = roomValue;
+                    option.textContent = roomName;
+                    roomSelect.appendChild(option);
+                    
+                    console.log('🏠 Added room option:', { value: roomValue, text: roomName });
+                });
+                
+                console.log('✅ Room dropdown populated with', rooms.length, 'rooms');
+            } else {
+                console.error('❌ Room select element not found!');
+            }
+        } catch (error) {
+            console.error('❌ Error loading rooms for dropdown:', error);
+            // Fallback to hardcoded options if API fails
+            const roomSelect = document.getElementById('laundryTaskRoom');
+            if (roomSelect && roomSelect.children.length === 1) {
+                console.log('🔄 Using fallback room options...');
+                const fallbackRooms = [
+                    'Port Harcourt', 'Berlin', 'Madrid', 'Barcelona', 'Amsterdam',
+                    'Prague', 'Paris', 'Vienna', 'New York', 'Dallas', 'Atlanta'
+                ];
+                
+                fallbackRooms.forEach((roomName) => {
+                    const option = document.createElement('option');
+                    option.value = roomName;
+                    option.textContent = roomName;
+                    roomSelect.appendChild(option);
+                });
+            }
+        }
     }
 
     async function handleLaundryTaskSubmit(event) {
         event.preventDefault();
+        console.log('Laundry form submission started...');
+        
         const formData = new FormData(event.target);
         const task = {
             title: formData.get('title'),
@@ -4256,22 +4796,144 @@ async function loadServices() {
             notes: formData.get('notes'),
             status: 'pending'
         };
+        
+        console.log('Task data to submit:', task);
+        
+        // Validate required fields
+        if (!task.title || !task.type || !task.roomName || !task.priority) {
+            const missing = [];
+            if (!task.title) missing.push('title');
+            if (!task.type) missing.push('type');
+            if (!task.roomName) missing.push('room');
+            if (!task.priority) missing.push('priority');
+            
+            showAlert(`Please fill in all required fields: ${missing.join(', ')}`, 'error');
+            console.error('Form validation failed. Missing fields:', missing);
+            return;
+        }
+        
         try {
+            console.log('Sending POST request to /api/laundry...');
             const response = await fetch('/api/laundry', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(task)
             });
+            
+            console.log('Response status:', response.status);
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
             if (response.ok) {
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (e) {
+                    console.warn('Response is not JSON:', responseText);
+                    result = { success: true };
+                }
+                
+                console.log('Task created successfully:', result);
                 closeModal('laundryTaskModal');
-                loadLaundryTasks();
+                await loadLaundryTasks();
                 showAlert('Laundry task created successfully!', 'success');
             } else {
-                showAlert('Error creating laundry task', 'error');
+                let errorMsg = 'Error creating laundry task';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    errorMsg = responseText || errorMsg;
+                }
+                console.error('Server error:', response.status, errorMsg);
+                showAlert(errorMsg, 'error');
             }
         } catch (error) {
-            console.error('Error creating laundry task:', error);
-            showAlert('Error creating laundry task', 'error');
+            console.error('Network error creating laundry task:', error);
+            showAlert('Network error: Could not create laundry task. Please check your connection.', 'error');
+        }
+    }
+
+    // Update task status
+    async function updateTaskStatus(taskId, newStatus) {
+        try {
+            const response = await fetch(`/api/laundry/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            if (response.ok) {
+                await loadLaundryTasks();
+                showAlert(`Task ${newStatus.toLowerCase()} successfully!`, 'success');
+            } else {
+                showAlert('Error updating task status', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating task status:', error);
+            showAlert('Error updating task status', 'error');
+        }
+    }
+
+    // Archive completed laundry task (removes from staff view but keeps for admin records)
+    async function archiveLaundryTask(taskId) {
+        if (!confirm('Are you sure you want to remove this completed task from the list? The record will still be preserved in the admin dashboard.')) {
+            return;
+        }
+        
+        try {
+            console.log(`🗑️ Archiving laundry task ${taskId}`);
+            
+            const response = await fetch(`/api/laundry/${taskId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Task archived successfully:', result);
+                await loadLaundryTasks(); // Reload the task list
+                showAlert('Task removed from list. Record preserved in admin dashboard.', 'success');
+            } else {
+                const error = await response.json();
+                console.error('❌ Error archiving task:', error);
+                showAlert(error.error || 'Error removing task from list', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Network error archiving task:', error);
+            showAlert('Network error: Could not remove task. Please check your connection.', 'error');
+        }
+    }
+
+    // Assign task to staff member
+    function assignTask(taskId) {
+        const assignee = prompt('Assign task to:');
+        if (assignee && assignee.trim()) {
+            updateTaskAssignee(taskId, assignee.trim());
+        }
+    }
+
+    // Update task assignee
+    async function updateTaskAssignee(taskId, assignee) {
+        try {
+            const response = await fetch(`/api/laundry/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignee: assignee })
+            });
+            
+            if (response.ok) {
+                await loadLaundryTasks();
+                showAlert(`Task assigned to ${assignee} successfully!`, 'success');
+            } else {
+                showAlert('Error assigning task', 'error');
+            }
+        } catch (error) {
+            console.error('Error assigning task:', error);
+            showAlert('Error assigning task', 'error');
         }
     }
 
@@ -5246,8 +5908,32 @@ async function updateLostFoundStatus(itemId, status) {
 }
 
 async function updateStaffStatus(staffId) {
+    console.log(`👥 Opening status modal for staff ID: ${staffId}`);
+    
     currentStaffId = staffId;
-    document.getElementById('staffStatusModal').style.display = 'block';
+    
+    // Find the staff member to get current status
+    const staffMember = window.staff ? window.staff.find(s => s.id === parseInt(staffId)) : null;
+    if (staffMember) {
+        console.log(`📋 Found staff member: ${staffMember.name}, current status: ${staffMember.status}`);
+        // Pre-select current status in dropdown
+        const statusSelect = document.getElementById('staffStatusSelect');
+        if (statusSelect) {
+            statusSelect.value = staffMember.status || 'on-duty';
+            console.log(`✅ Pre-selected status: ${statusSelect.value}`);
+        }
+    } else {
+        console.warn(`⚠️ Staff member not found with ID: ${staffId}`);
+        console.log('📋 Available staff:', window.staff ? window.staff.map(s => `${s.id}: ${s.name}`) : 'No staff data');
+    }
+    
+    const modal = document.getElementById('staffStatusModal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.error('❌ Staff status modal not found');
+        showAlert('Error: Status update form not available', 'error');
+    }
 }
 
 // NEW FORM HANDLERS
@@ -5916,4 +6602,1671 @@ function updateCategoryStats() {
                 unreadNotifications.textContent = '0 unread';
             });
     }
+    
+    // Update guest orders count
+    const guestOrdersCount = document.getElementById('guestOrdersCount');
+    if (guestOrdersCount) {
+        fetch('/api/staff/guest-orders', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        })
+            .then(response => response.json())
+            .then(orders => {
+                const activeOrders = orders.filter(order => 
+                    order.status && !['delivered', 'cancelled'].includes(order.status.toLowerCase())
+                ).length;
+                guestOrdersCount.textContent = `${activeOrders} active orders`;
+            })
+            .catch(() => {
+                guestOrdersCount.textContent = '0 active orders';
+            });
+    }
+}
+
+// ================================
+// LOUNGE MANAGEMENT FUNCTIONS
+// ================================
+
+// Global variables for lounge management
+let loungeBookings = [];
+let loungePricing = {};
+let selectedLoungeCost = null;
+
+// Initialize lounge management when bar tab is opened
+function initializeLoungeManagement() {
+    console.log('🏛️ Initializing lounge management...');
+    
+    // Setup bar tab navigation
+    setupBarTabNavigation();
+    
+    // Load lounge data
+    loadLoungeBookings();
+    loadLoungePricing();
+    updateLoungeOverview();
+    
+    // Setup form handlers
+    setupLoungeFormHandlers();
+}
+
+// Setup bar tab navigation
+function setupBarTabNavigation() {
+    const barTabBtns = document.querySelectorAll('.bar-tab-btn');
+    const barTabContents = document.querySelectorAll('.bar-tab-content');
+    
+    barTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all buttons and contents
+            barTabBtns.forEach(b => b.classList.remove('active'));
+            barTabContents.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked button
+            btn.classList.add('active');
+            
+            // Show corresponding content
+            const tabName = btn.getAttribute('data-bar-tab');
+            const content = document.getElementById(`bar-${tabName}`);
+            if (content) {
+                content.classList.add('active');
+                
+                // Load specific data when tab is opened
+                if (tabName === 'lounge') {
+                    loadLoungeBookings();
+                    updateLoungeOverview();
+                } else if (tabName === 'events') {
+                    refreshEventCalendar();
+                } else if (tabName === 'inventory') {
+                    loadBarInventory();
+                }
+            }
+        });
+    });
+}
+
+// Load lounge bookings
+async function loadLoungeBookings() {
+    console.log('📋 Loading lounge bookings...');
+    
+    try {
+        const response = await fetch('/api/lounge/bookings', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        loungeBookings = await response.json();
+        console.log('✅ Loaded', loungeBookings.length, 'lounge bookings');
+        
+        displayLoungeBookings();
+        updateLoungeOverview();
+        
+    } catch (error) {
+        console.error('❌ Error loading lounge bookings:', error);
+        showNotification('Failed to load lounge bookings: ' + error.message, 'error');
+        loungeBookings = [];
+        displayLoungeBookings();
+    }
+}
+
+// Load lounge pricing
+async function loadLoungePricing() {
+    try {
+        const response = await fetch('/api/lounge/pricing', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load pricing');
+        }
+        
+        loungePricing = await response.json();
+        console.log('✅ Loaded lounge pricing structure');
+        
+    } catch (error) {
+        console.error('❌ Error loading lounge pricing:', error);
+        showNotification('Failed to load pricing information', 'error');
+    }
+}
+
+// Display lounge bookings in table
+function displayLoungeBookings() {
+    const tableBody = document.querySelector('#loungeBookingsTable tbody');
+    if (!tableBody) return;
+    
+    if (!loungeBookings.length) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                    <i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                    No lounge bookings found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = loungeBookings.map(booking => {
+        const eventDateTime = `${booking.eventDate} ${booking.startTime}-${booking.endTime}`;
+        const amount = booking.totalAmount?.toLocaleString() || '0';
+        
+        return `
+            <tr>
+                <td><strong>#${booking.id}</strong></td>
+                <td>${booking.eventName}</td>
+                <td>
+                    <strong>${booking.customerName}</strong><br>
+                    <small>${booking.customerPhone}</small>
+                </td>
+                <td>${booking.eventType}</td>
+                <td>
+                    <strong>${new Date(booking.eventDate).toLocaleDateString()}</strong><br>
+                    <small>${booking.startTime} - ${booking.endTime}</small>
+                </td>
+                <td>${booking.guestCount} guests</td>
+                <td>₦${amount}</td>
+                <td>
+                    <span class="lounge-status ${booking.status}">
+                        ${booking.status}
+                    </span><br>
+                    <small class="payment-status ${booking.paymentStatus}">
+                        ${booking.paymentStatus}
+                    </small>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-info" onclick="viewLoungeBooking(${booking.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="editLoungeBooking(${booking.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="cancelLoungeBooking(${booking.id})" title="Cancel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Update lounge overview cards
+function updateLoungeOverview() {
+    const today = new Date();
+    const thisMonth = today.getMonth();
+    const thisYear = today.getFullYear();
+    
+    // This month's bookings
+    const monthlyBookings = loungeBookings.filter(booking => {
+        const bookingDate = new Date(booking.eventDate);
+        return bookingDate.getMonth() === thisMonth && 
+               bookingDate.getFullYear() === thisYear &&
+               booking.status !== 'cancelled';
+    });
+    
+    // Monthly revenue
+    const monthlyRevenue = monthlyBookings.reduce((total, booking) => {
+        return total + (booking.totalAmount || 0);
+    }, 0);
+    
+    // Today's events
+    const todayStr = today.toISOString().split('T')[0];
+    const todayEvents = loungeBookings.filter(booking => 
+        booking.eventDate === todayStr && booking.status !== 'cancelled'
+    );
+    
+    // Pending bookings
+    const pendingBookings = loungeBookings.filter(booking => 
+        booking.status === 'pending'
+    );
+    
+    // Update DOM elements
+    updateElementText('monthlyBookings', `${monthlyBookings.length} Bookings`);
+    updateElementText('monthlyLoungeRevenue', `₦${monthlyRevenue.toLocaleString()}`);
+    updateElementText('todayEvents', `${todayEvents.length} Events`);
+    updateElementText('pendingBookings', `${pendingBookings.length} Pending`);
+}
+
+// Helper function to safely update element text
+function updateElementText(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+// Show lounge pricing modal
+function showLoungePricingModal() {
+    console.log('💰 Opening pricing calculator...');
+    
+    // Reset form
+    resetPricingCalculator();
+    
+    // Setup event listeners for calculator
+    setupPricingCalculatorEvents();
+    
+    // Show modal
+    showModal('loungePricingModal');
+}
+
+// Reset pricing calculator
+function resetPricingCalculator() {
+    document.getElementById('calcEventType').value = '';
+    document.getElementById('calcDuration').value = '';
+    document.getElementById('calcGuestCount').value = '';
+    
+    // Reset checkboxes and disable selects
+    const checkboxes = ['calcDecorations', 'calcCatering', 'calcAudioVisual', 'calcPhotography'];
+    checkboxes.forEach(id => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) {
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change'));
+        }
+    });
+    
+    // Clear breakdown
+    document.getElementById('pricingBreakdown').innerHTML = '';
+    selectedLoungeCost = null;
+}
+
+// Setup pricing calculator event listeners
+function setupPricingCalculatorEvents() {
+    // Checkbox handlers for enabling/disabling selects
+    const checkboxSelects = [
+        { checkbox: 'calcDecorations', select: 'calcDecorationsType' },
+        { checkbox: 'calcAudioVisual', select: 'calcAVType' },
+        { checkbox: 'calcPhotography', select: 'calcPhotoType' }
+    ];
+    
+    checkboxSelects.forEach(pair => {
+        const checkbox = document.getElementById(pair.checkbox);
+        const select = document.getElementById(pair.select);
+        
+        if (checkbox && select) {
+            checkbox.addEventListener('change', () => {
+                select.disabled = !checkbox.checked;
+                if (!checkbox.checked) {
+                    select.value = '';
+                }
+            });
+        }
+    });
+}
+
+// Calculate lounge cost
+async function calculateLoungeCost() {
+    console.log('🧮 Calculating lounge cost...');
+    
+    const eventType = document.getElementById('calcEventType').value;
+    const duration = parseInt(document.getElementById('calcDuration').value);
+    const guestCount = parseInt(document.getElementById('calcGuestCount').value);
+    
+    if (!eventType || !duration || !guestCount) {
+        showNotification('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    // Build add-ons object
+    const addOns = {};
+    
+    if (document.getElementById('calcDecorations').checked) {
+        addOns.decorations = document.getElementById('calcDecorationsType').value;
+    }
+    
+    if (document.getElementById('calcCatering').checked) {
+        addOns.catering = true;
+    }
+    
+    if (document.getElementById('calcAudioVisual').checked) {
+        addOns.audioVisual = document.getElementById('calcAVType').value;
+    }
+    
+    if (document.getElementById('calcPhotography').checked) {
+        addOns.photography = document.getElementById('calcPhotoType').value;
+    }
+    
+    try {
+        const response = await fetch('/api/lounge/calculate-cost', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            },
+            body: JSON.stringify({
+                eventType,
+                duration,
+                guestCount,
+                addOns
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to calculate cost');
+        }
+        
+        const costData = await response.json();
+        selectedLoungeCost = costData;
+        
+        displayPricingBreakdown(costData);
+        
+    } catch (error) {
+        console.error('❌ Error calculating cost:', error);
+        showNotification('Failed to calculate cost: ' + error.message, 'error');
+    }
+}
+
+// Display pricing breakdown
+function displayPricingBreakdown(costData) {
+    const container = document.getElementById('pricingBreakdown');
+    
+    const breakdown = costData.breakdown.map(item => `
+        <div class="breakdown-item">
+            <span class="breakdown-label">${item.item}</span>
+            <span class="breakdown-amount">₦${item.cost.toLocaleString()}</span>
+        </div>
+    `).join('');
+    
+    container.innerHTML = `
+        <h4><i class="fas fa-receipt"></i> Pricing Breakdown</h4>
+        ${breakdown}
+        <div class="breakdown-item">
+            <span class="breakdown-label"><strong>Total Amount</strong></span>
+            <span class="breakdown-amount"><strong>₦${costData.totalAmount.toLocaleString()}</strong></span>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+            <p><strong>Minimum Deposit:</strong> ₦${costData.minimumDeposit.toLocaleString()}</p>
+            <p><small>Security deposit of ₦${costData.securityDeposit.toLocaleString()} is refundable upon event completion.</small></p>
+        </div>
+    `;
+}
+
+// Proceed to booking with calculated cost
+function proceedToBooking() {
+    if (!selectedLoungeCost) {
+        showNotification('Please calculate cost first', 'warning');
+        return;
+    }
+    
+    // Close pricing modal
+    closeModal('loungePricingModal');
+    
+    // Open booking modal with pre-filled data
+    showLoungeBookingModal();
+    
+    // Pre-fill form with calculated data
+    document.getElementById('eventType').value = selectedLoungeCost.eventType;
+    document.getElementById('duration').value = selectedLoungeCost.duration;
+    document.getElementById('guestCount').value = selectedLoungeCost.guestCount;
+    document.getElementById('totalAmount').value = selectedLoungeCost.totalAmount;
+}
+
+// Show lounge booking modal
+function showLoungeBookingModal() {
+    console.log('📝 Opening lounge booking form...');
+    
+    // Reset form
+    document.getElementById('loungeBookingForm').reset();
+    
+    // Setup form handlers
+    setupLoungeFormHandlers();
+    
+    // Show modal
+    showModal('loungeBookingModal');
+}
+
+// Setup lounge form handlers
+function setupLoungeFormHandlers() {
+    const form = document.getElementById('loungeBookingForm');
+    if (!form) return;
+    
+    // Remove existing event listeners to prevent duplicates
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+    
+    // Add form submission handler
+    newForm.addEventListener('submit', handleLoungeBookingSubmit);
+    
+    // Add duration calculation handler
+    const startTime = document.getElementById('startTime');
+    const endTime = document.getElementById('endTime');
+    const durationField = document.getElementById('duration');
+    const guestCountField = document.getElementById('guestCount');
+    const totalAmountField = document.getElementById('totalAmount');
+    
+    function calculateDurationAndCost() {
+        if (startTime.value && endTime.value) {
+            const start = new Date(`2000-01-01T${startTime.value}`);
+            const end = new Date(`2000-01-01T${endTime.value}`);
+            
+            let duration = (end - start) / (1000 * 60 * 60); // Convert to hours
+            if (duration < 0) duration += 24; // Handle overnight events
+            
+            durationField.value = duration.toFixed(1);
+            
+            // Calculate total cost based on duration and guest count
+            const guestCount = parseInt(guestCountField.value) || 0;
+            if (guestCount > 0) {
+                calculateLoungePrice();
+            }
+        }
+    }
+    
+    startTime.addEventListener('change', calculateDurationAndCost);
+    endTime.addEventListener('change', calculateDurationAndCost);
+    guestCountField.addEventListener('input', calculateDurationAndCost);
+    
+    // Add event listeners for pricing calculation
+    document.getElementById('eventType').addEventListener('change', calculateLoungePrice);
+    document.getElementById('cateringIncluded').addEventListener('change', calculateLoungePrice);
+    document.getElementById('decorationsIncluded').addEventListener('change', calculateLoungePrice);
+    
+    if (startTime && endTime && durationField) {
+        [startTime, endTime].forEach(field => {
+            field.addEventListener('change', () => {
+                if (startTime.value && endTime.value) {
+                    const start = new Date(`2000-01-01T${startTime.value}`);
+                    const end = new Date(`2000-01-01T${endTime.value}`);
+                    
+                    if (end > start) {
+                        const hours = (end - start) / (1000 * 60 * 60);
+                        durationField.value = hours;
+                    }
+                }
+            });
+        });
+    }
+}
+
+// Calculate lounge pricing based on duration and guest count
+function calculateLoungePrice() {
+    const duration = parseFloat(document.getElementById('duration').value) || 0;
+    const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
+    const eventType = document.getElementById('eventType').value;
+    const cateringIncluded = document.getElementById('cateringIncluded').checked;
+    const decorationsIncluded = document.getElementById('decorationsIncluded').checked;
+    
+    if (duration <= 0 || guestCount <= 0) {
+        document.getElementById('totalAmount').value = '';
+        return;
+    }
+    
+    // Base pricing structure
+    let hourlyRate = 50000; // Base rate per hour
+    let guestMultiplier = 1000; // Additional cost per guest per hour
+    
+    // Event type multipliers
+    const eventMultipliers = {
+        'Wedding Reception': 1.5,
+        'Corporate Event': 1.3,
+        'Birthday Party': 1.0,
+        'Anniversary Celebration': 1.2,
+        'Graduation Party': 1.1,
+        'Private Meeting': 0.8
+    };
+    
+    const multiplier = eventMultipliers[eventType] || 1.0;
+    
+    // Calculate base cost
+    let totalCost = (hourlyRate + (guestCount * guestMultiplier)) * duration * multiplier;
+    
+    // Add-ons
+    if (cateringIncluded) {
+        totalCost += guestCount * 2500; // ₦2,500 per guest for catering
+    }
+    
+    if (decorationsIncluded) {
+        totalCost += 25000; // Flat ₦25,000 for decorations
+    }
+    
+    document.getElementById('totalAmount').value = Math.round(totalCost);
+}
+
+// Handle lounge booking form submission
+async function handleLoungeBookingSubmit(event) {
+    event.preventDefault();
+    
+    console.log('📝 Submitting lounge booking...');
+    
+    // Get form data directly from elements (more reliable than FormData for this form)
+    const bookingData = {
+        eventName: document.getElementById('eventName').value.trim(),
+        customerName: document.getElementById('customerName').value.trim(),
+        customerPhone: document.getElementById('customerPhone').value.trim(),
+        customerEmail: document.getElementById('customerEmail').value.trim(),
+        eventType: document.getElementById('eventType').value,
+        eventDate: document.getElementById('eventDate').value,
+        startTime: document.getElementById('startTime').value,
+        endTime: document.getElementById('endTime').value,
+        duration: parseFloat(document.getElementById('duration').value) || 0,
+        guestCount: parseInt(document.getElementById('guestCount').value) || 0,
+        totalAmount: parseFloat(document.getElementById('totalAmount').value) || 0,
+        depositPaid: parseFloat(document.getElementById('depositPaid').value) || 0,
+        specialRequests: document.getElementById('specialRequests').value.trim(),
+        setupRequirements: document.getElementById('setupRequirements').value.trim(),
+        cateringIncluded: document.getElementById('cateringIncluded').checked,
+        decorationsIncluded: document.getElementById('decorationsIncluded').checked,
+        notes: document.getElementById('bookingNotes').value.trim()
+    };
+    
+    // Debug: Log the booking data
+    console.log('🔍 Booking data to send:', bookingData);
+    
+    // Validate required fields
+    const requiredFields = ['eventName', 'customerName', 'customerPhone', 'eventType', 'eventDate', 'startTime', 'endTime'];
+    const missingFields = requiredFields.filter(field => !bookingData[field]);
+    
+    if (missingFields.length > 0) {
+        alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+        console.log('❌ Missing required fields:', missingFields);
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/lounge/bookings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            },
+            body: JSON.stringify(bookingData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create booking');
+        }
+        
+        const newBooking = await response.json();
+        console.log('✅ Lounge booking created:', newBooking.id);
+        
+        showNotification('Lounge booking created successfully!', 'success');
+        closeModal('loungeBookingModal');
+        
+        // Refresh data
+        loadLoungeBookings();
+        
+    } catch (error) {
+        console.error('❌ Error creating lounge booking:', error);
+        showNotification('Failed to create booking: ' + error.message, 'error');
+    }
+}
+
+// Check lounge availability
+async function checkAvailability() {
+    const eventDate = document.getElementById('eventDate').value;
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    
+    if (!eventDate) {
+        showNotification('Please select an event date first', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/lounge/availability/${eventDate}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to check availability');
+        }
+        
+        const availabilityData = await response.json();
+        displayAvailability(availabilityData, startTime, endTime);
+        
+    } catch (error) {
+        console.error('❌ Error checking availability:', error);
+        showNotification('Failed to check availability: ' + error.message, 'error');
+    }
+}
+
+// Display availability results
+function displayAvailability(data, requestedStart, requestedEnd) {
+    const container = document.getElementById('availabilityCheck');
+    
+    // Check for conflicts
+    const hasConflict = data.existingBookings.some(booking => {
+        if (!requestedStart || !requestedEnd) return false;
+        
+        return !(requestedEnd <= booking.startTime || requestedStart >= booking.endTime);
+    });
+    
+    if (hasConflict) {
+        const conflictingBookings = data.existingBookings.filter(booking => 
+            !(requestedEnd <= booking.startTime || requestedStart >= booking.endTime)
+        );
+        
+        container.innerHTML = `
+            <div class="availability-conflict">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Time Conflict Detected!</strong>
+                <p>The requested time slot conflicts with:</p>
+                ${conflictingBookings.map(booking => `
+                    <p>• ${booking.eventName} (${booking.startTime} - ${booking.endTime})</p>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="availability-success">
+                <i class="fas fa-check-circle"></i>
+                <strong>Time Slot Available!</strong>
+                <p>The lounge is available for your requested time on ${data.date}.</p>
+            </div>
+        `;
+    }
+    
+    // Show existing bookings for the day
+    if (data.existingBookings.length > 0) {
+        container.innerHTML += `
+            <div style="margin-top: 1rem;">
+                <h5>Other bookings on ${data.date}:</h5>
+                <ul style="margin: 0.5rem 0;">
+                    ${data.existingBookings.map(booking => `
+                        <li>${booking.eventName}: ${booking.startTime} - ${booking.endTime}</li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+}
+
+// View lounge booking details
+function viewLoungeBooking(bookingId) {
+    const booking = loungeBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+    
+    // You can implement a detailed view modal here
+    console.log('👁️ Viewing booking:', booking);
+    showNotification('Booking details view - to be implemented', 'info');
+}
+
+// Edit lounge booking
+function editLoungeBooking(bookingId) {
+    const booking = loungeBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+    
+    // Pre-fill the booking form with existing data
+    showLoungeBookingModal();
+    
+    // Fill form fields
+    document.getElementById('eventName').value = booking.eventName || '';
+    document.getElementById('customerName').value = booking.customerName || '';
+    document.getElementById('customerPhone').value = booking.customerPhone || '';
+    document.getElementById('customerEmail').value = booking.customerEmail || '';
+    document.getElementById('eventType').value = booking.eventType || '';
+    document.getElementById('eventDate').value = booking.eventDate || '';
+    document.getElementById('startTime').value = booking.startTime || '';
+    document.getElementById('endTime').value = booking.endTime || '';
+    document.getElementById('duration').value = booking.duration || '';
+    document.getElementById('guestCount').value = booking.guestCount || '';
+    document.getElementById('totalAmount').value = booking.totalAmount || '';
+    document.getElementById('depositPaid').value = booking.depositPaid || '';
+    document.getElementById('specialRequests').value = booking.specialRequests || '';
+    document.getElementById('setupRequirements').value = booking.setupRequirements || '';
+    document.getElementById('cateringIncluded').checked = booking.cateringIncluded || false;
+    document.getElementById('decorationsIncluded').checked = booking.decorationsIncluded || false;
+    document.getElementById('bookingNotes').value = booking.notes || '';
+    
+    // Store booking ID for update
+    document.getElementById('loungeBookingForm').dataset.editingId = bookingId;
+    
+    console.log('✏️ Editing booking:', bookingId);
+}
+
+// Cancel lounge booking
+async function cancelLoungeBooking(bookingId) {
+    const booking = loungeBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+    
+    if (!confirm(`Are you sure you want to cancel "${booking.eventName}"?\n\nCancellation penalties may apply based on the timing.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/lounge/bookings/${bookingId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to cancel booking');
+        }
+        
+        const result = await response.json();
+        console.log('✅ Booking cancelled:', result);
+        
+        showNotification(`Booking cancelled. Refund amount: ₦${result.refundAmount.toLocaleString()}`, 'success');
+        
+        // Refresh data
+        loadLoungeBookings();
+        
+    } catch (error) {
+        console.error('❌ Error cancelling booking:', error);
+        showNotification('Failed to cancel booking: ' + error.message, 'error');
+    }
+}
+
+// Refresh event calendar
+function refreshEventCalendar() {
+    console.log('📅 Refreshing event calendar...');
+    
+    const calendarContainer = document.getElementById('eventCalendar');
+    if (!calendarContainer) return;
+    
+    // Simple calendar implementation - you can enhance this
+    calendarContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+            <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+            <h4>Event Calendar</h4>
+            <p>Advanced calendar view coming soon...</p>
+            <p>Current bookings: ${loungeBookings.length}</p>
+        </div>
+    `;
+}
+
+// ===== DEPARTMENT FINANCE MANAGEMENT =====
+
+// Global variables for departments
+let departmentsData = [];
+let loansData = [];
+let assignmentsData = [];
+let transactionsData = [];
+
+// Load departments data
+async function loadDepartments() {
+    console.log('🏢 Loading departments...');
+    
+    try {
+        const token = localStorage.getItem('staffToken');
+        if (!token) {
+            showNotification('Please log in to access departments', 'error');
+            return;
+        }
+        
+        const response = await fetch('/api/departments', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch departments');
+        }
+        
+        departmentsData = await response.json();
+        console.log(`✅ Loaded ${departmentsData.length} departments`);
+        
+        // Update dashboard
+        updateDepartmentDashboard();
+        displayDepartments();
+        updateDepartmentDropdowns();
+        
+    } catch (error) {
+        console.error('❌ Error loading departments:', error);
+        showNotification('Failed to load departments', 'error');
+    }
+}
+
+// Update department dashboard statistics
+function updateDepartmentDashboard() {
+    if (!departmentsData.length) return;
+    
+    const totalDepartments = departmentsData.length;
+    const totalBudget = departmentsData.reduce((sum, dept) => sum + (dept.budget?.monthly || 0), 0);
+    const activeLoans = loansData.filter(loan => loan.status === 'active').length;
+    const pendingAssignments = assignmentsData.filter(assignment => assignment.status === 'pending').length;
+    
+    // Update counters
+    updateElementText('totalDepartments', totalDepartments.toString());
+    updateElementText('totalBudget', formatCurrency(totalBudget));
+    updateElementText('activeLoans', activeLoans.toString());
+    updateElementText('pendingAssignments', pendingAssignments.toString());
+    updateElementText('departmentsCount', `${totalDepartments} Departments`);
+    updateElementText('departmentLoans', `${activeLoans} active loans`);
+    
+    // Generate alerts
+    generateDepartmentAlerts();
+}
+
+// Generate department alerts and warnings
+function generateDepartmentAlerts() {
+    const alertsContainer = document.getElementById('departmentAlerts');
+    if (!alertsContainer) return;
+    
+    const alerts = [];
+    
+    departmentsData.forEach(dept => {
+        if (dept.budget) {
+            const utilizationRate = dept.budget.spent / dept.budget.monthly;
+            
+            if (utilizationRate > 0.9) {
+                alerts.push({
+                    type: 'danger',
+                    message: `${dept.name} has exceeded 90% of monthly budget`
+                });
+            } else if (utilizationRate > 0.75) {
+                alerts.push({
+                    type: 'warning',
+                    message: `${dept.name} has used ${Math.round(utilizationRate * 100)}% of monthly budget`
+                });
+            }
+            
+            if (dept.currentDebt > dept.creditLimit * 0.8) {
+                alerts.push({
+                    type: 'danger',
+                    message: `${dept.name} is near credit limit (${formatCurrency(dept.currentDebt)})`
+                });
+            }
+        }
+    });
+    
+    if (alerts.length === 0) {
+        alertsContainer.innerHTML = `
+            <div class="alert-item info">
+                <i class="fas fa-check-circle"></i>
+                All departments are operating within normal parameters
+            </div>
+        `;
+    } else {
+        alertsContainer.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.type}">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${alert.message}
+            </div>
+        `).join('');
+    }
+}
+
+// Display departments in grid
+function displayDepartments() {
+    const grid = document.getElementById('departmentsGrid');
+    if (!grid || !departmentsData.length) return;
+    
+    grid.innerHTML = departmentsData.map(dept => {
+        const budgetUtilization = dept.budget ? (dept.budget.spent / dept.budget.monthly) * 100 : 0;
+        
+        return `
+            <div class="department-card">
+                <div class="dept-header">
+                    <div class="dept-info">
+                        <h3>${dept.name}</h3>
+                        <span class="dept-code">${dept.code}</span>
+                        <div class="dept-category">${dept.category}</div>
+                    </div>
+                    <span class="dept-status ${dept.status}">${dept.status}</span>
+                </div>
+                
+                <div class="dept-budget">
+                    <div class="budget-item">
+                        <span class="amount">${formatCurrency(dept.budget?.monthly || 0)}</span>
+                        <span class="label">Monthly Budget</span>
+                    </div>
+                    <div class="budget-item">
+                        <span class="amount">${formatCurrency(dept.budget?.remaining || 0)}</span>
+                        <span class="label">Remaining</span>
+                    </div>
+                    <div class="budget-item">
+                        <span class="amount">${formatCurrency(dept.budget?.spent || 0)}</span>
+                        <span class="label">Spent</span>
+                    </div>
+                    <div class="budget-item">
+                        <span class="amount">${formatCurrency(dept.currentDebt || 0)}</span>
+                        <span class="label">Current Debt</span>
+                    </div>
+                </div>
+                
+                <div class="dept-progress">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">Budget Utilization</span>
+                        <span style="font-size: 0.875rem; font-weight: 600;">${budgetUtilization.toFixed(1)}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(budgetUtilization, 100)}%"></div>
+                    </div>
+                </div>
+                
+                <div class="dept-actions">
+                    <button class="btn btn-primary btn-sm" onclick="viewDepartmentDetails('${dept._id}')">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="editDepartmentBudget('${dept._id}')">
+                        <i class="fas fa-edit"></i> Edit Budget
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Show department sub-tabs
+function showDepartmentSubTab(tabName) {
+    // Hide all sub-tab contents
+    document.querySelectorAll('.sub-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all sub-tab buttons
+    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected sub-tab content
+    const selectedContent = document.getElementById(`dept-${tabName}`);
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+    }
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+    
+    // Load data for specific tabs
+    switch(tabName) {
+        case 'loans':
+            loadDepartmentLoans();
+            break;
+        case 'assignments':
+            loadPaymentAssignments();
+            break;
+        case 'transactions':
+            loadDepartmentTransactions();
+            break;
+    }
+}
+
+// Show department modal
+function showDepartmentModal() {
+    document.getElementById('departmentForm').reset();
+    showModal('departmentModal');
+}
+
+// Handle department form submission
+async function handleDepartmentSubmit(event) {
+    event.preventDefault();
+    
+    const token = localStorage.getItem('staffToken');
+    if (!token) {
+        showNotification('Please log in to create departments', 'error');
+        return;
+    }
+    
+    const formData = {
+        name: document.getElementById('deptName').value.trim(),
+        code: document.getElementById('deptCode').value.trim().toUpperCase(),
+        category: document.getElementById('deptCategory').value,
+        monthlyBudget: parseFloat(document.getElementById('deptBudget').value) || 0,
+        manager: {
+            name: document.getElementById('deptManagerName').value.trim(),
+            contact: document.getElementById('deptManagerContact').value.trim()
+        },
+        creditLimit: parseFloat(document.getElementById('deptCreditLimit').value) || 0,
+        description: document.getElementById('deptDescription').value.trim()
+    };
+    
+    try {
+        const response = await fetch('/api/departments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create department');
+        }
+        
+        showNotification('Department created successfully!', 'success');
+        closeModal('departmentModal');
+        await loadDepartments();
+        
+    } catch (error) {
+        console.error('❌ Error creating department:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+// Show loan modal
+function showLoanModal() {
+    document.getElementById('loanForm').reset();
+    updateDepartmentDropdowns();
+    showModal('loanModal');
+}
+
+// Handle loan form submission  
+async function handleLoanSubmit(event) {
+    event.preventDefault();
+    
+    const token = localStorage.getItem('staffToken');
+    if (!token) {
+        showNotification('Please log in to create loans', 'error');
+        return;
+    }
+    
+    const formData = {
+        borrowerDepartmentCode: document.getElementById('loanBorrowerDept').value,
+        lenderDepartmentCode: document.getElementById('loanLenderDept').value,
+        principalAmount: parseFloat(document.getElementById('loanAmount').value),
+        interestRate: parseFloat(document.getElementById('loanInterestRate').value),
+        termDays: parseInt(document.getElementById('loanTermDays').value),
+        purpose: document.getElementById('loanPurpose').value,
+        purposeDescription: document.getElementById('loanPurposeDescription').value
+    };
+    
+    // Validation
+    if (formData.borrowerDepartmentCode === formData.lenderDepartmentCode) {
+        showNotification('Borrower and lender departments cannot be the same', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/departments/loans', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create loan');
+        }
+        
+        showNotification('Loan created successfully!', 'success');
+        closeModal('loanModal');
+        await loadDepartmentLoans();
+        
+    } catch (error) {
+        console.error('❌ Error creating loan:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+// Update department dropdowns in forms
+function updateDepartmentDropdowns() {
+    const selectors = ['loanBorrowerDept', 'loanLenderDept', 'transactionDeptFilter'];
+    
+    selectors.forEach(selectorId => {
+        const select = document.getElementById(selectorId);
+        if (select && departmentsData.length) {
+            const currentValue = select.value;
+            select.innerHTML = select.querySelector('option[value=""]')?.outerHTML || '<option value="">Select Department</option>';
+            
+            departmentsData.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.code;
+                option.textContent = `${dept.name} (${dept.code})`;
+                select.appendChild(option);
+            });
+            
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+    });
+}
+
+// Utility functions for department finance
+function formatCurrency(amount) {
+    if (typeof amount !== 'number') return '₦0';
+    return `₦${amount.toLocaleString()}`;
+}
+
+function updateElementText(id, text) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+// Initialize department finance when departments tab is shown
+function initDepartmentFinance() {
+    if (departmentsData.length === 0) {
+        loadDepartments();
+    }
+}
+
+// Load department loans
+async function loadDepartmentLoans() {
+    console.log('💰 Loading department loans...');
+    
+    try {
+        const token = localStorage.getItem('staffToken');
+        if (!token) {
+            showNotification('Please log in to access loans', 'error');
+            return;
+        }
+        
+        const response = await fetch('/api/departments/loans', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch loans');
+        }
+        
+        loansData = await response.json();
+        console.log(`✅ Loaded ${loansData.length} loans`);
+        
+        displayDepartmentLoans();
+        updateDepartmentDashboard();
+        
+    } catch (error) {
+        console.error('❌ Error loading loans:', error);
+        showNotification('Failed to load loans', 'error');
+    }
+}
+
+// Display department loans
+function displayDepartmentLoans() {
+    const container = document.getElementById('loansContainer');
+    if (!container) return;
+    
+    if (!loansData.length) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <i class="fas fa-hand-holding-usd" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                <h4>No Loans Found</h4>
+                <p>Create a new department loan to get started</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = loansData.map(loan => {
+        const statusClass = loan.status === 'active' ? 'success' : 
+                           loan.status === 'pending' ? 'warning' : 'info';
+        
+        return `
+            <div class="loan-card">
+                <div class="loan-header">
+                    <div class="loan-info">
+                        <h3>Loan #${loan.loanId}</h3>
+                        <div class="loan-departments">
+                            <span class="borrower">${loan.borrowerDepartmentCode}</span>
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="lender">${loan.lenderDepartmentCode}</span>
+                        </div>
+                    </div>
+                    <span class="loan-status ${statusClass}">${loan.status}</span>
+                </div>
+                
+                <div class="loan-details">
+                    <div class="loan-amounts">
+                        <div class="amount-item">
+                            <span class="amount">${formatCurrency(loan.principalAmount)}</span>
+                            <span class="label">Principal</span>
+                        </div>
+                        <div class="amount-item">
+                            <span class="amount">${loan.interestRate}%</span>
+                            <span class="label">Interest Rate</span>
+                        </div>
+                        <div class="amount-item">
+                            <span class="amount">${loan.termDays} days</span>
+                            <span class="label">Term</span>
+                        </div>
+                        <div class="amount-item">
+                            <span class="amount">${formatCurrency(loan.totalDue)}</span>
+                            <span class="label">Total Due</span>
+                        </div>
+                    </div>
+                    
+                    <div class="loan-purpose">
+                        <strong>Purpose:</strong> ${loan.purpose}
+                        ${loan.purposeDescription ? `<br><em>${loan.purposeDescription}</em>` : ''}
+                    </div>
+                    
+                    <div class="loan-dates">
+                        <div>Start: ${new Date(loan.startDate).toLocaleDateString()}</div>
+                        <div>Due: ${new Date(loan.dueDate).toLocaleDateString()}</div>
+                        ${loan.completedDate ? `<div>Completed: ${new Date(loan.completedDate).toLocaleDateString()}</div>` : ''}
+                    </div>
+                </div>
+                
+                <div class="loan-actions">
+                    ${loan.status === 'pending' ? `
+                        <button class="btn btn-success btn-sm" onclick="approveLoan('${loan._id}')">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectLoan('${loan._id}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    ` : ''}
+                    ${loan.status === 'active' ? `
+                        <button class="btn btn-primary btn-sm" onclick="recordLoanPayment('${loan._id}')">
+                            <i class="fas fa-money-bill"></i> Record Payment
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="viewLoanDetails('${loan._id}')">
+                        <i class="fas fa-eye"></i> Details
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Approve loan
+async function approveLoan(loanId) {
+    if (!confirm('Are you sure you want to approve this loan?')) return;
+    
+    try {
+        const token = localStorage.getItem('staffToken');
+        const response = await fetch(`/api/departments/loans/${loanId}/approve`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to approve loan');
+        }
+        
+        showNotification('Loan approved successfully!', 'success');
+        await loadDepartmentLoans();
+        
+    } catch (error) {
+        console.error('❌ Error approving loan:', error);
+        showNotification('Failed to approve loan', 'error');
+    }
+}
+
+// Reject loan
+async function rejectLoan(loanId) {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    if (reason === null) return; // User cancelled
+    
+    try {
+        const token = localStorage.getItem('staffToken');
+        const response = await fetch(`/api/departments/loans/${loanId}/reject`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ rejectionReason: reason })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to reject loan');
+        }
+        
+        showNotification('Loan rejected', 'info');
+        await loadDepartmentLoans();
+        
+    } catch (error) {
+        console.error('❌ Error rejecting loan:', error);
+        showNotification('Failed to reject loan', 'error');
+    }
+}
+
+// Load payment assignments
+async function loadPaymentAssignments() {
+    console.log('📋 Loading payment assignments...');
+    
+    try {
+        const token = localStorage.getItem('staffToken');
+        if (!token) {
+            showNotification('Please log in to access assignments', 'error');
+            return;
+        }
+        
+        const response = await fetch('/api/departments/assignments', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch assignments');
+        }
+        
+        assignmentsData = await response.json();
+        console.log(`✅ Loaded ${assignmentsData.length} assignments`);
+        
+        displayPaymentAssignments();
+        updateDepartmentDashboard();
+        
+    } catch (error) {
+        console.error('❌ Error loading assignments:', error);
+        showNotification('Failed to load assignments', 'error');
+    }
+}
+
+// Display payment assignments
+function displayPaymentAssignments() {
+    const container = document.getElementById('assignmentsContainer');
+    if (!container) return;
+    
+    if (!assignmentsData.length) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <i class="fas fa-clipboard-list" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                <h4>No Payment Assignments</h4>
+                <p>Create assignments to split order payments across departments</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = assignmentsData.map(assignment => {
+        const statusClass = assignment.status === 'completed' ? 'success' : 
+                           assignment.status === 'processing' ? 'warning' : 'info';
+        
+        return `
+            <div class="assignment-card">
+                <div class="assignment-header">
+                    <div class="assignment-info">
+                        <h3>Assignment #${assignment.assignmentId}</h3>
+                        <div class="assignment-meta">
+                            <span>${assignment.orderType}: ${assignment.orderId}</span>
+                            <span class="assignment-total">${formatCurrency(assignment.totalAmount)}</span>
+                        </div>
+                    </div>
+                    <span class="assignment-status ${statusClass}">${assignment.status}</span>
+                </div>
+                
+                <div class="assignment-details">
+                    <div class="department-assignments">
+                        ${assignment.departmentAssignments.map(dept => `
+                            <div class="dept-assignment">
+                                <div class="dept-name">${dept.departmentCode}</div>
+                                <div class="dept-amount">${formatCurrency(dept.amount)} (${dept.percentage}%)</div>
+                                <div class="dept-reason">${dept.reason || 'No reason specified'}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="assignment-progress">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span>Completion Progress</span>
+                            <span>${assignment.completionPercentage.toFixed(1)}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${assignment.completionPercentage}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="assignment-actions">
+                    <button class="btn btn-primary btn-sm" onclick="viewAssignmentDetails('${assignment._id}')">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                    ${assignment.status === 'pending' ? `
+                        <button class="btn btn-success btn-sm" onclick="processAssignment('${assignment._id}')">
+                            <i class="fas fa-play"></i> Process
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Load department transactions
+async function loadDepartmentTransactions() {
+    console.log('💳 Loading department transactions...');
+    
+    try {
+        const token = localStorage.getItem('staffToken');
+        if (!token) {
+            showNotification('Please log in to access transactions', 'error');
+            return;
+        }
+        
+        const response = await fetch('/api/departments/transactions', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch transactions');
+        }
+        
+        transactionsData = await response.json();
+        console.log(`✅ Loaded ${transactionsData.length} transactions`);
+        
+        displayDepartmentTransactions();
+        
+    } catch (error) {
+        console.error('❌ Error loading transactions:', error);
+        showNotification('Failed to load transactions', 'error');
+    }
+}
+
+// Display department transactions with filtering
+function displayDepartmentTransactions() {
+    const container = document.getElementById('transactionsContainer');
+    if (!container) return;
+    
+    let filteredTransactions = [...transactionsData];
+    
+    // Apply filters
+    const typeFilter = document.getElementById('transactionTypeFilter')?.value;
+    const deptFilter = document.getElementById('transactionDeptFilter')?.value;
+    const statusFilter = document.getElementById('transactionStatusFilter')?.value;
+    
+    if (typeFilter) {
+        filteredTransactions = filteredTransactions.filter(t => t.type === typeFilter);
+    }
+    
+    if (deptFilter) {
+        filteredTransactions = filteredTransactions.filter(t => 
+            t.fromDepartment === deptFilter || t.toDepartment === deptFilter
+        );
+    }
+    
+    if (statusFilter) {
+        filteredTransactions = filteredTransactions.filter(t => t.status === statusFilter);
+    }
+    
+    if (!filteredTransactions.length) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <i class="fas fa-receipt" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                <h4>No Transactions Found</h4>
+                <p>No transactions match your current filters</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredTransactions.map(transaction => {
+        const statusClass = transaction.status === 'completed' ? 'success' : 
+                           transaction.status === 'pending' ? 'warning' : 'info';
+        
+        return `
+            <div class="transaction-item">
+                <div class="transaction-header">
+                    <div class="transaction-info">
+                        <h4>Transaction #${transaction.transactionId}</h4>
+                        <div class="transaction-type">${transaction.type} - ${transaction.category}</div>
+                    </div>
+                    <div class="transaction-amount">${formatCurrency(transaction.amount)}</div>
+                    <span class="transaction-status ${statusClass}">${transaction.status}</span>
+                </div>
+                
+                <div class="transaction-details">
+                    <div class="transaction-flow">
+                        <span class="from-dept">${transaction.fromDepartment}</span>
+                        <i class="fas fa-arrow-right"></i>
+                        <span class="to-dept">${transaction.toDepartment}</span>
+                    </div>
+                    
+                    <div class="transaction-meta">
+                        <div>Date: ${new Date(transaction.createdAt).toLocaleDateString()}</div>
+                        ${transaction.loanId ? `<div>Loan: #${transaction.loanId}</div>` : ''}
+                        ${transaction.description ? `<div>Description: ${transaction.description}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Filter transactions
+function filterTransactions() {
+    displayDepartmentTransactions();
+}
+
+// Show assignment modal
+function showAssignmentModal() {
+    document.getElementById('assignmentForm').reset();
+    updateDepartmentDropdowns();
+    showModal('assignmentModal');
+}
+
+// Show payment assignment modal (alias for showAssignmentModal)
+function showPaymentAssignmentModal() {
+    showAssignmentModal();
+}
+
+// Show payment assignment modal (alias for showAssignmentModal)
+function showPaymentAssignmentModal() {
+    showAssignmentModal();
+}
+
+// Handle assignment form submission
+async function handleAssignmentSubmit(event) {
+    event.preventDefault();
+    
+    const token = localStorage.getItem('staffToken');
+    if (!token) {
+        showNotification('Please log in to create assignments', 'error');
+        return;
+    }
+    
+    // Get department assignments from the form
+    const departmentAssignments = [];
+    const assignmentItems = document.querySelectorAll('.assignment-item');
+    
+    assignmentItems.forEach(item => {
+        const deptCode = item.querySelector('.assignment-dept').value;
+        const percentage = parseFloat(item.querySelector('.assignment-percentage').value) || 0;
+        const reason = item.querySelector('.assignment-reason').value;
+        
+        if (deptCode && percentage > 0) {
+            departmentAssignments.push({
+                departmentCode: deptCode,
+                percentage: percentage,
+                reason: reason
+            });
+        }
+    });
+    
+    if (departmentAssignments.length === 0) {
+        showNotification('Please add at least one department assignment', 'error');
+        return;
+    }
+    
+    const totalPercentage = departmentAssignments.reduce((sum, dept) => sum + dept.percentage, 0);
+    if (Math.abs(totalPercentage - 100) > 0.01) {
+        showNotification('Total assignment percentage must equal 100%', 'error');
+        return;
+    }
+    
+    const formData = {
+        orderId: document.getElementById('assignmentOrderId').value,
+        orderType: document.getElementById('assignmentOrderType').value,
+        totalAmount: parseFloat(document.getElementById('assignmentTotalAmount').value),
+        departmentAssignments: departmentAssignments
+    };
+    
+    try {
+        const response = await fetch('/api/departments/assignments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create assignment');
+        }
+        
+        showNotification('Payment assignment created successfully!', 'success');
+        closeModal('assignmentModal');
+        await loadPaymentAssignments();
+        
+    } catch (error) {
+        console.error('❌ Error creating assignment:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+// Add assignment item to form
+function addAssignmentItem() {
+    const container = document.getElementById('assignmentItemsContainer');
+    const itemCount = container.children.length;
+    
+    const newItem = document.createElement('div');
+    newItem.className = 'assignment-item';
+    newItem.innerHTML = `
+        <select class="assignment-dept" required>
+            <option value="">Select Department</option>
+            ${departmentsData.map(dept => 
+                `<option value="${dept.code}">${dept.name} (${dept.code})</option>`
+            ).join('')}
+        </select>
+        <input type="number" class="assignment-percentage" placeholder="Percentage" min="0" max="100" step="0.01" required>
+        <input type="text" class="assignment-reason" placeholder="Reason (optional)">
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeAssignmentItem(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    container.appendChild(newItem);
+}
+
+// Remove assignment item from form
+function removeAssignmentItem(button) {
+    button.closest('.assignment-item').remove();
+}
+
+// Helper function to view department details (placeholder)
+function viewDepartmentDetails(deptId) {
+    console.log('Viewing department details for:', deptId);
+    showNotification('Department details view coming soon!', 'info');
+}
+
+// Helper function to edit department budget (placeholder)
+function editDepartmentBudget(deptId) {
+    console.log('Editing budget for department:', deptId);
+    showNotification('Budget editing feature coming soon!', 'info');
+}
+
+// Helper function to view loan details (placeholder)
+function viewLoanDetails(loanId) {
+    console.log('Viewing loan details for:', loanId);
+    showNotification('Loan details view coming soon!', 'info');
+}
+
+// Helper function to record loan payment (placeholder)
+function recordLoanPayment(loanId) {
+    console.log('Recording payment for loan:', loanId);
+    showNotification('Loan payment recording coming soon!', 'info');
+}
+
+// Helper function to view assignment details (placeholder)
+function viewAssignmentDetails(assignmentId) {
+    console.log('Viewing assignment details for:', assignmentId);
+    showNotification('Assignment details view coming soon!', 'info');
+}
+
+// Helper function to process assignment (placeholder)
+function processAssignment(assignmentId) {
+    console.log('Processing assignment:', assignmentId);
+    showNotification('Assignment processing coming soon!', 'info');
 }

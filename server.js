@@ -201,6 +201,28 @@ function requireDirectorAuth(req, res, next) {
     });
 }
 
+// Manager authentication middleware (Directors and Managers can manage staff)
+function requireManagerAuth(req, res, next) {
+    requireStaffAuth(req, res, (err) => {
+        if (err) return next(err);
+        
+        // Directors and Managers can manage staff status
+        if (!['director', 'management'].includes(req.staff.position)) {
+            console.log('👥 Staff management denied for position:', req.staff.position, 'User:', req.staff.personalId);
+            return res.status(403).json({ 
+                error: 'Manager access required',
+                message: 'Only Directors and Managers can change staff status',
+                currentPosition: req.staff.position,
+                requiredPositions: ['director', 'management'],
+                feature: 'Staff Status Management'
+            });
+        }
+        
+        console.log('👥 Staff management access granted for:', req.staff.position, req.staff.personalId);
+        next();
+    });
+}
+
 // Publicly serve static assets (HTML/CSS/JS). Auth is enforced on API routes.
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -333,6 +355,111 @@ let barInventory = [
     { id: 5, name: 'Orange Juice', category: 'Juices', quantity: 18, unit: 'bottles', price: 600, minStock: 12 },
     { id: 6, name: 'Vodka - Grey Goose', category: 'Spirits', quantity: 6, unit: 'bottles', price: 18000, minStock: 2 }
 ];
+
+// Lounge rental system
+let loungeBookings = [
+    {
+        id: 1,
+        eventName: 'Sarah\'s Birthday Party',
+        customerName: 'Sarah Johnson',
+        customerPhone: '+234-800-123-4567',
+        customerEmail: 'sarah.johnson@email.com',
+        eventType: 'Birthday Party',
+        eventDate: '2025-10-15',
+        startTime: '18:00',
+        endTime: '23:00',
+        duration: 5, // hours
+        guestCount: 25,
+        totalAmount: 150000,
+        depositPaid: 75000,
+        remainingBalance: 75000,
+        status: 'confirmed', // pending, confirmed, in-progress, completed, cancelled
+        specialRequests: 'Birthday cake setup, balloon decorations',
+        setupRequirements: 'DJ booth, dance floor space',
+        cateringIncluded: true,
+        decorationsIncluded: true,
+        bookingDate: '2025-09-25T10:30:00',
+        bookedBy: 'Hotel Manager',
+        paymentStatus: 'partial', // paid, partial, pending
+        notes: 'VIP customer - ensure premium service',
+        createdAt: new Date(),
+        updatedAt: new Date()
+    }
+];
+
+// Lounge pricing structure
+const loungePricing = {
+    eventTypes: {
+        'Birthday Party': {
+            basePrice: 25000, // Base price for 4 hours
+            extraHourRate: 8000,
+            minimumHours: 4,
+            maximumHours: 8,
+            description: 'Perfect for birthday celebrations with decorations and entertainment space'
+        },
+        'Wedding Reception': {
+            basePrice: 80000, // Base price for 6 hours
+            extraHourRate: 15000,
+            minimumHours: 6,
+            maximumHours: 12,
+            description: 'Elegant venue for wedding receptions with premium service'
+        },
+        'Corporate Event': {
+            basePrice: 60000, // Base price for 4 hours
+            extraHourRate: 12000,
+            minimumHours: 3,
+            maximumHours: 10,
+            description: 'Professional setting for business meetings and corporate functions'
+        },
+        'Anniversary Celebration': {
+            basePrice: 35000, // Base price for 4 hours
+            extraHourRate: 10000,
+            minimumHours: 4,
+            maximumHours: 8,
+            description: 'Romantic atmosphere for anniversary and milestone celebrations'
+        },
+        'Graduation Party': {
+            basePrice: 30000, // Base price for 4 hours
+            extraHourRate: 9000,
+            minimumHours: 4,
+            maximumHours: 8,
+            description: 'Celebratory space for academic achievements and graduations'
+        },
+        'Private Meeting': {
+            basePrice: 15000, // Base price for 2 hours
+            extraHourRate: 5000,
+            minimumHours: 2,
+            maximumHours: 6,
+            description: 'Intimate setting for private meetings and small gatherings'
+        }
+    },
+    addOns: {
+        decorations: {
+            basic: 15000,
+            premium: 35000,
+            luxury: 60000
+        },
+        catering: {
+            perPerson: 3500,
+            minimumGuests: 10
+        },
+        audioVisual: {
+            basic: 20000, // Microphone and speakers
+            premium: 45000, // DJ setup, lighting
+            professional: 80000 // Full AV setup with projection
+        },
+        photography: {
+            basic: 25000, // 2 hours
+            full: 50000 // Full event coverage
+        }
+    },
+    securityDeposit: 50000, // Refundable security deposit
+    cancellationPolicy: {
+        moreThan7Days: 0.10, // 10% penalty
+        moreThan3Days: 0.25, // 25% penalty
+        lessThan3Days: 0.50  // 50% penalty
+    }
+};
 
 let kitchenOrders = [
     {
@@ -1360,7 +1487,7 @@ const connectDB = require('./src/db');
 let dbConnected = false;
 
 // Load models immediately (they handle their own mongoose connection)
-let Room, Customer, BarItem, KitchenOrder, Booking, Payment, Visitor, GuestOrder, StockItem, Supplier, PurchaseOrder, StockMovement;
+let Room, Customer, BarItem, KitchenOrder, Booking, Payment, Visitor, GuestOrder, StockItem, Supplier, PurchaseOrder, StockMovement, Department, DepartmentLoan, DepartmentTransaction, PaymentAssignment;
 try {
   Room = require('./src/models/Room');
   Customer = require('./src/models/Customer');
@@ -1377,6 +1504,11 @@ try {
   Supplier = StockModels.Supplier;
   PurchaseOrder = StockModels.PurchaseOrder;
   StockMovement = StockModels.StockMovement;
+  // Department Financial Models
+  Department = require('./src/models/Department');
+  DepartmentLoan = require('./src/models/DepartmentLoan');
+  DepartmentTransaction = require('./src/models/DepartmentTransaction');
+  PaymentAssignment = require('./src/models/PaymentAssignment');
   console.log('✅ Models loaded successfully');
 } catch (err) {
   console.warn('⚠️ Models not available:', err.message);
@@ -1589,13 +1721,139 @@ app.post('/api/admin/authenticate', (req, res) => {
 // Admin API Routes
 // Laundry API
 app.get('/api/laundry', (req, res) => {
-  res.json(laundryTasks);
+  const { includeArchived } = req.query;
+  
+  // For admin dashboard, include archived tasks. For staff view, exclude them.
+  let tasks = laundryTasks;
+  if (includeArchived !== 'true') {
+    tasks = laundryTasks.filter(task => !task.archived);
+  }
+  
+  res.json(tasks);
 });
 app.post('/api/laundry', (req, res) => {
-  const task = req.body;
-  task.id = laundryTasks.length + 1;
-  laundryTasks.push(task);
-  res.json({ success: true, task });
+  console.log('📋 POST /api/laundry - New request received');
+  console.log('Request body:', req.body);
+  console.log('Headers:', req.headers);
+  
+  try {
+    const { title, type, roomName, priority, notes, status } = req.body;
+    
+    console.log('Extracted fields:', { title, type, roomName, priority, notes, status });
+    
+    // Validate required fields
+    if (!title || !type || !roomName || !priority) {
+      const missing = [];
+      if (!title) missing.push('title');
+      if (!type) missing.push('type');
+      if (!roomName) missing.push('roomName');
+      if (!priority) missing.push('priority');
+      
+      console.error('❌ Validation failed. Missing fields:', missing);
+      return res.status(400).json({ 
+        error: `Missing required fields: ${missing.join(', ')}`,
+        received: req.body,
+        required: ['title', 'type', 'roomName', 'priority']
+      });
+    }
+    
+    const task = {
+      id: laundryTasks.length + 1,
+      title: title, // Keep original title
+      type: type,   // Keep original type (washing, drying, etc.)
+      status: status || 'Pending',
+      assignee: 'Unassigned', // Default to unassigned
+      instructions: notes || 'No additional instructions',
+      priority: priority,
+      roomName: roomName,
+      notes: notes || '',
+      createdAt: new Date(),
+      dueDate: new Date(Date.now() + (priority === 'urgent' ? 2 : priority === 'high' ? 4 : 8) * 60 * 60 * 1000) // 2, 4, or 8 hours based on priority
+    };
+    
+    console.log('📝 Creating task object:', task);
+    
+    laundryTasks.unshift(task); // Add to beginning of array for newest first
+    
+    console.log('✅ New laundry task created successfully');
+    console.log('Total tasks now:', laundryTasks.length);
+    
+    res.json({ 
+      success: true, 
+      task,
+      message: 'Laundry task created successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error creating laundry task:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Internal server error while creating laundry task',
+      details: error.message
+    });
+  }
+});
+
+// Update laundry task
+app.put('/api/laundry/:id', (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id);
+    const { status, assignee } = req.body;
+    
+    const taskIndex = laundryTasks.findIndex(task => task.id === taskId);
+    
+    if (taskIndex === -1) {
+      return res.status(404).json({ error: 'Laundry task not found' });
+    }
+    
+    // Update the task with provided fields
+    if (status) {
+      laundryTasks[taskIndex].status = status;
+    }
+    if (assignee) {
+      laundryTasks[taskIndex].assignee = assignee;
+    }
+    
+    // Update timestamp
+    laundryTasks[taskIndex].updatedAt = new Date();
+    
+    console.log(`✅ Laundry task ${taskId} updated:`, laundryTasks[taskIndex]);
+    res.json({ success: true, task: laundryTasks[taskIndex] });
+  } catch (error) {
+    console.error('❌ Error updating laundry task:', error);
+    res.status(500).json({ error: 'Internal server error while updating laundry task' });
+  }
+});
+
+// Archive completed laundry task (soft delete - keeps for admin records)
+app.delete('/api/laundry/:id', (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id);
+    
+    console.log(`🗑️ Archiving laundry task ${taskId}`);
+    
+    const taskIndex = laundryTasks.findIndex(task => task.id === taskId);
+    if (taskIndex === -1) {
+      console.log(`❌ Task ${taskId} not found`);
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    // Only allow archiving of completed tasks
+    if (laundryTasks[taskIndex].status !== 'Completed') {
+      console.log(`❌ Cannot archive task ${taskId} - not completed`);
+      return res.status(400).json({ error: 'Can only archive completed tasks' });
+    }
+    
+    // Archive the task (soft delete - mark as archived but keep for admin)
+    laundryTasks[taskIndex].archived = true;
+    laundryTasks[taskIndex].archivedAt = new Date().toISOString();
+    laundryTasks[taskIndex].updatedAt = new Date();
+    
+    console.log(`✅ Task ${taskId} archived successfully`);
+    res.json({ success: true, message: 'Task archived successfully', task: laundryTasks[taskIndex] });
+  } catch (error) {
+    console.error('❌ Error archiving laundry task:', error);
+    res.status(500).json({ error: 'Internal server error while archiving laundry task' });
+  }
 });
 
 // Scan & Pay API
@@ -2671,6 +2929,270 @@ app.get('/api/guest/visitors', requireGuestAuth, async (req, res) => {
 
 // =================== END GUEST PORTAL API ===================
 
+// =================== STAFF GUEST ORDER MANAGEMENT ===================
+
+// Get all guest orders for staff management
+app.get('/api/staff/guest-orders', requireStaffAuth, async (req, res) => {
+  console.log('📋 Staff fetching all guest orders');
+  const { status, orderType, limit = 50 } = req.query;
+  
+  // For now, return empty array until we have guest orders functionality
+  // This prevents the CastError issues with customer ID population
+  console.log('⚠️ Guest orders feature is under development - returning empty array');
+  return res.json([]);
+  
+  /* TODO: Fix customer ID population issue before enabling this code
+  if (dbConnected && GuestOrder) {
+    try {
+      let query = {};
+      
+      // Filter by status if provided
+      if (status && status !== 'all') {
+        query.status = status;
+      }
+      
+      // Filter by order type if provided
+      if (orderType && orderType !== 'all') {
+        query.orderType = orderType;
+      }
+      
+      const orders = await GuestOrder.find(query)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .lean();
+      
+      console.log(`✅ Found ${orders.length} guest orders for staff`);
+      
+      // Manually fetch customer data for each order
+      const formattedOrders = await Promise.all(orders.map(async (order) => {
+        let customer = { name: 'Unknown', roomNumber: 'N/A', customerId: order.customerId || 'Unknown' };
+        
+        if (order.customerId && Customer) {
+          try {
+            // Use a safer query that doesn't cause casting errors
+            const customerData = await Customer.findOne({ customerId: order.customerId }).select('name roomNumber customerId').lean();
+            if (customerData) {
+              customer = {
+                name: customerData.name,
+                roomNumber: customerData.roomNumber || 'N/A',
+                customerId: customerData.customerId
+              };
+            } else {
+              console.warn(`⚠️ Customer not found: ${order.customerId}`);
+            }
+          } catch (err) {
+            console.warn(`⚠️ Could not fetch customer ${order.customerId}:`, err.message);
+            // Use the order.customerId as fallback
+            customer.customerId = order.customerId;
+          }
+        }
+        
+        return {
+          id: order._id,
+          orderNumber: `GO-${order._id.toString().slice(-6).toUpperCase()}`,
+          customer: customer,
+          orderType: order.orderType,
+          status: order.status,
+          description: order.description,
+          items: order.items || [],
+          serviceType: order.serviceType,
+          priority: order.priority || 'medium',
+          totalAmount: order.totalAmount || 0,
+          roomNumber: order.roomNumber || customer.roomNumber || 'N/A',
+          requestedTime: order.requestedTime,
+          estimatedTime: order.estimatedTime,
+          completedAt: order.completedAt,
+          notes: order.notes || '',
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt
+        };
+      }));
+      
+      return res.json(formattedOrders);
+    } catch (err) {
+      console.error('❌ Error fetching guest orders for staff:', err);
+      return res.status(500).json({ error: 'Failed to fetch guest orders' });
+    }
+  }
+  */
+  
+  // Fallback: empty array
+  console.log('⚠️ Using fallback empty guest orders array');
+  res.json([]);
+});
+
+// Update guest order status
+app.patch('/api/staff/guest-orders/:orderId', requireStaffAuth, async (req, res) => {
+  const { orderId } = req.params;
+  const { status, notes, estimatedTime, completedAt } = req.body;
+  const staffId = req.user.personalId;
+  const staffName = req.user.name;
+  
+  console.log(`📝 Staff ${staffName} updating guest order ${orderId} to status: ${status}`);
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const updateData = {
+        status,
+        updatedAt: new Date(),
+        lastUpdatedBy: staffName
+      };
+      
+      if (notes) updateData.notes = notes;
+      if (estimatedTime) updateData.estimatedTime = estimatedTime;
+      if (completedAt || status === 'completed') {
+        updateData.completedAt = completedAt || new Date();
+      }
+      
+      const updatedOrder = await GuestOrder.findByIdAndUpdate(
+        orderId,
+        updateData,
+        { new: true }
+      ).populate('customerId', 'name roomNumber customerId');
+      
+      if (!updatedOrder) {
+        return res.status(404).json({ error: 'Guest order not found' });
+      }
+      
+      console.log('✅ Guest order updated successfully');
+      
+      const formattedOrder = {
+        id: updatedOrder._id,
+        orderNumber: `GO-${updatedOrder._id.toString().slice(-6).toUpperCase()}`,
+        customer: updatedOrder.customerId || { name: 'Unknown', roomNumber: 'N/A' },
+        orderType: updatedOrder.orderType,
+        status: updatedOrder.status,
+        description: updatedOrder.description,
+        items: updatedOrder.items || [],
+        serviceType: updatedOrder.serviceType,
+        priority: updatedOrder.priority || 'medium',
+        totalAmount: updatedOrder.totalAmount || 0,
+        roomNumber: updatedOrder.roomNumber,
+        requestedTime: updatedOrder.requestedTime,
+        estimatedTime: updatedOrder.estimatedTime,
+        completedAt: updatedOrder.completedAt,
+        notes: updatedOrder.notes || '',
+        lastUpdatedBy: updatedOrder.lastUpdatedBy,
+        createdAt: updatedOrder.createdAt,
+        updatedAt: updatedOrder.updatedAt
+      };
+      
+      return res.json({ 
+        success: true, 
+        message: 'Guest order updated successfully',
+        order: formattedOrder 
+      });
+    } catch (err) {
+      console.error('❌ Error updating guest order:', err);
+      return res.status(500).json({ error: 'Failed to update guest order' });
+    }
+  }
+  
+  res.status(503).json({ error: 'Database not available' });
+});
+
+// Get guest order statistics for staff dashboard
+app.get('/api/staff/guest-orders/stats', requireStaffAuth, async (req, res) => {
+  console.log('📊 Fetching guest order statistics');
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // Get counts by status
+      const [pending, inProgress, completed, cancelled, todayRevenue] = await Promise.all([
+        GuestOrder.countDocuments({ status: 'pending' }),
+        GuestOrder.countDocuments({ status: 'in-progress' }),
+        GuestOrder.countDocuments({ 
+          status: 'completed',
+          completedAt: { $gte: today, $lt: tomorrow }
+        }),
+        GuestOrder.countDocuments({ status: 'cancelled' }),
+        GuestOrder.aggregate([
+          {
+            $match: {
+              status: 'completed',
+              completedAt: { $gte: today, $lt: tomorrow }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$totalAmount' }
+            }
+          }
+        ])
+      ]);
+      
+      const stats = {
+        pending,
+        inProgress,
+        completed,
+        cancelled,
+        todayRevenue: todayRevenue[0]?.total || 0,
+        total: pending + inProgress + completed + cancelled
+      };
+      
+      console.log('✅ Guest order stats:', stats);
+      return res.json(stats);
+    } catch (err) {
+      console.error('❌ Error fetching guest order stats:', err);
+      return res.status(500).json({ error: 'Failed to fetch statistics' });
+    }
+  }
+  
+  // Fallback stats
+  res.json({
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    cancelled: 0,
+    todayRevenue: 0,
+    total: 0
+  });
+});
+
+// Delete/Cancel guest order
+app.delete('/api/staff/guest-orders/:orderId', requireStaffAuth, async (req, res) => {
+  const { orderId } = req.params;
+  const staffName = req.user.name;
+  
+  console.log(`🗑️ Staff ${staffName} cancelling guest order ${orderId}`);
+  
+  if (dbConnected && GuestOrder) {
+    try {
+      const order = await GuestOrder.findByIdAndUpdate(
+        orderId,
+        { 
+          status: 'cancelled',
+          notes: `Cancelled by staff: ${staffName}`,
+          updatedAt: new Date(),
+          lastUpdatedBy: staffName
+        },
+        { new: true }
+      );
+      
+      if (!order) {
+        return res.status(404).json({ error: 'Guest order not found' });
+      }
+      
+      console.log('✅ Guest order cancelled successfully');
+      return res.json({ success: true, message: 'Guest order cancelled successfully' });
+    } catch (err) {
+      console.error('❌ Error cancelling guest order:', err);
+      return res.status(500).json({ error: 'Failed to cancel guest order' });
+    }
+  }
+  
+  res.status(503).json({ error: 'Database not available' });
+});
+
+// =================== END STAFF GUEST ORDER MANAGEMENT ===================
+
 // Booking Routes
 app.get('/api/bookings', requireStaffAuth, async (req, res) => {
   console.log('📋 Fetching bookings - DB connected:', dbConnected, '- Booking model:', !!Booking);
@@ -2835,6 +3357,404 @@ app.delete('/api/bar/inventory/:id', requireStaffAuth, async (req, res) => {
   
   barInventory.splice(itemIndex, 1);
   res.json({ success: true, message: 'Item deleted successfully' });
+});
+
+// LOUNGE MANAGEMENT API
+// Get all lounge bookings
+app.get('/api/lounge/bookings', requireManagerAuth, async (req, res) => {
+  console.log('🏛️ Fetching lounge bookings...');
+  
+  try {
+    // Filter by date range if provided
+    const { startDate, endDate, status } = req.query;
+    let filteredBookings = [...loungeBookings];
+    
+    if (startDate) {
+      filteredBookings = filteredBookings.filter(booking => 
+        new Date(booking.eventDate) >= new Date(startDate)
+      );
+    }
+    
+    if (endDate) {
+      filteredBookings = filteredBookings.filter(booking => 
+        new Date(booking.eventDate) <= new Date(endDate)
+      );
+    }
+    
+    if (status) {
+      filteredBookings = filteredBookings.filter(booking => 
+        booking.status === status
+      );
+    }
+    
+    console.log('✅ Fetched', filteredBookings.length, 'lounge bookings');
+    res.json(filteredBookings);
+  } catch (error) {
+    console.error('❌ Error fetching lounge bookings:', error);
+    res.status(500).json({ error: 'Failed to fetch lounge bookings' });
+  }
+});
+
+// Get lounge pricing information
+app.get('/api/lounge/pricing', requireStaffAuth, (req, res) => {
+  console.log('💰 Fetching lounge pricing...');
+  res.json(loungePricing);
+});
+
+// Calculate lounge booking cost
+app.post('/api/lounge/calculate-cost', requireStaffAuth, (req, res) => {
+  const { eventType, duration, guestCount, addOns = {} } = req.body;
+  
+  console.log('🧮 Calculating lounge cost for:', eventType, duration, 'hours,', guestCount, 'guests');
+  
+  if (!eventType || !loungePricing.eventTypes[eventType]) {
+    return res.status(400).json({ error: 'Invalid event type' });
+  }
+  
+  const pricing = loungePricing.eventTypes[eventType];
+  let totalCost = 0;
+  let breakdown = [];
+  
+  // Base cost calculation
+  if (duration <= pricing.minimumHours) {
+    totalCost += pricing.basePrice;
+    breakdown.push({
+      item: `${eventType} - Base Package (${pricing.minimumHours} hours)`,
+      cost: pricing.basePrice
+    });
+  } else {
+    totalCost += pricing.basePrice;
+    const extraHours = duration - pricing.minimumHours;
+    const extraCost = extraHours * pricing.extraHourRate;
+    totalCost += extraCost;
+    
+    breakdown.push({
+      item: `${eventType} - Base Package (${pricing.minimumHours} hours)`,
+      cost: pricing.basePrice
+    });
+    breakdown.push({
+      item: `Extra Hours (${extraHours} × ₦${pricing.extraHourRate.toLocaleString()})`,
+      cost: extraCost
+    });
+  }
+  
+  // Add-ons calculation
+  if (addOns.decorations) {
+    const decorationCost = loungePricing.addOns.decorations[addOns.decorations];
+    if (decorationCost) {
+      totalCost += decorationCost;
+      breakdown.push({
+        item: `Decorations (${addOns.decorations})`,
+        cost: decorationCost
+      });
+    }
+  }
+  
+  if (addOns.catering && guestCount >= loungePricing.addOns.catering.minimumGuests) {
+    const cateringCost = guestCount * loungePricing.addOns.catering.perPerson;
+    totalCost += cateringCost;
+    breakdown.push({
+      item: `Catering (${guestCount} guests × ₦${loungePricing.addOns.catering.perPerson.toLocaleString()})`,
+      cost: cateringCost
+    });
+  }
+  
+  if (addOns.audioVisual) {
+    const avCost = loungePricing.addOns.audioVisual[addOns.audioVisual];
+    if (avCost) {
+      totalCost += avCost;
+      breakdown.push({
+        item: `Audio/Visual (${addOns.audioVisual})`,
+        cost: avCost
+      });
+    }
+  }
+  
+  if (addOns.photography) {
+    const photoCost = loungePricing.addOns.photography[addOns.photography];
+    if (photoCost) {
+      totalCost += photoCost;
+      breakdown.push({
+        item: `Photography (${addOns.photography})`,
+        cost: photoCost
+      });
+    }
+  }
+  
+  // Security deposit
+  const securityDeposit = loungePricing.securityDeposit;
+  breakdown.push({
+    item: 'Security Deposit (Refundable)',
+    cost: securityDeposit
+  });
+  
+  const result = {
+    eventType,
+    duration,
+    guestCount,
+    subtotal: totalCost,
+    securityDeposit,
+    totalAmount: totalCost + securityDeposit,
+    breakdown,
+    minimumDeposit: Math.ceil((totalCost + securityDeposit) * 0.5), // 50% minimum deposit
+    calculatedAt: new Date()
+  };
+  
+  console.log('✅ Cost calculation completed. Total:', result.totalAmount);
+  res.json(result);
+});
+
+// Create new lounge booking
+app.post('/api/lounge/bookings', requireManagerAuth, async (req, res) => {
+  console.log('🏛️ Creating new lounge booking...');
+  
+  const {
+    eventName,
+    customerName,
+    customerPhone,
+    customerEmail,
+    eventType,
+    eventDate,
+    startTime,
+    endTime,
+    duration,
+    guestCount,
+    totalAmount,
+    depositPaid = 0,
+    specialRequests = '',
+    setupRequirements = '',
+    cateringIncluded = false,
+    decorationsIncluded = false,
+    notes = ''
+  } = req.body;
+  
+  // Validation
+  if (!eventName || !customerName || !customerPhone || !eventType || !eventDate || !startTime || !endTime) {
+    return res.status(400).json({ error: 'Required fields missing' });
+  }
+  
+  // Check for conflicting bookings
+  const conflictingBooking = loungeBookings.find(booking => 
+    booking.eventDate === eventDate && 
+    booking.status !== 'cancelled' &&
+    !(
+      (startTime >= booking.endTime) || 
+      (endTime <= booking.startTime)
+    )
+  );
+  
+  if (conflictingBooking) {
+    return res.status(409).json({ 
+      error: 'Time slot conflict', 
+      conflictsWith: conflictingBooking.eventName,
+      conflictTime: `${conflictingBooking.startTime} - ${conflictingBooking.endTime}`
+    });
+  }
+  
+  const newBooking = {
+    id: loungeBookings.length + 1,
+    eventName,
+    customerName,
+    customerPhone,
+    customerEmail,
+    eventType,
+    eventDate,
+    startTime,
+    endTime,
+    duration,
+    guestCount,
+    totalAmount,
+    depositPaid,
+    remainingBalance: totalAmount - depositPaid,
+    status: depositPaid >= (totalAmount * 0.5) ? 'confirmed' : 'pending',
+    specialRequests,
+    setupRequirements,
+    cateringIncluded,
+    decorationsIncluded,
+    bookingDate: new Date().toISOString(),
+    bookedBy: req.staff.name,
+    paymentStatus: depositPaid >= totalAmount ? 'paid' : (depositPaid > 0 ? 'partial' : 'pending'),
+    notes,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  
+  loungeBookings.push(newBooking);
+  
+  // Create payment record if deposit was paid
+  if (depositPaid > 0) {
+    try {
+      const paymentData = {
+        customerId: customerEmail || `lounge_${newBooking.id}`,
+        customerName: customerName,
+        amount: depositPaid,
+        method: 'cash', // Default - can be updated
+        description: `Lounge booking deposit - ${eventName}`,
+        category: 'lounge_rental',
+        bookingReference: `LOUNGE_${newBooking.id}`,
+        serviceType: 'Lounge Rental',
+        eventDetails: {
+          eventName,
+          eventType,
+          eventDate,
+          duration,
+          guestCount
+        },
+        collectedBy: req.staff.name,
+        createdAt: new Date(),
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      // Add to payment system (both DB and fallback)
+      if (dbConnected && Payment) {
+        const payment = new Payment(paymentData);
+        await payment.save();
+        console.log('💳 Lounge payment saved to DB:', payment._id);
+      } else {
+        // Fallback to in-memory payments array (if it exists)
+        if (typeof payments !== 'undefined') {
+          paymentData.id = Date.now();
+          payments.push(paymentData);
+          console.log('💳 Lounge payment saved to memory:', paymentData.id);
+        }
+      }
+      
+      console.log('✅ Lounge booking and payment created:', newBooking.id);
+      
+    } catch (paymentError) {
+      console.error('⚠️ Error creating payment record:', paymentError);
+      // Don't fail the booking if payment recording fails
+    }
+  }
+  
+  console.log('✅ Lounge booking created:', newBooking.id, '-', newBooking.eventName);
+  res.status(201).json(newBooking);
+});
+
+// Update lounge booking
+app.put('/api/lounge/bookings/:id', requireManagerAuth, (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const bookingIndex = loungeBookings.findIndex(booking => booking.id === bookingId);
+  
+  if (bookingIndex === -1) {
+    return res.status(404).json({ error: 'Booking not found' });
+  }
+  
+  console.log('🏛️ Updating lounge booking:', bookingId);
+  
+  const updatedBooking = {
+    ...loungeBookings[bookingIndex],
+    ...req.body,
+    updatedAt: new Date()
+  };
+  
+  // Recalculate payment status and remaining balance
+  if (req.body.depositPaid !== undefined || req.body.totalAmount !== undefined) {
+    updatedBooking.remainingBalance = updatedBooking.totalAmount - updatedBooking.depositPaid;
+    updatedBooking.paymentStatus = updatedBooking.depositPaid >= updatedBooking.totalAmount ? 'paid' : 
+                                  (updatedBooking.depositPaid > 0 ? 'partial' : 'pending');
+    
+    // Update confirmation status based on payment
+    if (updatedBooking.depositPaid >= (updatedBooking.totalAmount * 0.5) && updatedBooking.status === 'pending') {
+      updatedBooking.status = 'confirmed';
+    }
+  }
+  
+  loungeBookings[bookingIndex] = updatedBooking;
+  
+  console.log('✅ Lounge booking updated:', bookingId);
+  res.json(updatedBooking);
+});
+
+// Cancel lounge booking
+app.delete('/api/lounge/bookings/:id', requireManagerAuth, (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const bookingIndex = loungeBookings.findIndex(booking => booking.id === bookingId);
+  
+  if (bookingIndex === -1) {
+    return res.status(404).json({ error: 'Booking not found' });
+  }
+  
+  console.log('🏛️ Cancelling lounge booking:', bookingId);
+  
+  const booking = loungeBookings[bookingIndex];
+  const eventDate = new Date(booking.eventDate);
+  const today = new Date();
+  const daysUntilEvent = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+  
+  // Calculate cancellation penalty
+  let penaltyRate = 0;
+  if (daysUntilEvent < 3) {
+    penaltyRate = loungePricing.cancellationPolicy.lessThan3Days;
+  } else if (daysUntilEvent < 7) {
+    penaltyRate = loungePricing.cancellationPolicy.moreThan3Days;
+  } else {
+    penaltyRate = loungePricing.cancellationPolicy.moreThan7Days;
+  }
+  
+  const penalty = booking.depositPaid * penaltyRate;
+  const refundAmount = booking.depositPaid - penalty;
+  
+  booking.status = 'cancelled';
+  booking.cancellationDate = new Date();
+  booking.cancellationPenalty = penalty;
+  booking.refundAmount = refundAmount;
+  booking.cancelledBy = req.staff.name;
+  booking.updatedAt = new Date();
+  
+  console.log('✅ Lounge booking cancelled with', penaltyRate * 100 + '% penalty');
+  res.json({
+    success: true,
+    message: 'Booking cancelled successfully',
+    penalty,
+    refundAmount,
+    booking
+  });
+});
+
+// Get lounge availability for a specific date
+app.get('/api/lounge/availability/:date', requireStaffAuth, (req, res) => {
+  const date = req.params.date;
+  console.log('📅 Checking lounge availability for:', date);
+  
+  const existingBookings = loungeBookings.filter(booking => 
+    booking.eventDate === date && 
+    booking.status !== 'cancelled'
+  );
+  
+  // Generate available time slots (assuming lounge operates 9 AM to 11 PM)
+  const operatingHours = { start: 9, end: 23 }; // 9 AM to 11 PM
+  const availableSlots = [];
+  
+  for (let hour = operatingHours.start; hour < operatingHours.end; hour++) {
+    const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+    const nextHour = `${(hour + 1).toString().padStart(2, '0')}:00`;
+    
+    const isBooked = existingBookings.some(booking => 
+      timeSlot >= booking.startTime && timeSlot < booking.endTime
+    );
+    
+    if (!isBooked) {
+      availableSlots.push({
+        startTime: timeSlot,
+        endTime: nextHour,
+        available: true
+      });
+    }
+  }
+  
+  res.json({
+    date,
+    existingBookings: existingBookings.map(booking => ({
+      id: booking.id,
+      eventName: booking.eventName,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status
+    })),
+    availableSlots,
+    operatingHours
+  });
 });
 
 // Kitchen Management Routes
@@ -3500,17 +4420,20 @@ app.delete('/api/notifications/:id', (req, res) => {
 
 // STAFF MANAGEMENT API
 app.get('/api/staff', requireStaffAuth, (req, res) => {
-  res.json(staff);
+  console.log('📋 Fetching staff data...');
+  console.log('👥 Staff count:', staffList.length);
+  console.log('📊 Staff statuses:', staffList.map(s => `${s.name}: ${s.status || 'undefined'}`));
+  res.json(staffList);
 });
 
 app.post('/api/staff', requireAdminAuth, (req, res) => {
   const newStaff = {
-    id: staff.length + 1,
+    id: staffList.length + 1,
     ...req.body,
     createdAt: new Date(),
     status: 'off-duty'
   };
-  staff.push(newStaff);
+  staffList.push(newStaff);
   res.status(201).json(newStaff);
 });
 
@@ -3524,7 +4447,7 @@ app.get('/api/staff/:id', requireAdminAuth, (req, res) => {
 });
 
 app.put('/api/staff/:id', requireAdminAuth, (req, res) => {
-  const staffMember = staff.find(s => s.id === parseInt(req.params.id));
+  const staffMember = staffList.find(s => s.id === parseInt(req.params.id));
   if (!staffMember) {
     return res.status(404).json({ error: 'Staff member not found' });
   }
@@ -3532,12 +4455,49 @@ app.put('/api/staff/:id', requireAdminAuth, (req, res) => {
   res.json(staffMember);
 });
 
+// Staff status can be updated by Directors and Managers
+app.put('/api/staff/:id/status', requireManagerAuth, (req, res) => {
+  const staffId = parseInt(req.params.id);
+  const { status } = req.body;
+  
+  console.log(`👥 Staff status update request by ${req.staff.position} (${req.staff.name}) for ID: ${staffId}, new status: ${status}`);
+  
+  if (!status) {
+    return res.status(400).json({ error: 'Status is required' });
+  }
+  
+  if (!['on-duty', 'off-duty', 'break', 'sick'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status value' });
+  }
+  
+  const staffMember = staffList.find(s => s.id === staffId);
+  if (!staffMember) {
+    console.log(`❌ Staff member not found: ${staffId}`);
+    return res.status(404).json({ error: 'Staff member not found' });
+  }
+  
+  // Update status and timestamp
+  const oldStatus = staffMember.status;
+  staffMember.status = status;
+  staffMember.lastStatusUpdate = new Date().toISOString();
+  staffMember.statusUpdatedBy = req.staff.name; // Track who made the change
+  
+  console.log(`✅ Staff status updated by ${req.staff.position}: ${staffMember.name} (${staffId}) from ${oldStatus} to ${status}`);
+  
+  res.json({ 
+    success: true, 
+    message: 'Status updated successfully',
+    staff: staffMember,
+    updatedBy: req.staff.name
+  });
+});
+
 app.delete('/api/staff/:id', requireAdminAuth, (req, res) => {
-  const index = staff.findIndex(s => s.id === parseInt(req.params.id));
+  const index = staffList.findIndex(s => s.id === parseInt(req.params.id));
   if (index === -1) {
     return res.status(404).json({ error: 'Staff member not found' });
   }
-  staff.splice(index, 1);
+  staffList.splice(index, 1);
   res.status(204).send();
 });
 
@@ -3617,9 +4577,10 @@ app.post('/api/staff-shifts', requireStaffAuth, (req, res) => {
   res.status(201).json(newShift);
 });
 
-app.get('/api/staff/current-status', requireStaffAuth, (req, res) => {
+app.get('/api/staff/current-status', requireManagerAuth, (req, res) => {
+  console.log('📋 Fetching current staff status...');
   const currentTime = new Date();
-  const statusSummary = staff.map(member => {
+  const statusSummary = staffList.map(member => {
     const latestRecord = clockInRecords
       .filter(record => record.personalId === member.personalId)
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
@@ -3631,10 +4592,13 @@ app.get('/api/staff/current-status', requireStaffAuth, (req, res) => {
       position: member.position,
       status: member.status,
       lastAction: latestRecord ? latestRecord.action : 'none',
-      lastActionTime: latestRecord ? latestRecord.timestamp : null
+      lastActionTime: latestRecord ? latestRecord.timestamp : null,
+      lastStatusUpdate: member.lastStatusUpdate || null,
+      statusUpdatedBy: member.statusUpdatedBy || null
     };
   });
   
+  console.log('✅ Current status summary:', statusSummary.length, 'staff members');
   res.json(statusSummary);
 });
 
@@ -4461,6 +5425,492 @@ function getOrdersByHour(orders) {
 }
 
 // =================== END ADMIN GUEST PORTAL API ===================
+
+// ===== DEPARTMENT FINANCIAL MANAGEMENT ROUTES =====
+
+// Get all departments
+app.get('/api/departments', requireManagerAuth, async (req, res) => {
+  console.log('🏢 Fetching departments...');
+  
+  try {
+    let departments;
+    
+    if (dbConnected && Department) {
+      departments = await Department.find().sort({ name: 1 });
+      console.log(`✅ Fetched ${departments.length} departments from MongoDB`);
+    } else {
+      // Fallback default departments
+      departments = [
+        {
+          _id: 'dept001',
+          name: 'Front Office',
+          code: 'FO',
+          description: 'Reception, guest services, and front desk operations',
+          budget: { monthly: 500000, remaining: 450000, spent: 50000 },
+          manager: { name: 'Reception Manager', contact: '+234-xxx-xxxx' },
+          category: 'Operations',
+          status: 'active',
+          creditLimit: 100000,
+          currentDebt: 0,
+          creditRating: 'A'
+        },
+        {
+          _id: 'dept002',
+          name: 'Housekeeping',
+          code: 'HK',
+          description: 'Room cleaning, maintenance, and housekeeping services',
+          budget: { monthly: 400000, remaining: 320000, spent: 80000 },
+          manager: { name: 'Housekeeping Manager', contact: '+234-xxx-xxxx' },
+          category: 'Housekeeping',
+          status: 'active',
+          creditLimit: 80000,
+          currentDebt: 0,
+          creditRating: 'B'
+        },
+        {
+          _id: 'dept003',
+          name: 'Food & Beverage',
+          code: 'FB',
+          description: 'Restaurant, bar, and food service operations',
+          budget: { monthly: 800000, remaining: 600000, spent: 200000 },
+          manager: { name: 'F&B Manager', contact: '+234-xxx-xxxx' },
+          category: 'Food & Beverage',
+          status: 'active',
+          creditLimit: 150000,
+          currentDebt: 25000,
+          creditRating: 'B'
+        },
+        {
+          _id: 'dept004',
+          name: 'Maintenance',
+          code: 'MT',
+          description: 'Building maintenance, repairs, and technical services',
+          budget: { monthly: 300000, remaining: 180000, spent: 120000 },
+          manager: { name: 'Maintenance Manager', contact: '+234-xxx-xxxx' },
+          category: 'Maintenance',
+          status: 'active',
+          creditLimit: 100000,
+          currentDebt: 15000,
+          creditRating: 'C'
+        },
+        {
+          _id: 'dept005',
+          name: 'Administration',
+          code: 'AD',
+          description: 'Human resources, accounting, and general administration',
+          budget: { monthly: 600000, remaining: 550000, spent: 50000 },
+          manager: { name: 'Admin Manager', contact: '+234-xxx-xxxx' },
+          category: 'Administration',
+          status: 'active',
+          creditLimit: 200000,
+          currentDebt: 0,
+          creditRating: 'A'
+        }
+      ];
+      console.log('⚠️ Using fallback departments data');
+    }
+    
+    res.json(departments);
+  } catch (error) {
+    console.error('❌ Error fetching departments:', error);
+    res.status(500).json({ error: 'Failed to fetch departments' });
+  }
+});
+
+// Create new department
+app.post('/api/departments', requireManagerAuth, async (req, res) => {
+  console.log('🏢 Creating new department...');
+  
+  try {
+    const {
+      name,
+      code,
+      description,
+      monthlyBudget,
+      manager,
+      category,
+      creditLimit
+    } = req.body;
+    
+    // Validation
+    if (!name || !code || !category) {
+      return res.status(400).json({ error: 'Name, code, and category are required' });
+    }
+    
+    let newDepartment;
+    
+    if (dbConnected && Department) {
+      // Check if department code already exists
+      const existingDept = await Department.findOne({ code: code.toUpperCase() });
+      if (existingDept) {
+        return res.status(409).json({ error: 'Department code already exists' });
+      }
+      
+      newDepartment = new Department({
+        name,
+        code: code.toUpperCase(),
+        description,
+        budget: {
+          monthly: monthlyBudget || 0,
+          remaining: monthlyBudget || 0,
+          spent: 0
+        },
+        manager,
+        category,
+        creditLimit: creditLimit || 0
+      });
+      
+      await newDepartment.save();
+      console.log(`✅ Department created: ${name} (${code})`);
+    } else {
+      // Create in-memory for fallback
+      newDepartment = {
+        _id: `dept_${Date.now()}`,
+        name,
+        code: code.toUpperCase(),
+        description,
+        budget: {
+          monthly: monthlyBudget || 0,
+          remaining: monthlyBudget || 0,
+          spent: 0
+        },
+        manager,
+        category,
+        status: 'active',
+        creditLimit: creditLimit || 0,
+        currentDebt: 0,
+        creditRating: 'B',
+        createdAt: new Date()
+      };
+      console.log('⚠️ Department created in fallback mode');
+    }
+    
+    res.status(201).json(newDepartment);
+  } catch (error) {
+    console.error('❌ Error creating department:', error);
+    res.status(500).json({ error: 'Failed to create department' });
+  }
+});
+
+// Create department loan
+app.post('/api/departments/loans', requireManagerAuth, async (req, res) => {
+  console.log('🏦 Creating new department loan...');
+  
+  try {
+    const {
+      borrowerDepartmentCode,
+      lenderDepartmentCode,
+      principalAmount,
+      interestRate,
+      termDays,
+      purpose,
+      purposeDescription
+    } = req.body;
+    
+    // Validation
+    if (!borrowerDepartmentCode || !lenderDepartmentCode || !principalAmount || !termDays || !purpose) {
+      return res.status(400).json({ error: 'Missing required loan information' });
+    }
+    
+    if (borrowerDepartmentCode === lenderDepartmentCode) {
+      return res.status(400).json({ error: 'Borrower and lender departments cannot be the same' });
+    }
+    
+    let newLoan;
+    
+    if (dbConnected && DepartmentLoan && Department) {
+      // Verify departments exist
+      const borrowerDept = await Department.findOne({ code: borrowerDepartmentCode.toUpperCase() });
+      const lenderDept = await Department.findOne({ code: lenderDepartmentCode.toUpperCase() });
+      
+      if (!borrowerDept || !lenderDept) {
+        return res.status(404).json({ error: 'One or both departments not found' });
+      }
+      
+      const startDate = new Date();
+      const dueDate = new Date(startDate.getTime() + (termDays * 24 * 60 * 60 * 1000));
+      
+      newLoan = new DepartmentLoan({
+        borrowerDepartment: {
+          code: borrowerDept.code,
+          name: borrowerDept.name
+        },
+        lenderDepartment: {
+          code: lenderDept.code,
+          name: lenderDept.name
+        },
+        principalAmount,
+        interestRate: interestRate || 5, // Default 5% annual
+        termDays,
+        purpose,
+        purposeDescription,
+        startDate,
+        dueDate,
+        status: 'pending'
+      });
+      
+      await newLoan.save();
+      console.log(`✅ Loan created: ${newLoan.loanId}`);
+    } else {
+      // Fallback mode
+      newLoan = {
+        loanId: `LOAN-${borrowerDepartmentCode}-${Date.now().toString().slice(-6)}`,
+        borrowerDepartment: { code: borrowerDepartmentCode },
+        lenderDepartment: { code: lenderDepartmentCode },
+        principalAmount,
+        interestRate: interestRate || 5,
+        termDays,
+        purpose,
+        status: 'pending',
+        createdAt: new Date()
+      };
+      console.log('⚠️ Loan created in fallback mode');
+    }
+    
+    res.status(201).json(newLoan);
+  } catch (error) {
+    console.error('❌ Error creating loan:', error);
+    res.status(500).json({ error: 'Failed to create loan' });
+  }
+});
+
+// Get department loans
+app.get('/api/departments/loans', requireManagerAuth, async (req, res) => {
+  console.log('🏦 Fetching all department loans...');
+  
+  try {
+    const { status, departmentCode } = req.query;
+    
+    let query = {};
+    if (status) {
+      query.status = status;
+    }
+    if (departmentCode) {
+      query.$or = [
+        { 'borrowerDepartment.code': departmentCode.toUpperCase() },
+        { 'lenderDepartment.code': departmentCode.toUpperCase() }
+      ];
+    }
+    
+    let loans;
+    
+    if (dbConnected && DepartmentLoan) {
+      loans = await DepartmentLoan.find(query).sort({ createdAt: -1 });
+    } else {
+      // Fallback empty array
+      loans = [];
+    }
+    
+    res.json(loans);
+  } catch (error) {
+    console.error('❌ Error fetching department loans:', error);
+    res.status(500).json({ error: 'Failed to fetch loans' });
+  }
+});
+
+// Approve loan
+app.put('/api/departments/loans/:loanId/approve', requireManagerAuth, async (req, res) => {
+  console.log(`✅ Approving loan ${req.params.loanId}...`);
+  
+  try {
+    const { staffId, staffName, staffPosition } = req.user;
+    
+    let updatedLoan;
+    
+    if (dbConnected && DepartmentLoan) {
+      updatedLoan = await DepartmentLoan.findOneAndUpdate(
+        { loanId: req.params.loanId },
+        {
+          $set: {
+            status: 'approved',
+            approvedBy: {
+              staffId,
+              name: staffName,
+              position: staffPosition,
+              approvalDate: new Date()
+            }
+          }
+        },
+        { new: true }
+      );
+      
+      if (!updatedLoan) {
+        return res.status(404).json({ error: 'Loan not found' });
+      }
+    } else {
+      // Fallback mode
+      updatedLoan = { 
+        message: 'Loan approved in fallback mode',
+        loanId: req.params.loanId,
+        status: 'approved'
+      };
+    }
+    
+    res.json(updatedLoan);
+  } catch (error) {
+    console.error('❌ Error approving loan:', error);
+    res.status(500).json({ error: 'Failed to approve loan' });
+  }
+});
+
+// Create payment assignment for orders
+app.post('/api/payment-assignments', requireManagerAuth, async (req, res) => {
+  console.log('📋 Creating payment assignment...');
+  
+  try {
+    const {
+      orderType,
+      orderId,
+      originalAmount,
+      assignedDepartments,
+      assignmentReason,
+      dueDate,
+      priority
+    } = req.body;
+    
+    const { staffId, staffName, staffPosition } = req.user;
+    
+    // Validation
+    if (!orderType || !orderId || !originalAmount || !assignedDepartments || assignedDepartments.length === 0) {
+      return res.status(400).json({ error: 'Missing required assignment information' });
+    }
+    
+    // Validate total assigned amount
+    const totalAssigned = assignedDepartments.reduce((sum, dept) => sum + dept.assignedAmount, 0);
+    if (Math.abs(totalAssigned - originalAmount) > 0.01) {
+      return res.status(400).json({ error: 'Total assigned amount must equal original amount' });
+    }
+    
+    let newAssignment;
+    
+    if (dbConnected && PaymentAssignment) {
+      newAssignment = new PaymentAssignment({
+        orderType,
+        orderId,
+        originalAmount,
+        assignedDepartments: assignedDepartments.map(dept => ({
+          ...dept,
+          status: 'pending',
+          dueDate: dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days default
+        })),
+        assignmentReason,
+        priority: priority || 'normal',
+        assignedBy: {
+          staffId,
+          name: staffName,
+          position: staffPosition
+        },
+        dueDate: dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      });
+      
+      await newAssignment.save();
+      console.log(`✅ Payment assignment created: ${newAssignment.assignmentId}`);
+    } else {
+      // Fallback mode
+      newAssignment = {
+        assignmentId: `PA-${Date.now().toString().slice(-6)}`,
+        orderType,
+        orderId,
+        originalAmount,
+        assignedDepartments,
+        status: 'pending',
+        createdAt: new Date()
+      };
+      console.log('⚠️ Payment assignment created in fallback mode');
+    }
+    
+    res.status(201).json(newAssignment);
+  } catch (error) {
+    console.error('❌ Error creating payment assignment:', error);
+    res.status(500).json({ error: 'Failed to create payment assignment' });
+  }
+});
+
+// Get payment assignments
+app.get('/api/payment-assignments', requireManagerAuth, async (req, res) => {
+  console.log('📋 Fetching payment assignments...');
+  
+  try {
+    const { status, departmentCode, orderType, limit = 50 } = req.query;
+    
+    let query = {};
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (departmentCode) {
+      query['assignedDepartments.departmentCode'] = departmentCode.toUpperCase();
+    }
+    
+    if (orderType) {
+      query.orderType = orderType;
+    }
+    
+    let assignments;
+    
+    if (dbConnected && PaymentAssignment) {
+      assignments = await PaymentAssignment.find(query)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
+    } else {
+      // Fallback empty array
+      assignments = [];
+    }
+    
+    res.json(assignments);
+  } catch (error) {
+    console.error('❌ Error fetching payment assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch payment assignments' });
+  }
+});
+
+// Get department transactions
+app.get('/api/departments/transactions', requireManagerAuth, async (req, res) => {
+  console.log('💳 Fetching department transactions...');
+  
+  try {
+    const { departmentCode, startDate, endDate, type, limit = 50 } = req.query;
+    
+    let query = {};
+    
+    if (departmentCode) {
+      query.$or = [
+        { 'fromDepartment.code': departmentCode.toUpperCase() },
+        { 'toDepartment.code': departmentCode.toUpperCase() }
+      ];
+    }
+    
+    if (type) {
+      query.type = type;
+    }
+    
+    if (startDate && endDate) {
+      query.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    let transactions;
+    
+    if (dbConnected && DepartmentTransaction) {
+      transactions = await DepartmentTransaction.find(query)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
+    } else {
+      // Fallback empty array
+      transactions = [];
+    }
+    
+    res.json(transactions);
+  } catch (error) {
+    console.error('❌ Error fetching transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+// ===== END DEPARTMENT FINANCIAL MANAGEMENT ROUTES =====
 
 // Catch-all handler: serve index.html for any non-API routes
 // This ensures that frontend routing works properly

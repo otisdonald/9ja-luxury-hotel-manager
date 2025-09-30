@@ -1,5 +1,8 @@
 // Admin Dashboard JavaScript
 
+// Global chart instances
+let chartInstances = {};
+
 // Theme Management System (copied from main script for consistency)
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -127,60 +130,186 @@ function initializeAdminDashboard() {
             loadHotelSectionsData();
         }
     }, 100);
+    
+    console.log('✅ Admin Dashboard initialized successfully');
+}
+
+// Export functions for header buttons
+function exportDailyReport() {
+    try {
+        console.log('📊 Generating daily report...');
+        
+        // Get current data
+        const reportData = {
+            date: new Date().toISOString().split('T')[0],
+            hotel: '9JA Luxury Hotel',
+            summary: {
+                totalRevenue: document.getElementById('dailyRevenue')?.textContent || '₦0',
+                occupancyRate: document.getElementById('occupancyRate')?.textContent || '0%',
+                activeGuests: document.getElementById('activeGuests')?.textContent || '0',
+                kitchenRevenue: document.getElementById('kitchenRevenue')?.textContent || '₦0'
+            },
+            timestamp: new Date().toLocaleString()
+        };
+        
+        // Create CSV content
+        const csvContent = [
+            'Daily Report - 9JA Luxury Hotel',
+            `Generated: ${reportData.timestamp}`,
+            '',
+            'Summary Metrics:',
+            `Total Revenue,${reportData.summary.totalRevenue}`,
+            `Occupancy Rate,${reportData.summary.occupancyRate}`,
+            `Active Guests,${reportData.summary.activeGuests}`,
+            `Kitchen Revenue,${reportData.summary.kitchenRevenue}`,
+        ].join('\\n');
+        
+        // Download CSV
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `daily-report-${reportData.date}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showNotification('Daily report exported successfully!', 'success');
+    } catch (error) {
+        console.error('Error exporting daily report:', error);
+        showNotification('Error exporting daily report', 'error');
+    }
+}
+
+function exportWeeklyReport() {
+    try {
+        console.log('📊 Generating weekly report...');
+        
+        // Get date range for the week
+        const today = new Date();
+        const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+        const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+        
+        const reportData = {
+            weekStart: weekStart.toISOString().split('T')[0],
+            weekEnd: weekEnd.toISOString().split('T')[0],
+            hotel: '9JA Luxury Hotel',
+            timestamp: new Date().toLocaleString()
+        };
+        
+        // Create CSV content
+        const csvContent = [
+            'Weekly Report - 9JA Luxury Hotel',
+            `Week: ${reportData.weekStart} to ${reportData.weekEnd}`,
+            `Generated: ${reportData.timestamp}`,
+            '',
+            'Weekly Summary:',
+            'Date,Revenue,Occupancy,Guests,Kitchen Revenue',
+            // This would typically include actual weekly data
+            `${reportData.weekStart},Sample Data,Sample Data,Sample Data,Sample Data`,
+            '',
+            'Note: This is a sample weekly report format.',
+            'Full implementation would include actual weekly metrics.'
+        ].join('\\n');
+        
+        // Download CSV
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `weekly-report-${reportData.weekStart}-to-${reportData.weekEnd}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showNotification('Weekly report exported successfully!', 'success');
+    } catch (error) {
+        console.error('Error exporting weekly report:', error);
+        showNotification('Error exporting weekly report', 'error');
+    }
 }
 
 // Tab switching functionality
 function showTab(tabName) {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(tab => {
-        tab.classList.remove('active');
-    });
-
-    // Remove active class from all tab buttons
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.classList.remove('active');
-    });
-
-    // Show selected tab
-    const selectedTab = document.getElementById(`${tabName}-tab`);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-    }
-
-    // Add active class to clicked button
-    event.target.classList.add('active');
-
-    // Load tab-specific data
-    switch(tabName) {
-        case 'dashboard':
-            loadExecutiveDashboard();
-            break;
-        case 'daily-reports':
-            loadDailyReport();
-            break;
-        case 'hotel-sections':
-            loadHotelSectionsData();
-            break;
-        case 'analytics':
-            loadAdvancedAnalytics();
-            break;
-        case 'financial':
-            loadFinancialOverview();
-            break;
-        case 'guest-portal':
-            loadGuestPortalData();
-            loadGuestOrders(); // Load default tab content
-            break;
-        case 'stock-section':
-            // Show the stock section and initialize
-            const stockSection = document.getElementById('stock-section-tab');
-            if (stockSection) {
-                stockSection.style.display = 'block';
+    try {
+        console.log(`🔄 Switching to tab: ${tabName}`);
+        
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabContents.forEach(tab => {
+            tab.classList.remove('active');
+            // Also hide with display none for stock section
+            if (tab.id === 'stock-section-tab') {
+                tab.style.display = 'none';
             }
-            initializeStockManagement();
-            break;
+        });
+
+        // Remove active class from all tab buttons
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab
+        const selectedTab = document.getElementById(`${tabName}-tab`);
+        if (selectedTab) {
+            selectedTab.classList.add('active');
+            // Special handling for stock section
+            if (tabName === 'stock-section') {
+                selectedTab.style.display = 'block';
+            }
+        }
+
+        // Add active class to clicked button
+        if (event && event.target) {
+            event.target.classList.add('active');
+        } else {
+            // Fallback: find the button by tab name
+            const activeBtn = document.querySelector(`button[onclick*="${tabName}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+
+        // Load tab-specific data
+        switch(tabName) {
+            case 'dashboard':
+                loadExecutiveDashboard();
+                break;
+            case 'daily-reports':
+                loadDailyReport();
+                break;
+            case 'hotel-sections':
+                loadHotelSectionsData();
+                break;
+            case 'analytics':
+                loadAdvancedAnalytics();
+                break;
+            case 'financial':
+                loadFinancialOverview();
+                break;
+            case 'guest-portal':
+                loadGuestPortalData();
+                loadGuestOrders(); // Load default tab content
+                break;
+            case 'stock-section':
+                // Initialize stock management with delay
+                setTimeout(() => {
+                    if (typeof initializeStockManagement === 'function') {
+                        initializeStockManagement();
+                    } else {
+                        console.warn('initializeStockManagement function not found');
+                    }
+                }, 100);
+                break;
+            default:
+                console.warn(`Unknown tab: ${tabName}`);
+                loadExecutiveDashboard();
+        }
+        
+        console.log(`✅ Successfully switched to tab: ${tabName}`);
+    } catch (error) {
+        console.error(`❌ Error switching to tab ${tabName}:`, error);
+        // Fallback to dashboard
+        showTab('dashboard');
     }
 }
 
@@ -697,21 +826,25 @@ function updateEfficiencyBar(id, percentage) {
     }
 }
 
-// Report generation functions
-function exportDailyReport() {
-    window.open('/api/admin/daily-report', '_blank');
-}
-
-function exportWeeklyReport() {
-    window.open('/api/admin/weekly-report', '_blank');
-}
-
+// Export Analytics function
 function exportAnalytics() {
-    window.open('/api/admin/analytics-export', '_blank');
+    try {
+        console.log('📊 Generating analytics report...');
+        showNotification('Analytics export feature coming soon!', 'info');
+    } catch (error) {
+        console.error('Error exporting analytics:', error);
+        showNotification('Error exporting analytics', 'error');
+    }
 }
 
 function exportFinancialReport() {
-    window.open('/api/admin/financial-report', '_blank');
+    try {
+        console.log('💰 Generating financial report...');
+        showNotification('Financial report export feature coming soon!', 'info');
+    } catch (error) {
+        console.error('Error exporting financial report:', error);
+        showNotification('Error exporting financial report', 'error');
+    }
 }
 
 function generatePDFReport() {
@@ -1313,9 +1446,6 @@ async function createCharts() {
     }
 }
 
-// Global chart instances to manage destruction
-let chartInstances = {};
-
 // Create room status chart
 function createRoomStatusChart(rooms) {
     const canvas = document.getElementById('roomStatusChart');
@@ -1451,18 +1581,81 @@ function formatTimeAgo(date) {
 
 // Admin actions
 function refreshAllData() {
-    loadAllReports();
+    console.log('🔄 Refreshing all admin data...');
     
     // Show loading indicator
     const refreshBtn = document.querySelector('button[onclick="refreshAllData()"]');
-    const originalText = refreshBtn.innerHTML;
-    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-    refreshBtn.disabled = true;
-    
-    setTimeout(() => {
-        refreshBtn.innerHTML = originalText;
-        refreshBtn.disabled = false;
-    }, 2000);
+    if (refreshBtn) {
+        const originalText = refreshBtn.innerHTML;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        refreshBtn.disabled = true;
+        
+        // Get the currently active tab
+        const activeTab = document.querySelector('.tab-btn.active');
+        let tabName = 'dashboard';
+        
+        if (activeTab) {
+            // Extract tab name from onclick attribute
+            const onclickText = activeTab.getAttribute('onclick');
+            const match = onclickText.match(/showTab\\('([^']+)'\\)/);
+            if (match) {
+                tabName = match[1];
+            }
+        }
+        
+        console.log(`🎯 Refreshing data for active tab: ${tabName}`);
+        
+        // Refresh data based on active tab
+        Promise.resolve().then(async () => {
+            try {
+                switch(tabName) {
+                    case 'dashboard':
+                        await loadExecutiveDashboard();
+                        break;
+                    case 'daily-reports':
+                        await loadDailyReport();
+                        break;
+                    case 'hotel-sections':
+                        await loadHotelSectionsData();
+                        break;
+                    case 'analytics':
+                        await loadAdvancedAnalytics();
+                        break;
+                    case 'financial':
+                        await loadFinancialOverview();
+                        break;
+                    case 'guest-portal':
+                        await loadGuestPortalData();
+                        await loadGuestOrders();
+                        break;
+                    case 'stock-section':
+                        if (typeof initializeStockManagement === 'function') {
+                            await initializeStockManagement();
+                        }
+                        break;
+                    default:
+                        await loadAllReports();
+                }
+                
+                showNotification('All data refreshed successfully!', 'success');
+                console.log('✅ Admin data refresh completed');
+            } catch (error) {
+                console.error('❌ Error refreshing data:', error);
+                showNotification('Error refreshing data. Please try again.', 'error');
+            }
+        }).finally(() => {
+            // Reset button after delay
+            setTimeout(() => {
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = originalText;
+                    refreshBtn.disabled = false;
+                }
+            }, 1000);
+        });
+    } else {
+        // Fallback if button not found
+        loadAllReports();
+    }
 }
 
 function exportReport() {
@@ -1958,12 +2151,6 @@ function backupData() {
 }
 
 // Enhanced refresh function
-function refreshAllData() {
-    console.log('Refreshing all admin data...');
-    loadAllReports();
-    alert('All data refreshed successfully!');
-}
-
 // Update the main loadAllReports to include new functions
 const originalLoadAllReports = loadAllReports;
 window.loadAllReports = async function() {
@@ -2383,6 +2570,99 @@ function refreshGuestData() {
 
 function exportGuestReport() {
     alert('Exporting guest portal report...\nThis would generate and download a comprehensive guest activity report.');
+}
+
+// Notification function for admin dashboard
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+    
+    console.log(`${type.toUpperCase()}: ${message}`);
+}
+
+// Modal functions for admin dashboard
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.classList.add('modal-open');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+}
+
+// Notification function for admin dashboard
+function showNotification(message, type = 'info') {
+    console.log(`${type.toUpperCase()}: ${message}`);
+    
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Style the toast
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 10000;
+        max-width: 400px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 300);
+    }, 5000);
 }
 
 // ========================================
