@@ -144,3 +144,66 @@ The admin dashboard now provides a comprehensive, professional-grade management 
 - **Modern UI**: Professional design with smooth interactions
 
 All functions now work seamlessly across all dashboard categories! 🎉
+
+---
+
+## 🔌 New Wiring & Endpoint Map
+
+These are the key frontend → backend mappings updated in `public/admin-script.js`:
+
+- Guest Portal
+  - Orders list: GET `/api/staff/guest-orders`
+  - Update order status: PATCH `/api/staff/guest-orders/:orderId`
+  - Visitors list: GET `/api/admin/visitors`
+  - Approve visitor: PUT `/api/admin/visitors/:id/approve`
+  - Reject visitor: PUT `/api/admin/visitors/:id/reject`
+
+- Stock & Suppliers
+  - List items: GET `/api/stock/items`
+  - Create item: POST `/api/stock/items`
+  - Update item: PUT `/api/stock/items/:id`
+  - Delete item: DELETE `/api/stock/items/:id`
+  - Overview: GET `/api/stock/overview`
+  - Movements: GET `/api/stock/movements`
+  - Alerts: GET `/api/stock/alerts`
+  - Suppliers: GET/POST `/api/suppliers`
+  - Purchase orders: GET/POST `/api/purchase-orders`
+  - Mark PO received: PUT `/api/purchase-orders/:id/receive`
+
+- Staff/Auth
+  - Staff login: POST `/api/staff/authenticate`
+  - Token verify: GET `/api/staff/verify`
+
+## 🧭 Quick Smoke-Test Checklist
+
+1) Start server
+	- If port is busy (EADDRINUSE on 3001/3000), stop other instances or switch PORT.
+
+2) Staff login
+	- Open `staff-login.html`, authenticate with a test staff (see server log staff list), then navigate to `admin.html`.
+
+3) Dashboard tabs
+	- Dashboard: Metrics render, charts load, no console errors
+	- Daily Reports: Lists populate, export works
+	- Hotel Sections: Modal opens with redirect actions
+	- Analytics: KPIs render, charts load
+	- Financial: Payment metrics render
+
+4) Guest Portal
+	- Orders: List renders (may be empty without seed data); status buttons call PATCH
+	- Visitors: Approve/Reject triggers PUT endpoints and list refreshes
+	- Analytics: Values compute from current orders/visitors
+
+5) Stock
+	- Inventory: Edit/Delete actions work; Adjust Stock modal posts and refreshes
+	- Suppliers: Create supplier populates dropdowns
+	- Purchase Orders: Create PO succeeds; Mark Delivered updates PO and stock
+
+6) System
+	- Refresh All Data button reloads the active tab without errors
+
+Troubleshooting
+- If guest orders are empty, seed or place orders via guest flow; UI still behaves and shows empty states.
+- For port conflicts on Windows:
+  - Find PID: `netstat -ano | findstr :3000`
+  - Kill: `taskkill /PID <PID> /F`

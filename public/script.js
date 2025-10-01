@@ -3073,7 +3073,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         method: 'PUT',
                         headers: { 
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            'Authorization': `Bearer ${localStorage.getItem('staffToken')}`
                         },
                         body: JSON.stringify({ status: newStatus })
                     });
@@ -3090,7 +3090,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         const error = await response.json();
                         console.error('❌ Error response:', error);
-                        showAlert(error.error || 'Error updating staff status', 'error');
+                        
+                        // Handle authentication/authorization errors
+                        if (response.status === 401) {
+                            showAlert('Please log in to update staff status', 'error');
+                        } else if (response.status === 403) {
+                            showAlert('Manager access required to update staff status. Please log in with Manager (PIN: 2001) or Director (PIN: 1001) credentials.', 'error');
+                        } else {
+                            showAlert(error.error || 'Error updating staff status', 'error');
+                        }
                     }
                 } catch (error) {
                     console.error('❌ Network error updating staff status:', error);
@@ -3650,7 +3658,7 @@ function displayStaff(staff) {
             <p><strong>Email:</strong> ${member.email}</p>
             <p><strong>Rate:</strong> ₦${member.hourlyRate}/hour</p>
             <div class="staff-actions">
-                <button class="btn btn-sm btn-info" onclick="updateStaffStatus('${member.id}')" title="Update Status">
+                <button class="btn btn-sm btn-info" onclick="console.log('🔘 Status button clicked for ID:', '${member.id}'); updateStaffStatus('${member.id}')" title="Update Status">
                     <i class="fas fa-sync"></i> Status
                 </button>
                 ${isDirector ? `
@@ -5935,6 +5943,36 @@ async function updateStaffStatus(staffId) {
         showAlert('Error: Status update form not available', 'error');
     }
 }
+
+// Ensure function is globally accessible
+window.updateStaffStatus = updateStaffStatus;
+console.log('🌐 updateStaffStatus function attached to window');
+
+// Test function for staff status debugging
+window.testStaffStatus = function() {
+    console.log('🧪 Staff Status Test Function Called!');
+    console.log('📋 Functions available:', {
+        updateStaffStatus: typeof window.updateStaffStatus,
+        showAlert: typeof showAlert,
+        closeModal: typeof closeModal
+    });
+    console.log('📋 Staff data available:', !!window.staff);
+    console.log('🔑 Staff token available:', !!localStorage.getItem('staffToken'));
+    
+    if (window.staff && window.staff.length > 0) {
+        console.log('👥 Available staff:', window.staff.map(s => `${s.id}: ${s.name} (${s.status})`));
+        // Test with first staff member
+        const firstStaff = window.staff[0];
+        console.log(`🧪 Testing with staff member: ${firstStaff.name} (ID: ${firstStaff.id})`);
+        updateStaffStatus(firstStaff.id);
+    } else {
+        console.log('❌ No staff data available for testing');
+    }
+    
+    alert('Staff status test completed! Check console for details.');
+};
+
+console.log('🌐 testStaffStatus function attached to window');
 
 // NEW FORM HANDLERS
 

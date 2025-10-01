@@ -79,6 +79,21 @@ async function fetchWithAuth(url, options = {}) {
     }
 }
 
+// Helper: fetch JSON with auth and safe fallback
+async function fetchJson(url, fallback = []) {
+    try {
+        const res = await fetchWithAuth(url);
+        if (!res || !res.ok) return fallback;
+        try {
+            return await res.json();
+        } catch (e) {
+            return fallback;
+        }
+    } catch (e) {
+        return fallback;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initTheme(); // Initialize theme first
     checkStaffAuthentication();
@@ -162,7 +177,7 @@ function exportDailyReport() {
             `Occupancy Rate,${reportData.summary.occupancyRate}`,
             `Active Guests,${reportData.summary.activeGuests}`,
             `Kitchen Revenue,${reportData.summary.kitchenRevenue}`,
-        ].join('\\n');
+        ].join('\n');
         
         // Download CSV
         const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -209,7 +224,7 @@ function exportWeeklyReport() {
             '',
             'Note: This is a sample weekly report format.',
             'Full implementation would include actual weekly metrics.'
-        ].join('\\n');
+        ].join('\n');
         
         // Download CSV
         const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -1290,49 +1305,86 @@ async function loadKitchenReport() {
 // Load recent activity
 async function loadRecentActivity() {
     try {
-        const [bookings, orders] = await Promise.all([
-            fetchWithAuth('/api/bookings').then(r => r.json()),
-            fetchWithAuth('/api/kitchen/orders').then(r => r.json())
+        const [bookings, orders, clockRecords, payments] = await Promise.all([
+            fetchWithAuth('/api/bookings').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/kitchen/orders').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/clock-records').then(r => r.json()).catch(() => []),
+            fetchWithAuth('/api/payments').then(r => r.json()).catch(() => [])
         ]);
 
+        // Ensure we have arrays to work with
+        const safeBookings = Array.isArray(bookings) ? bookings : [];
+        const safeOrders = Array.isArray(orders) ? orders : [];
+        const safeClockRecords = Array.isArray(clockRecords) ? clockRecords : [];
+        const safePayments = Array.isArray(payments) ? payments : [];
+
         const activities = [];
-        
-        // Add recent bookings
-        bookings.slice(-5).forEach(booking => {
+
+        // Add booking activities
+        safeBookings.slice(-10).forEach(booking => {
             activities.push({
                 type: 'booking',
-                title: `New booking for Room ${booking.roomId}`,
-                time: new Date(booking.createdAt),
-                icon: 'booking'
+                icon: 'fa-bed',
+                message: `New booking created for Room ${booking.roomId}`,
+                time: new Date(booking.createdAt || Date.now()),
+                priority: 'normal'
             });
         });
 
-        // Add recent orders
-        orders.slice(-5).forEach(order => {
+        // Add order activities
+        safeOrders.slice(-10).forEach(order => {
             activities.push({
                 type: 'order',
-                title: `Kitchen order #${order.id} - ${order.status}`,
-                time: new Date(order.createdAt),
-                icon: 'order'
+                icon: 'fa-utensils',
+                message: `Kitchen order #${order.id} - ${order.status}`,
+                time: new Date(order.createdAt || Date.now()),
+                priority: order.status === 'pending' ? 'high' : 'normal'
             });
         });
 
-        // Sort by time (most recent first)
+        // Add staff activities
+        safeClockRecords.slice(-10).forEach(record => {
+            activities.push({
+                type: 'staff',
+                icon: 'fa-clock',
+                message: `${record.personalId} ${record.action.replace('-', ' ')}`,
+                time: new Date(record.timestamp || Date.now()),
+                priority: 'low'
+            });
+        });
+
+        // Add payment activities
+        safePayments.slice(-10).forEach(payment => {
+            activities.push({
+                type: 'payment',
+                icon: 'fa-credit-card',
+                message: `Payment of ₦${payment.amount ? payment.amount.toLocaleString() : '0'} received`,
+                time: new Date(payment.date || Date.now()),
+                priority: 'normal'
+            });
+        });
+
+        // Sort by time and take latest 20
         activities.sort((a, b) => b.time - a.time);
+        const recentActivities = activities.slice(0, 20);
 
-        const activitiesHtml = activities.slice(0, 10).map(activity => `
-            <div class="activity-item">
-                <div class="activity-icon ${activity.icon}">
-                    <i class="fas fa-${activity.icon === 'booking' ? 'calendar-plus' : 'utensils'}"></i>
+        let activityHTML = '';
+        recentActivities.forEach(activity => {
+            const timeStr = activity.time.toLocaleTimeString();
+            activityHTML += `
+                <div class="activity-item ${activity.type} ${activity.priority}">
+                    <div class="activity-icon">
+                        <i class="fas ${activity.icon}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <span class="activity-message">${activity.message}</span>
+                        <span class="activity-time">${timeStr}</span>
+                    </div>
                 </div>
-                <div class="activity-details">
-                    <div class="activity-title">${activity.title}</div>
-                    <div class="activity-time">${formatTimeAgo(activity.time)}</div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        });
 
-        document.getElementById('recentActivity').innerHTML = activitiesHtml || '<p>No recent activity</p>';
+        updateElementHTML('recentActivity', activityHTML);
 
     } catch (error) {
         console.error('Error loading recent activity:', error);
@@ -1869,132 +1921,21 @@ async function loadHousekeepingReport() {
 
         let breakdownHTML = '<h4>Task Breakdown</h4>';
         Object.entries(taskTypes).forEach(([type, data]) => {
-            const completion = ((data.completed / data.total) * 100).toFixed(1);
-            breakdownHTML += `
-                <div class="task-type">
-                    <span class="type-name">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                    <span class="type-progress">${data.completed}/${data.total} (${completion}%)</span>
-                </div>
-            `;
+            const completion = data.total > 0 ? ((data.completed / data.total) * 100).toFixed(1) : '0.0';
+            breakdownHTML += '' +
+                '<div class="task-type">' +
+                    '<span class="task-name">' + (type || '-') + '</span>' +
+                    '<span class="task-stats">' + data.completed + '/' + data.total + ' completed</span>' +
+                    '<div class="task-progress">' +
+                        '<div class="task-progress-bar" style="width: ' + completion + '%"></div>' +
+                    '</div>' +
+                    '<span class="task-completion">' + completion + '%</span>' +
+                '</div>';
         });
-
         updateElementHTML('housekeepingBreakdown', breakdownHTML);
 
     } catch (error) {
         console.error('Error loading housekeeping report:', error);
-    }
-}
-
-// Load performance metrics
-async function loadPerformanceMetrics() {
-    try {
-        // Mock performance data - in production, these would come from system monitoring
-        const uptime = Math.floor(Math.random() * 24 * 60); // Random uptime in minutes
-        const uptimeHours = Math.floor(uptime / 60);
-        const uptimeMinutes = uptime % 60;
-
-        updateElementText('serverUptime', `${uptimeHours}h ${uptimeMinutes}m`);
-        updateElementText('dbStatus', 'Connected');
-        updateElementText('activeSessions', Math.floor(Math.random() * 50) + 10);
-        updateElementText('apiCalls', Math.floor(Math.random() * 200) + 50);
-
-        // Update status indicators
-        const dbStatusElement = document.getElementById('dbStatus');
-        if (dbStatusElement) {
-            dbStatusElement.className = 'metric-value status connected';
-        }
-
-    } catch (error) {
-        console.error('Error loading performance metrics:', error);
-    }
-}
-
-// Enhanced activity loading with real-time data
-async function loadRecentActivity() {
-    try {
-        const [bookings, orders, clockRecords, payments] = await Promise.all([
-            fetchWithAuth('/api/bookings').then(r => r.json()).catch(() => []),
-            fetchWithAuth('/api/kitchen/orders').then(r => r.json()).catch(() => []),
-            fetchWithAuth('/api/clock-records').then(r => r.json()).catch(() => []),
-            fetchWithAuth('/api/payments').then(r => r.json()).catch(() => [])
-        ]);
-
-        // Ensure we have arrays to work with
-        const safeBookings = Array.isArray(bookings) ? bookings : [];
-        const safeOrders = Array.isArray(orders) ? orders : [];
-        const safeClockRecords = Array.isArray(clockRecords) ? clockRecords : [];
-        const safePayments = Array.isArray(payments) ? payments : [];
-
-        const activities = [];
-
-        // Add booking activities
-        safeBookings.slice(-10).forEach(booking => {
-            activities.push({
-                type: 'booking',
-                icon: 'fa-bed',
-                message: `New booking created for Room ${booking.roomId}`,
-                time: new Date(booking.createdAt || Date.now()),
-                priority: 'normal'
-            });
-        });
-
-        // Add order activities
-        safeOrders.slice(-10).forEach(order => {
-            activities.push({
-                type: 'order',
-                icon: 'fa-utensils',
-                message: `Kitchen order #${order.id} - ${order.status}`,
-                time: new Date(order.createdAt || Date.now()),
-                priority: order.status === 'pending' ? 'high' : 'normal'
-            });
-        });
-
-        // Add staff activities
-        safeClockRecords.slice(-10).forEach(record => {
-            activities.push({
-                type: 'staff',
-                icon: 'fa-clock',
-                message: `${record.personalId} ${record.action.replace('-', ' ')}`,
-                time: new Date(record.timestamp || Date.now()),
-                priority: 'low'
-            });
-        });
-
-        // Add payment activities
-        safePayments.slice(-10).forEach(payment => {
-            activities.push({
-                type: 'payment',
-                icon: 'fa-credit-card',
-                message: `Payment of ₦${payment.amount ? payment.amount.toLocaleString() : '0'} received`,
-                time: new Date(payment.date || Date.now()),
-                priority: 'normal'
-            });
-        });
-
-        // Sort by time and take latest 20
-        activities.sort((a, b) => b.time - a.time);
-        const recentActivities = activities.slice(0, 20);
-
-        let activityHTML = '';
-        recentActivities.forEach(activity => {
-            const timeStr = activity.time.toLocaleTimeString();
-            activityHTML += `
-                <div class="activity-item ${activity.type} ${activity.priority}">
-                    <div class="activity-icon">
-                        <i class="fas ${activity.icon}"></i>
-                    </div>
-                    <div class="activity-content">
-                        <span class="activity-message">${activity.message}</span>
-                        <span class="activity-time">${timeStr}</span>
-                    </div>
-                </div>
-            `;
-        });
-
-        updateElementHTML('recentActivity', activityHTML);
-
-    } catch (error) {
-        console.error('Error loading recent activity:', error);
     }
 }
 
@@ -2008,7 +1949,7 @@ async function loadSystemAlerts() {
             fetchWithAuth('/api/police-reports').then(r => r.json())
         ]);
 
-        const alerts = [];
+    const alerts = [];
 
         // Low stock alerts
         const lowStockItems = supplies.filter(s => s.stock <= s.minimum);
@@ -2016,7 +1957,7 @@ async function loadSystemAlerts() {
             alerts.push({
                 type: 'warning',
                 icon: 'fa-exclamation-triangle',
-                message: `Low stock: ${item.name} (${item.stock} remaining)`,
+                message: 'Low stock: ' + item.name + ' (' + item.stock + ' remaining)',
                 time: new Date(),
                 priority: 'medium'
             });
@@ -2030,7 +1971,7 @@ async function loadSystemAlerts() {
             alerts.push({
                 type: 'danger',
                 icon: 'fa-tools',
-                message: `Urgent maintenance: ${request.category} - ${request.description.substring(0, 50)}...`,
+                message: 'Urgent maintenance: ' + request.category + ' - ' + (request.description || '').substring(0, 50) + '...',
                 time: new Date(request.createdAt),
                 priority: 'high'
             });
@@ -2042,7 +1983,7 @@ async function loadSystemAlerts() {
             alerts.push({
                 type: 'warning',
                 icon: 'fa-clock',
-                message: `${pendingOrders.length} orders pending in kitchen`,
+                message: pendingOrders.length + ' orders pending in kitchen',
                 time: new Date(),
                 priority: 'medium'
             });
@@ -2056,7 +1997,7 @@ async function loadSystemAlerts() {
             alerts.push({
                 type: 'danger',
                 icon: 'fa-shield-alt',
-                message: `Critical security incident: ${report.incidentType}`,
+                message: 'Critical security incident: ' + report.incidentType,
                 time: new Date(report.createdAt),
                 priority: 'critical'
             });
@@ -2071,17 +2012,17 @@ async function loadSystemAlerts() {
         let alertsHTML = '';
         alerts.slice(0, 15).forEach(alert => {
             const timeStr = alert.time.toLocaleTimeString();
-            alertsHTML += `
-                <div class="alert-item ${alert.type} ${alert.priority}">
-                    <div class="alert-icon">
-                        <i class="fas ${alert.icon}"></i>
-                    </div>
-                    <div class="alert-content">
-                        <span class="alert-message">${alert.message}</span>
-                        <span class="alert-time">${timeStr}</span>
-                    </div>
-                </div>
-            `;
+            alertsHTML += (
+                '<div class="alert-item ' + alert.type + ' ' + alert.priority + '">' +
+                    '<div class="alert-icon">' +
+                        '<i class="fas ' + alert.icon + '"></i>' +
+                    '</div>' +
+                    '<div class="alert-content">' +
+                        '<span class="alert-message">' + alert.message + '</span>' +
+                        '<span class="alert-time">' + timeStr + '</span>' +
+                    '</div>' +
+                '</div>'
+            );
         });
 
         updateElementHTML('alertsList', alertsHTML || '<p>No active alerts</p>');
@@ -2195,8 +2136,10 @@ function showGuestPortalTab(tabName) {
         selectedTab.classList.add('active');
     }
 
-    // Add active class to clicked button
-    event.target.classList.add('active');
+    // Add active class to clicked button (guard for undefined event)
+    if (typeof event !== 'undefined' && event.target) {
+        event.target.classList.add('active');
+    }
 
     // Load tab-specific data
     switch(tabName) {
@@ -2214,10 +2157,14 @@ function showGuestPortalTab(tabName) {
 
 async function loadGuestPortalData() {
     try {
-        const [guestOrders, visitors] = await Promise.all([
-            fetchWithAuth('/api/admin/guest-orders'),
+        const [guestOrdersRes, visitorsRes] = await Promise.all([
+            // Use staff endpoints for guest orders management
+            fetchWithAuth('/api/staff/guest-orders'),
             fetchWithAuth('/api/admin/visitors')
         ]);
+
+        const guestOrders = guestOrdersRes && guestOrdersRes.ok ? await guestOrdersRes.json() : [];
+        const visitors = visitorsRes && visitorsRes.ok ? await visitorsRes.json() : [];
 
         // Update overview cards
         const activeGuests = new Set(guestOrders.map(order => order.customerId)).size;
@@ -2237,9 +2184,21 @@ async function loadGuestPortalData() {
     }
 }
 
+// Provide a safe stub to avoid reference error when called in loadAllReports
+async function loadPerformanceMetrics() {
+    try {
+        // Placeholder: could fetch additional KPIs here in the future
+        return true;
+    } catch (e) {
+        console.warn('loadPerformanceMetrics placeholder failed:', e);
+        return false;
+    }
+}
+
 async function loadGuestOrders() {
     try {
-        const orders = await fetchWithAuth('/api/admin/guest-orders');
+        const res = await fetchWithAuth('/api/staff/guest-orders');
+        const orders = res && res.ok ? await res.json() : [];
         const ordersList = document.getElementById('guestOrdersList');
         
         if (!ordersList) return;
@@ -2249,60 +2208,41 @@ async function loadGuestOrders() {
             return;
         }
 
-        ordersList.innerHTML = orders.map(order => `
-            <div class="guest-order-item">
-                <div class="order-header">
-                    <div class="order-id">Order #${order._id.slice(-6).toUpperCase()}</div>
-                    <div class="order-status status-${order.status}">${order.status}</div>
-                </div>
-                <div class="order-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Customer</span>
-                        <span class="detail-value">${order.customerId}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Room</span>
-                        <span class="detail-value">${order.roomNumber || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Type</span>
-                        <span class="detail-value">${order.orderType}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Total</span>
-                        <span class="detail-value">₦${(order.totalAmount || 0).toLocaleString()}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Date</span>
-                        <span class="detail-value">${new Date(order.createdAt).toLocaleString()}</span>
-                    </div>
-                </div>
-                <div class="order-items">
-                    <strong>Items:</strong> ${order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}
-                </div>
-                ${order.notes ? `<div class="order-notes"><strong>Notes:</strong> ${order.notes}</div>` : ''}
-                <div class="order-actions">
-                    ${order.status === 'pending' ? `
-                        <button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order._id}', 'preparing')">
-                            Start Preparing
-                        </button>
-                    ` : ''}
-                    ${order.status === 'preparing' ? `
-                        <button class="btn btn-success btn-sm" onclick="updateOrderStatus('${order._id}', 'ready')">
-                            Mark Ready
-                        </button>
-                    ` : ''}
-                    ${order.status === 'ready' ? `
-                        <button class="btn btn-info btn-sm" onclick="updateOrderStatus('${order._id}', 'delivered')">
-                            Mark Delivered
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-secondary btn-sm" onclick="viewOrderDetails('${order._id}')">
-                        View Details
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        ordersList.innerHTML = orders.map(order => {
+            const orderIdShort = (order._id || '').toString().slice(-6).toUpperCase();
+            const itemsText = (order.items || []).map(item => `${item.name} (x${item.quantity})`).join(', ');
+            const notesHtml = order.notes ? '<div class="order-notes"><strong>Notes:</strong> ' + order.notes + '</div>' : '';
+            const actions = [];
+            if (order.status === 'pending') {
+                actions.push('<button class="btn btn-primary btn-sm" onclick="updateOrderStatus(\'' + order._id + '\', \'preparing\')">Start Preparing</button>');
+            }
+            if (order.status === 'preparing') {
+                actions.push('<button class="btn btn-success btn-sm" onclick="updateOrderStatus(\'' + order._id + '\', \'ready\')">Mark Ready</button>');
+            }
+            if (order.status === 'ready') {
+                actions.push('<button class="btn btn-info btn-sm" onclick="updateOrderStatus(\'' + order._id + '\', \'delivered\')">Mark Delivered</button>');
+            }
+            actions.push('<button class="btn btn-secondary btn-sm" onclick="viewOrderDetails(\'' + order._id + '\')">View Details</button>');
+
+            return (
+                '<div class="guest-order-item">' +
+                    '<div class="order-header">' +
+                        '<div class="order-id">Order #' + orderIdShort + '</div>' +
+                        '<div class="order-status status-' + order.status + '">' + order.status + '</div>' +
+                    '</div>' +
+                    '<div class="order-details">' +
+                        '<div class="detail-item"><span class="detail-label">Customer</span><span class="detail-value">' + (order.customerId || '') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Room</span><span class="detail-value">' + (order.roomNumber || 'N/A') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">' + (order.orderType || '-') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Total</span><span class="detail-value">₦' + ((order.totalAmount || 0).toLocaleString()) + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">' + (order.createdAt ? new Date(order.createdAt).toLocaleString() : '-') + '</span></div>' +
+                    '</div>' +
+                    '<div class="order-items"><strong>Items:</strong> ' + itemsText + '</div>' +
+                    notesHtml +
+                    '<div class="order-actions">' + actions.join('') + '</div>' +
+                '</div>'
+            );
+        }).join('');
 
     } catch (error) {
         console.error('Error loading guest orders:', error);
@@ -2312,7 +2252,8 @@ async function loadGuestOrders() {
 
 async function loadVisitors() {
     try {
-        const visitors = await fetchWithAuth('/api/admin/visitors');
+        const res = await fetchWithAuth('/api/admin/visitors');
+        const visitors = res && res.ok ? await res.json() : [];
         const visitorsList = document.getElementById('visitorsList');
         
         if (!visitorsList) return;
@@ -2322,54 +2263,37 @@ async function loadVisitors() {
             return;
         }
 
-        visitorsList.innerHTML = visitors.map(visitor => `
-            <div class="visitor-item">
-                <div class="visitor-header">
-                    <div class="visitor-name">${visitor.visitorName}</div>
-                    <div class="visitor-status status-${visitor.status}">${visitor.status}</div>
-                </div>
-                <div class="visitor-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Guest</span>
-                        <span class="detail-value">${visitor.customerId}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Phone</span>
-                        <span class="detail-value">${visitor.visitorPhone || 'Not provided'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Purpose</span>
-                        <span class="detail-value">${visitor.visitPurpose}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Expected Time</span>
-                        <span class="detail-value">${new Date(visitor.expectedTime).toLocaleString()}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Duration</span>
-                        <span class="detail-value">${visitor.expectedDuration} minutes</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Requested</span>
-                        <span class="detail-value">${new Date(visitor.createdAt).toLocaleString()}</span>
-                    </div>
-                </div>
-                ${visitor.securityNotes ? `<div class="visitor-notes"><strong>Security Notes:</strong> ${visitor.securityNotes}</div>` : ''}
-                <div class="visitor-actions">
-                    ${visitor.status === 'pending' ? `
-                        <button class="btn btn-success btn-sm" onclick="approveVisitor('${visitor._id}')">
-                            Approve
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="rejectVisitor('${visitor._id}')">
-                            Reject
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-secondary btn-sm" onclick="viewVisitorDetails('${visitor._id}')">
-                        View Details
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        visitorsList.innerHTML = visitors.map(visitor => {
+            const notesHtml = visitor.securityNotes ? '<div class="visitor-notes"><strong>Security Notes:</strong> ' + visitor.securityNotes + '</div>' : '';
+            const actions = [];
+            if (visitor.status === 'pending') {
+                actions.push('<button class="btn btn-success btn-sm" onclick="approveVisitor(\'' + visitor._id + '\')">Approve</button>');
+                actions.push('<button class="btn btn-danger btn-sm" onclick="rejectVisitor(\'' + visitor._id + '\')">Reject</button>');
+            }
+            actions.push('<button class="btn btn-secondary btn-sm" onclick="viewVisitorDetails(\'' + visitor._id + '\')">View Details</button>');
+
+            const expectedDateStr = visitor.expectedDate ? new Date(visitor.expectedDate).toLocaleDateString() : '-';
+            const expectedTimeStr = visitor.expectedTime || '';
+
+            return (
+                '<div class="visitor-item">' +
+                    '<div class="visitor-header">' +
+                        '<div class="visitor-name">' + (visitor.visitorName || '-') + '</div>' +
+                        '<div class="visitor-status status-' + visitor.status + '">' + visitor.status + '</div>' +
+                    '</div>' +
+                    '<div class="visitor-details">' +
+                        '<div class="detail-item"><span class="detail-label">Guest</span><span class="detail-value">' + (visitor.customerId || '') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Phone</span><span class="detail-value">' + (visitor.visitorPhone || 'Not provided') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Purpose</span><span class="detail-value">' + (visitor.visitPurpose || '-') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Expected Time</span><span class="detail-value">' + expectedDateStr + ' ' + expectedTimeStr + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Duration</span><span class="detail-value">' + (visitor.expectedDuration || '-') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">Requested</span><span class="detail-value">' + (visitor.createdAt ? new Date(visitor.createdAt).toLocaleString() : '-') + '</span></div>' +
+                    '</div>' +
+                    notesHtml +
+                    '<div class="visitor-actions">' + actions.join('') + '</div>' +
+                '</div>'
+            );
+        }).join('');
 
     } catch (error) {
         console.error('Error loading visitors:', error);
@@ -2379,10 +2303,13 @@ async function loadVisitors() {
 
 async function loadGuestAnalytics() {
     try {
-        const [orders, visitors] = await Promise.all([
-            fetchWithAuth('/api/admin/guest-orders'),
+        const [ordersRes, visitorsRes] = await Promise.all([
+            fetchWithAuth('/api/staff/guest-orders'),
             fetchWithAuth('/api/admin/visitors')
         ]);
+
+        const orders = ordersRes && ordersRes.ok ? await ordersRes.json() : [];
+        const visitors = visitorsRes && visitorsRes.ok ? await visitorsRes.json() : [];
 
         // Calculate order analytics
         const completedOrders = orders.filter(order => order.status === 'delivered');
@@ -2435,8 +2362,8 @@ async function loadGuestAnalytics() {
 
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        await fetchWithAuth(`/api/admin/guest-orders/${orderId}/status`, {
-            method: 'PUT',
+        await fetchWithAuth(`/api/staff/guest-orders/${orderId}`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -3452,3 +3379,124 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ========================================
+// EXTRA ADMIN ACTION HANDLERS (wired from HTML)
+// ========================================
+
+// Edit stock item (opens pre-filled Add Item modal and updates on submit)
+async function editStockItem(itemId) {
+    try {
+        const item = stockItems.find(i => i._id === itemId);
+        if (!item) {
+            showNotification('Stock item not found', 'error');
+            return;
+        }
+        // Pre-fill form
+        document.getElementById('stockItemName').value = item.name || '';
+        document.getElementById('stockItemCategory').value = item.category || '';
+        document.getElementById('stockItemCurrentStock').value = item.currentStock || 0;
+        document.getElementById('stockItemMinStock').value = item.minStock || 0;
+        document.getElementById('stockItemMaxStock').value = item.maxStock || '';
+        document.getElementById('stockItemUnit').value = item.unit || '';
+        document.getElementById('stockItemCostPerUnit').value = item.costPerUnit || 0;
+        document.getElementById('stockItemSupplier').value = item.supplier?._id || '';
+        document.getElementById('stockItemLocation').value = item.location || '';
+        document.getElementById('stockItemDescription').value = item.description || '';
+
+        // Temporarily override form submit to perform PUT
+        const form = document.getElementById('addStockItemForm');
+        if (!form) return;
+        const originalHandler = form.onsubmit;
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = {
+                name: document.getElementById('stockItemName').value,
+                category: document.getElementById('stockItemCategory').value,
+                currentStock: parseInt(document.getElementById('stockItemCurrentStock').value),
+                minStock: parseInt(document.getElementById('stockItemMinStock').value),
+                maxStock: parseInt(document.getElementById('stockItemMaxStock').value) || null,
+                unit: document.getElementById('stockItemUnit').value,
+                costPerUnit: parseFloat(document.getElementById('stockItemCostPerUnit').value),
+                supplier: document.getElementById('stockItemSupplier').value || null,
+                location: document.getElementById('stockItemLocation').value,
+                description: document.getElementById('stockItemDescription').value
+            };
+            try {
+                const res = await fetchWithAuth('/api/stock/items/' + itemId, {
+                    method: 'PUT',
+                    body: JSON.stringify(formData)
+                });
+                if (res.ok) {
+                    closeModal('addStockItemModal');
+                    form.reset();
+                    form.onsubmit = originalHandler || ((ev) => addStockItem(ev));
+                    await loadStockItems();
+                    await loadStockOverview();
+                    showNotification('Stock item updated', 'success');
+                } else {
+                    const err = await res.json();
+                    showNotification(err.message || 'Failed to update item', 'error');
+                }
+            } catch (err) {
+                console.error('Update stock item failed:', err);
+                showNotification('Error updating stock item', 'error');
+            }
+        };
+        // Show modal
+        showModal('addStockItemModal');
+    } catch (e) {
+        console.error('editStockItem error', e);
+    }
+}
+
+// Delete stock item
+async function deleteStockItem(itemId) {
+    if (!confirm('Delete this stock item? This action cannot be undone.')) return;
+    try {
+        const res = await fetchWithAuth('/api/stock/items/' + itemId, { method: 'DELETE' });
+        if (res.ok) {
+            await loadStockItems();
+            await loadStockOverview();
+            showNotification('Stock item deleted', 'success');
+        } else {
+            const err = await res.json();
+            showNotification(err.message || 'Failed to delete item', 'error');
+        }
+    } catch (e) {
+        console.error('deleteStockItem error', e);
+        showNotification('Error deleting stock item', 'error');
+    }
+}
+
+// View purchase order details (simple alert for now)
+function viewPurchaseOrder(orderId) {
+    const order = purchaseOrders.find(o => o._id === orderId);
+    if (!order) {
+        showNotification('Purchase order not found', 'error');
+        return;
+    }
+    const items = (order.items || []).map(i => `- ${i.item?.name || i.item} x${i.quantity} @ ₦${(i.unitPrice || 0).toFixed(2)}`).join('\n');
+    alert(`Purchase Order ${order.orderNumber}\nSupplier: ${order.supplier?.name || 'N/A'}\nStatus: ${order.status}\nTotal: ₦${(order.totalAmount || 0).toLocaleString()}\n\nItems:\n${items}`);
+}
+
+// Mark purchase order delivered/received
+async function markPODelivered(orderId) {
+    if (!confirm('Mark this purchase order as received?')) return;
+    try {
+        const res = await fetchWithAuth('/api/purchase-orders/' + orderId + '/receive', { method: 'PUT' });
+        if (res.ok) {
+            await loadPurchaseOrders();
+            await loadStockItems();
+            await loadStockMovements();
+            await loadStockOverview();
+            showNotification('Purchase order marked as received', 'success');
+        } else {
+            const err = await res.json();
+            showNotification(err.message || 'Failed to mark as received', 'error');
+        }
+    } catch (e) {
+        console.error('markPODelivered error', e);
+        showNotification('Error updating purchase order', 'error');
+    }
+}
