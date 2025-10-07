@@ -2604,3 +2604,358 @@
         flex-shrink: 0;
     }
 }
+
+/* =================== INVENTORY PROFIT ANALYTICS STYLES =================== */
+
+/* Inventory Analytics Section */
+.inventory-analytics {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Quick Stats Grid */
+.inventory-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.inventory-stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.inventory-stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.inventory-stat-card h4 {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.inventory-stat-card .stat-value {
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.inventory-stat-card .stat-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+/* Bar vs Kitchen Comparison */
+.inventory-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.comparison-chart {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.comparison-details {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.comparison-section h4 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comparison-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.comp-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.comp-stat:last-child {
+    border-bottom: none;
+}
+
+.comp-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.comp-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Top Performers Section */
+.top-performers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.performers-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.performers-section h4 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    margin: 0 0 15px 0;
+}
+
+.performers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.performer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--light-bg);
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.performer-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.performer-profit {
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+.performer-margin {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Budget Forecast Section */
+.budget-forecast {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.budget-forecast h4 {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.forecast-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.forecast-controls select {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.forecast-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.forecast-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--light-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.forecast-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.forecast-value {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.budget-recommendations {
+    background: linear-gradient(135deg, var(--info-color)10, var(--primary-color)10);
+    border-radius: 6px;
+    padding: 15px;
+    border-left: 4px solid var(--info-color);
+}
+
+.budget-recommendations h5 {
+    color: var(--text-primary);
+    font-size: 1rem;
+    margin: 0 0 10px 0;
+}
+
+.budget-recommendations ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.budget-recommendations li {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 4px 0;
+    position: relative;
+    padding-left: 20px;
+}
+
+.budget-recommendations li:before {
+    content: "💡";
+    position: absolute;
+    left: 0;
+    top: 4px;
+}
+
+/* Responsive Design for Inventory Analytics */
+@media (max-width: 768px) {
+    .inventory-quick-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .inventory-comparison {
+        grid-template-columns: 1fr;
+    }
+    
+    .top-performers {
+        grid-template-columns: 1fr;
+    }
+    
+    .forecast-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .forecast-results {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .inventory-quick-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .comp-stat {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .forecast-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+/* Color coding for profit margins */
+.profit-margin-excellent {
+    color: var(--success-color) !important;
+}
+
+.profit-margin-good {
+    color: var(--info-color) !important;
+}
+
+.profit-margin-fair {
+    color: var(--warning-color) !important;
+}
+
+.profit-margin-poor {
+    color: var(--danger-color) !important;
+}
+
+/* Animation for inventory cards */
+.inventory-stat-card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.performer-item {
+    animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* =================== END INVENTORY ANALYTICS STYLES ===================

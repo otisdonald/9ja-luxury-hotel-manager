@@ -763,13 +763,144 @@
                                     <h4>Cash Outflow</h4>
                                     <div class="flow-amount" id="cashOutflow">₦0</div>
                                 </div>
-                                <div class="flow-item">
-                                    <h4>Net Cash Flow</h4>
-                                    <div class="flow-amount" id="netCashFlow">₦0</div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Inventory Profit Analytics -->
+                    <div class="financial-section">
+                        <h3><i class="fas fa-boxes"></i> Inventory Profit Analytics</h3>
+                        <div class="inventory-analytics">
+                            <!-- Quick Stats -->
+                            <div class="inventory-quick-stats">
+                                <div class="inventory-stat-card">
+                                    <h4>Total Inventory Value</h4>
+                                    <div class="stat-value" id="totalInventoryValue">₦0</div>
+                                    <div class="stat-subtitle">Cost basis</div>
+                                </div>
+                                <div class="inventory-stat-card">
+                                    <h4>Potential Revenue</h4>
+                                    <div class="stat-value" id="totalPotentialRevenue">₦0</div>
+                                    <div class="stat-subtitle">At current prices</div>
+                                </div>
+                                <div class="inventory-stat-card">
+                                    <h4>Potential Profit</h4>
+                                    <div class="stat-value" id="totalPotentialProfit">₦0</div>
+                                    <div class="stat-subtitle">Inventory profit</div>
+                                </div>
+                                <div class="inventory-stat-card">
+                                    <h4>Average Margin</h4>
+                                    <div class="stat-value" id="averageInventoryMargin">0%</div>
+                                    <div class="stat-subtitle">Across all items</div>
+                                </div>
+                            </div>
+
+                            <!-- Bar vs Kitchen Comparison -->
+                            <div class="inventory-comparison">
+                                <div class="comparison-chart">
+                                    <canvas id="inventoryComparisonChart"></canvas>
+                                </div>
+                                <div class="comparison-details">
+                                    <div class="comparison-section">
+                                        <h4><i class="fas fa-wine-glass"></i> Bar Inventory</h4>
+                                        <div class="comparison-stats">
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Stock Value:</span>
+                                                <span class="comp-value" id="barStockValue">₦0</span>
+                                            </div>
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Potential Revenue:</span>
+                                                <span class="comp-value" id="barPotentialRevenue">₦0</span>
+                                            </div>
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Avg Margin:</span>
+                                                <span class="comp-value" id="barAvgMargin">0%</span>
+                                            </div>
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Low Stock Items:</span>
+                                                <span class="comp-value" id="barLowStockCount">0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="comparison-section">
+                                        <h4><i class="fas fa-utensils"></i> Kitchen Inventory</h4>
+                                        <div class="comparison-stats">
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Stock Value:</span>
+                                                <span class="comp-value" id="kitchenStockValue">₦0</span>
+                                            </div>
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Potential Revenue:</span>
+                                                <span class="comp-value" id="kitchenPotentialRevenue">₦0</span>
+                                            </div>
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Avg Margin:</span>
+                                                <span class="comp-value" id="kitchenAvgMargin">0%</span>
+                                            </div>
+                                            <div class="comp-stat">
+                                                <span class="comp-label">Low Stock Items:</span>
+                                                <span class="comp-value" id="kitchenLowStockCount">0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Top Performers -->
+                            <div class="top-performers">
+                                <div class="performers-section">
+                                    <h4>🏆 Top Profit Items - Bar</h4>
+                                    <div class="performers-list" id="topBarPerformers">
+                                        <div class="performer-item">Loading...</div>
+                                    </div>
+                                </div>
+                                <div class="performers-section">
+                                    <h4>🏆 Top Profit Items - Kitchen</h4>
+                                    <div class="performers-list" id="topKitchenPerformers">
+                                        <div class="performer-item">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Budget Forecast -->
+                            <div class="budget-forecast">
+                                <h4><i class="fas fa-chart-line"></i> Budget Forecast</h4>
+                                <div class="forecast-controls">
+                                    <select id="budgetForecastPeriod" onchange="updateBudgetForecast()">
+                                        <option value="7">Next 7 Days</option>
+                                        <option value="14">Next 2 Weeks</option>
+                                        <option value="30" selected>Next 30 Days</option>
+                                        <option value="60">Next 2 Months</option>
+                                    </select>
+                                    <button class="btn btn-outline" onclick="refreshInventoryAnalytics()">
+                                        <i class="fas fa-sync"></i> Refresh
+                                    </button>
+                                </div>
+                                <div class="forecast-results">
+                                    <div class="forecast-item">
+                                        <span class="forecast-label">Projected Monthly Spend:</span>
+                                        <span class="forecast-value" id="projectedMonthlySpend">₦0</span>
+                                    </div>
+                                    <div class="forecast-item">
+                                        <span class="forecast-label">Budget Utilization:</span>
+                                        <span class="forecast-value" id="budgetUtilization">0%</span>
+                                    </div>
+                                    <div class="forecast-item">
+                                        <span class="forecast-label">Remaining Budget:</span>
+                                        <span class="forecast-value" id="remainingBudget">₦0</span>
+                                    </div>
+                                </div>
+                                <div class="budget-recommendations">
+                                    <h5>💡 Recommendations</h5>
+                                    <ul id="budgetRecommendations">
+                                        <li>Loading recommendations...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </section>
             </div>
 

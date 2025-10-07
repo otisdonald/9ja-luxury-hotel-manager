@@ -348,12 +348,90 @@ let customers = [
 ];
 
 let barInventory = [
-    { id: 1, name: 'Heineken Beer', category: 'Beer', quantity: 48, unit: 'bottles', price: 800, minStock: 20 },
-    { id: 2, name: 'Wine - Cabernet Sauvignon', category: 'Wine', quantity: 12, unit: 'bottles', price: 8500, minStock: 5 },
-    { id: 3, name: 'Whiskey - Johnny Walker Black', category: 'Spirits', quantity: 8, unit: 'bottles', price: 15000, minStock: 3 },
-    { id: 4, name: 'Coca Cola', category: 'Soft Drinks', quantity: 36, unit: 'bottles', price: 300, minStock: 24 },
-    { id: 5, name: 'Orange Juice', category: 'Juices', quantity: 18, unit: 'bottles', price: 600, minStock: 12 },
-    { id: 6, name: 'Vodka - Grey Goose', category: 'Spirits', quantity: 6, unit: 'bottles', price: 18000, minStock: 2 }
+    { 
+        id: 1, 
+        name: 'Heineken Beer', 
+        category: 'Beer', 
+        quantity: 48, 
+        unit: 'bottles', 
+        costPrice: 450,        // Cost per unit in Naira
+        sellingPrice: 800,     // Selling price per unit
+        profitMargin: 43.75,   // Calculated profit margin %
+        minStock: 20,
+        supplier: 'Nigerian Breweries',
+        lastRestocked: '2025-01-05',
+        expiryDate: '2025-12-31'
+    },
+    { 
+        id: 2, 
+        name: 'Wine - Cabernet Sauvignon', 
+        category: 'Wine', 
+        quantity: 12, 
+        unit: 'bottles', 
+        costPrice: 5500,
+        sellingPrice: 8500,
+        profitMargin: 35.29,
+        minStock: 5,
+        supplier: 'Wine Merchants Ltd',
+        lastRestocked: '2025-01-04',
+        expiryDate: '2026-12-01'
+    },
+    { 
+        id: 3, 
+        name: 'Whiskey - Johnny Walker Black', 
+        category: 'Spirits', 
+        quantity: 8, 
+        unit: 'bottles', 
+        costPrice: 12000,
+        sellingPrice: 15000,
+        profitMargin: 20.00,
+        minStock: 3,
+        supplier: 'Diageo Nigeria',
+        lastRestocked: '2025-01-03',
+        expiryDate: '2027-01-01'
+    },
+    { 
+        id: 4, 
+        name: 'Coca Cola', 
+        category: 'Soft Drinks', 
+        quantity: 36, 
+        unit: 'bottles', 
+        costPrice: 150,
+        sellingPrice: 300,
+        profitMargin: 50.00,
+        minStock: 24,
+        supplier: 'Coca Cola Nigeria',
+        lastRestocked: '2025-01-06',
+        expiryDate: '2025-08-01'
+    },
+    { 
+        id: 5, 
+        name: 'Orange Juice', 
+        category: 'Juices', 
+        quantity: 18, 
+        unit: 'bottles', 
+        costPrice: 350,
+        sellingPrice: 600,
+        profitMargin: 41.67,
+        minStock: 12,
+        supplier: 'Fresh Juice Co',
+        lastRestocked: '2025-01-05',
+        expiryDate: '2025-02-01'
+    },
+    { 
+        id: 6, 
+        name: 'Vodka - Grey Goose', 
+        category: 'Spirits', 
+        quantity: 6, 
+        unit: 'bottles', 
+        costPrice: 14000,
+        sellingPrice: 18000,
+        profitMargin: 22.22,
+        minStock: 2,
+        supplier: 'Premium Spirits Ltd',
+        lastRestocked: '2025-01-02',
+        expiryDate: '2027-06-01'
+    }
 ];
 
 // Lounge rental system
@@ -507,7 +585,7 @@ let kitchenOrders = [
     }
 ];
 
-// Kitchen inventory management
+// Enhanced kitchen inventory with profit calculations
 let kitchenInventory = [
     { 
         id: 1, 
@@ -515,8 +593,11 @@ let kitchenInventory = [
         category: 'Grains', 
         currentStock: 5, 
         unit: 'bags', 
-        costPerUnit: 15000, 
-        totalValue: 75000, 
+        costPerUnit: 15000,        // Cost per bag
+        sellingPricePerServing: 150,  // Price per serving to customer
+        servingsPerUnit: 100,      // 100 servings per 25kg bag
+        profitMargin: 87.5,        // High margin due to volume
+        totalCostValue: 75000, 
         minStock: 2, 
         supplier: 'Rice Mills Ltd', 
         lastPurchased: '2025-01-10', 
@@ -528,8 +609,11 @@ let kitchenInventory = [
         category: 'Meat', 
         currentStock: 20, 
         unit: 'pcs', 
-        costPerUnit: 3500, 
-        totalValue: 70000, 
+        costPerUnit: 3500,         // Cost per whole chicken
+        sellingPricePerServing: 1800, // Price per chicken serving
+        servingsPerUnit: 4,        // 4 servings per whole chicken
+        profitMargin: 51.4,        // Good profit on protein
+        totalCostValue: 70000, 
         minStock: 5, 
         supplier: 'Fresh Farm Poultry', 
         lastPurchased: '2025-01-15', 
@@ -541,8 +625,11 @@ let kitchenInventory = [
         category: 'Vegetables', 
         currentStock: 30, 
         unit: 'kg', 
-        costPerUnit: 800, 
-        totalValue: 24000, 
+        costPerUnit: 800,          // Cost per kg
+        sellingPricePerServing: 80,   // Cost per dish/serving
+        servingsPerUnit: 15,       // 15 servings per kg
+        profitMargin: 33.3,        // Moderate margin on vegetables
+        totalCostValue: 24000, 
         minStock: 10, 
         supplier: 'Green Valley Farms', 
         lastPurchased: '2025-01-16', 
@@ -554,8 +641,11 @@ let kitchenInventory = [
         category: 'Vegetables', 
         currentStock: 25, 
         unit: 'kg', 
-        costPerUnit: 600, 
-        totalValue: 15000, 
+        costPerUnit: 600,          // Cost per kg
+        sellingPricePerServing: 50,   // Cost per dish
+        servingsPerUnit: 20,       // 20 servings per kg
+        profitMargin: 40.0,        // Good margin on staples
+        totalCostValue: 15000, 
         minStock: 8, 
         supplier: 'Green Valley Farms', 
         lastPurchased: '2025-01-16', 
@@ -567,8 +657,11 @@ let kitchenInventory = [
         category: 'Cooking Oil', 
         currentStock: 10, 
         unit: 'liters', 
-        costPerUnit: 1200, 
-        totalValue: 12000, 
+        costPerUnit: 1200,         // Cost per liter
+        sellingPricePerServing: 80,   // Cost per dish (oil usage)
+        servingsPerUnit: 25,       // 25 servings per liter
+        profitMargin: 40.0,        // Good margin on cooking essentials
+        totalCostValue: 12000, 
         minStock: 3, 
         supplier: 'Golden Oil Co', 
         lastPurchased: '2025-01-12', 
@@ -580,8 +673,11 @@ let kitchenInventory = [
         category: 'Seasoning', 
         currentStock: 5, 
         unit: 'kg', 
-        costPerUnit: 300, 
-        totalValue: 1500, 
+        costPerUnit: 300,          // Cost per kg
+        sellingPricePerServing: 10,   // Cost per dish
+        servingsPerUnit: 50,       // 50 servings per kg
+        profitMargin: 40.0,        // Standard margin on seasonings
+        totalCostValue: 1500, 
         minStock: 2, 
         supplier: 'Crystal Salt Ltd', 
         lastPurchased: '2025-01-10', 
@@ -593,6 +689,43 @@ let kitchenPurchases = [
     { id: 1, itemName: 'Rice (25kg bag)', quantity: 5, costPerUnit: 15000, totalCost: 75000, supplier: 'Rice Mills Ltd', purchaseDate: '2025-01-10', staffName: 'David Kitchen', notes: 'Monthly rice supply' },
     { id: 2, itemName: 'Chicken (whole)', quantity: 20, costPerUnit: 3500, totalCost: 70000, supplier: 'Fresh Farm Poultry', purchaseDate: '2025-01-15', staffName: 'David Kitchen', notes: 'Fresh chicken for weekend orders' },
     { id: 3, itemName: 'Mixed Vegetables', quantity: 50, costPerUnit: 500, totalCost: 25000, supplier: 'Green Valley Farms', purchaseDate: '2025-01-16', staffName: 'David Kitchen', notes: 'Tomatoes, onions, peppers mix' }
+];
+
+let barOrders = [
+    {
+        id: 1,
+        customerName: 'John Smith',
+        roomNumber: 102,
+        items: [
+            { name: 'Local Beer', quantity: 3, price: 300 },
+            { name: 'Wine Glass', quantity: 1, price: 2500 }
+        ],
+        total: 3400,
+        status: 'Delivered',
+        orderTime: '2025-01-20T19:30:00',
+        deliveredTime: '2025-01-20T19:45:00',
+        assignedBartender: 'Sarah Bar'
+    },
+    {
+        id: 2,
+        customerName: 'Sarah Johnson',
+        roomNumber: 202,
+        items: [
+            { name: 'Whiskey Shot', quantity: 2, price: 1500 },
+            { name: 'Soft Drink', quantity: 1, price: 200 }
+        ],
+        total: 3200,
+        status: 'Delivered',
+        orderTime: '2025-01-20T20:15:00',
+        deliveredTime: '2025-01-20T20:25:00',
+        assignedBartender: 'Sarah Bar'
+    }
+];
+
+let barPurchases = [
+    { id: 1, itemName: 'Beer (24 bottles)', quantity: 10, costPerUnit: 3600, totalCost: 36000, supplier: 'Lagos Brewery', purchaseDate: '2025-01-10', staffName: 'Sarah Bar', notes: 'Weekly beer supply' },
+    { id: 2, itemName: 'Wine (6 bottles)', quantity: 5, costPerUnit: 15000, totalCost: 75000, supplier: 'Premium Wine Ltd', purchaseDate: '2025-01-12', staffName: 'Sarah Bar', notes: 'Premium wine selection' },
+    { id: 3, itemName: 'Whiskey (1 bottle)', quantity: 3, costPerUnit: 14000, totalCost: 42000, supplier: 'Spirits Depot', purchaseDate: '2025-01-15', staffName: 'Sarah Bar', notes: 'Top shelf whiskey' }
 ];
 
 let bookings = [
@@ -3199,16 +3332,53 @@ app.get('/api/bar/inventory', requireStaffAuth, async (req, res) => {
     try {
       const docs = await BarItem.find().lean();
       console.log('✅ Fetched', docs.length, 'bar items from MongoDB');
-      return res.json(docs.map(d => ({ ...d, id: d._id, legacyId: d.legacyId })));
+      
+      // Enhance with profit calculations
+      const enhancedItems = docs.map(item => {
+        const profitPerUnit = (item.sellingPrice || 0) - (item.costPrice || 0);
+        const profitMarginCalc = calculateProfitMargin(item.costPrice, item.sellingPrice);
+        const stockValue = (item.stock || 0) * (item.costPrice || 0);
+        const potentialRevenue = (item.stock || 0) * (item.sellingPrice || 0);
+        
+        return {
+          ...item,
+          id: item._id,
+          legacyId: item.legacyId,
+          profitPerUnit,
+          profitMarginCalculated: profitMarginCalc,
+          stockValue,
+          potentialRevenue,
+          potentialProfit: potentialRevenue - stockValue
+        };
+      });
+      
+      return res.json(enhancedItems);
     } catch (err) {
       console.error('❌ Error fetching bar inventory from DB:', err);
       // Fall back to in-memory data if DB fails
     }
   }
   
-  // Fallback to in-memory bar inventory data
+  // Fallback to in-memory bar inventory data with profit calculations
   console.log('⚠️ Using fallback bar inventory data');
-  return res.json(barInventory.map(item => ({ ...item, id: item.id || item.legacyId })));
+  const enhancedInventory = barInventory.map(item => {
+    const profitPerUnit = (item.sellingPrice || 0) - (item.costPrice || 0);
+    const profitMarginCalc = calculateProfitMargin(item.costPrice, item.sellingPrice);
+    const stockValue = (item.stock || 0) * (item.costPrice || 0);
+    const potentialRevenue = (item.stock || 0) * (item.sellingPrice || 0);
+    
+    return {
+      ...item,
+      id: item.id || item.legacyId,
+      profitPerUnit,
+      profitMarginCalculated: profitMarginCalc,
+      stockValue,
+      potentialRevenue,
+      potentialProfit: potentialRevenue - stockValue
+    };
+  });
+  
+  return res.json(enhancedInventory);
 });
 
 app.post('/api/bar/inventory', requireStaffAuth, async (req, res) => {
@@ -3901,17 +4071,76 @@ app.get('/api/kitchen/inventory', requireStaffAuth, async (req, res) => {
     if (dbConnected && KitchenItem) {
       const items = await KitchenItem.find({}).sort({ name: 1 });
       console.log('✅ Fetched', items.length, 'kitchen items from MongoDB');
-      // Convert Mongoose documents to plain JSON objects
-      const plainItems = items.map(item => item.toJSON());
-      res.json(plainItems);
+      
+      // Convert to plain JSON and enhance with profit calculations
+      const enhancedItems = items.map(item => {
+        const plainItem = item.toJSON();
+        const costPerServing = (plainItem.costPerUnit || 0) / (plainItem.servingsPerUnit || 1);
+        const profitPerServing = (plainItem.sellingPricePerServing || 0) - costPerServing;
+        const profitMarginCalc = calculateProfitMargin(costPerServing, plainItem.sellingPricePerServing);
+        const stockValue = (plainItem.stock || 0) * (plainItem.costPerUnit || 0);
+        const potentialRevenue = (plainItem.stock || 0) * (plainItem.servingsPerUnit || 1) * (plainItem.sellingPricePerServing || 0);
+        
+        return {
+          ...plainItem,
+          costPerServing,
+          profitPerServing,
+          profitMarginCalculated: profitMarginCalc,
+          stockValue,
+          potentialRevenue,
+          potentialProfit: potentialRevenue - stockValue
+        };
+      });
+      
+      res.json(enhancedItems);
     } else {
-      console.log('⚠️ Using fallback kitchen inventory data');
-      res.json(kitchenInventory);
+      console.log('⚠️ Using fallback kitchen inventory data with profit calculations');
+      
+      // Enhance fallback data with profit calculations
+      const enhancedInventory = kitchenInventory.map(item => {
+        const costPerServing = (item.costPerUnit || 0) / (item.servingsPerUnit || 1);
+        const profitPerServing = (item.sellingPricePerServing || 0) - costPerServing;
+        const profitMarginCalc = calculateProfitMargin(costPerServing, item.sellingPricePerServing);
+        const stockValue = (item.stock || 0) * (item.costPerUnit || 0);
+        const potentialRevenue = (item.stock || 0) * (item.servingsPerUnit || 1) * (item.sellingPricePerServing || 0);
+        
+        return {
+          ...item,
+          costPerServing,
+          profitPerServing,
+          profitMarginCalculated: profitMarginCalc,
+          stockValue,
+          potentialRevenue,
+          potentialProfit: potentialRevenue - stockValue
+        };
+      });
+      
+      res.json(enhancedInventory);
     }
   } catch (error) {
     console.error('Error fetching kitchen inventory:', error);
     console.log('⚠️ Using fallback kitchen inventory data');
-    res.json(kitchenInventory);
+    
+    // Enhance fallback data with profit calculations even in error case
+    const enhancedInventory = kitchenInventory.map(item => {
+      const costPerServing = (item.costPerUnit || 0) / (item.servingsPerUnit || 1);
+      const profitPerServing = (item.sellingPricePerServing || 0) - costPerServing;
+      const profitMarginCalc = calculateProfitMargin(costPerServing, item.sellingPricePerServing);
+      const stockValue = (item.stock || 0) * (item.costPerUnit || 0);
+      const potentialRevenue = (item.stock || 0) * (item.servingsPerUnit || 1) * (item.sellingPricePerServing || 0);
+      
+      return {
+        ...item,
+        costPerServing,
+        profitPerServing,
+        profitMarginCalculated: profitMarginCalc,
+        stockValue,
+        potentialRevenue,
+        potentialProfit: potentialRevenue - stockValue
+      };
+    });
+    
+    res.json(enhancedInventory);
   }
 });
 
@@ -4219,6 +4448,289 @@ app.get('/api/kitchen/analysis/:period', requireStaffAuth, (req, res) => {
     purchaseCount: recentPurchases.length
   });
 });
+
+// =================== PROFIT CALCULATION FUNCTIONS ===================
+
+// Helper function to calculate profit margin
+function calculateProfitMargin(costPrice, sellingPrice) {
+  if (!costPrice || !sellingPrice) return 0;
+  return ((sellingPrice - costPrice) / sellingPrice * 100).toFixed(2);
+}
+
+// Helper function to calculate inventory value
+function calculateInventoryValue(inventory) {
+  return inventory.reduce((total, item) => {
+    const stockValue = (item.stock || 0) * (item.costPrice || item.costPerUnit || 0);
+    const potentialRevenue = (item.stock || 0) * (item.sellingPrice || item.sellingPricePerServing || 0);
+    return {
+      totalCost: total.totalCost + stockValue,
+      totalRevenue: total.totalRevenue + potentialRevenue,
+      totalProfit: total.totalProfit + (potentialRevenue - stockValue)
+    };
+  }, { totalCost: 0, totalRevenue: 0, totalProfit: 0 });
+}
+
+// Helper function to generate budget forecast
+function generateBudgetForecast(purchaseHistory, days = 30) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  
+  const recentPurchases = purchaseHistory.filter(p => 
+    new Date(p.purchaseDate) >= cutoffDate
+  );
+  
+  const totalCost = recentPurchases.reduce((sum, p) => sum + (p.totalCost || 0), 0);
+  const averageDailyCost = totalCost / days;
+  const monthlyForecast = averageDailyCost * 30;
+  const weeklyForecast = averageDailyCost * 7;
+  
+  return {
+    averageDailyCost,
+    weeklyForecast,
+    monthlyForecast,
+    basedOnDays: days,
+    totalHistoricalCost: totalCost
+  };
+}
+
+// =================== INVENTORY ANALYTICS API ENDPOINTS ===================
+
+// Combined inventory analytics endpoint
+app.get('/api/inventory/analytics', requireStaffAuth, (req, res) => {
+  try {
+    // Calculate bar inventory analytics
+    const barAnalytics = calculateInventoryValue(barInventory);
+    const barTotalItems = barInventory.reduce((sum, item) => sum + (item.stock || 0), 0);
+    const barLowStock = barInventory.filter(item => (item.stock || 0) < (item.reorderLevel || 10));
+    
+    // Calculate kitchen inventory analytics
+    const kitchenAnalytics = calculateInventoryValue(kitchenInventory);
+    const kitchenTotalItems = kitchenInventory.reduce((sum, item) => sum + (item.stock || 0), 0);
+    const kitchenLowStock = kitchenInventory.filter(item => (item.stock || 0) < (item.reorderLevel || 5));
+    
+    // Combined totals
+    const combinedAnalytics = {
+      totalCost: barAnalytics.totalCost + kitchenAnalytics.totalCost,
+      totalRevenue: barAnalytics.totalRevenue + kitchenAnalytics.totalRevenue,
+      totalProfit: barAnalytics.totalProfit + kitchenAnalytics.totalProfit,
+      totalItems: barTotalItems + kitchenTotalItems,
+      lowStockCount: barLowStock.length + kitchenLowStock.length
+    };
+    
+    // Calculate overall profit margin
+    combinedAnalytics.profitMargin = combinedAnalytics.totalRevenue > 0 
+      ? ((combinedAnalytics.totalProfit / combinedAnalytics.totalRevenue) * 100).toFixed(2)
+      : 0;
+    
+    res.json({
+      bar: {
+        ...barAnalytics,
+        totalItems: barTotalItems,
+        lowStockItems: barLowStock,
+        profitMargin: barAnalytics.totalRevenue > 0 
+          ? ((barAnalytics.totalProfit / barAnalytics.totalRevenue) * 100).toFixed(2)
+          : 0
+      },
+      kitchen: {
+        ...kitchenAnalytics,
+        totalItems: kitchenTotalItems,
+        lowStockItems: kitchenLowStock,
+        profitMargin: kitchenAnalytics.totalRevenue > 0 
+          ? ((kitchenAnalytics.totalProfit / kitchenAnalytics.totalRevenue) * 100).toFixed(2)
+          : 0
+      },
+      combined: combinedAnalytics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Inventory analytics error:', error);
+    res.status(500).json({ error: 'Failed to calculate inventory analytics' });
+  }
+});
+
+// Budget forecasting endpoint
+app.get('/api/budget-forecast', requireStaffAuth, (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const forecastDays = parseInt(days) || 30;
+    
+    // Generate forecasts for both bar and kitchen
+    const barForecast = generateBudgetForecast(barPurchases || [], forecastDays);
+    const kitchenForecast = generateBudgetForecast(kitchenPurchases || [], forecastDays);
+    
+    // Combined forecast
+    const combinedForecast = {
+      averageDailyCost: barForecast.averageDailyCost + kitchenForecast.averageDailyCost,
+      weeklyForecast: barForecast.weeklyForecast + kitchenForecast.weeklyForecast,
+      monthlyForecast: barForecast.monthlyForecast + kitchenForecast.monthlyForecast,
+      basedOnDays: forecastDays,
+      totalHistoricalCost: barForecast.totalHistoricalCost + kitchenForecast.totalHistoricalCost
+    };
+    
+    // Budget recommendations
+    const monthlyBudgetLimit = 800000; // 800,000 NGN suggested monthly budget
+    const budgetUtilization = (combinedForecast.monthlyForecast / monthlyBudgetLimit * 100).toFixed(2);
+    
+    const recommendations = [];
+    if (budgetUtilization > 90) {
+      recommendations.push('Consider increasing monthly budget or reducing costs');
+    } else if (budgetUtilization < 50) {
+      recommendations.push('Budget utilization is low - opportunity to expand inventory');
+    }
+    
+    if (barForecast.monthlyForecast > kitchenForecast.monthlyForecast * 1.5) {
+      recommendations.push('Bar spending is significantly higher than kitchen - review bar inventory costs');
+    }
+    
+    res.json({
+      bar: barForecast,
+      kitchen: kitchenForecast,
+      combined: combinedForecast,
+      budget: {
+        monthlyLimit: monthlyBudgetLimit,
+        projectedSpend: combinedForecast.monthlyForecast,
+        remainingBudget: monthlyBudgetLimit - combinedForecast.monthlyForecast,
+        utilizationPercentage: budgetUtilization,
+        recommendations
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Budget forecast error:', error);
+    res.status(500).json({ error: 'Failed to generate budget forecast' });
+  }
+});
+
+// Profit analysis endpoint for specific time periods
+app.get('/api/profit-analysis/:period', requireStaffAuth, (req, res) => {
+  try {
+    const { period } = req.params;
+    const days = parseInt(period) || 7;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    // Analyze recent sales and costs
+    const recentBarOrders = (barOrders || []).filter(order => 
+      new Date(order.orderTime) >= cutoffDate
+    );
+    const recentKitchenOrders = kitchenOrders.filter(order => 
+      new Date(order.orderTime) >= cutoffDate
+    );
+    const recentBarPurchases = (barPurchases || []).filter(purchase => 
+      new Date(purchase.purchaseDate) >= cutoffDate
+    );
+    const recentKitchenPurchases = kitchenPurchases.filter(purchase => 
+      new Date(purchase.purchaseDate) >= cutoffDate
+    );
+    
+    // Calculate revenues
+    const barRevenue = recentBarOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+    const kitchenRevenue = recentKitchenOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+    
+    // Calculate costs
+    const barCosts = recentBarPurchases.reduce((sum, purchase) => sum + (purchase.totalCost || 0), 0);
+    const kitchenCosts = recentKitchenPurchases.reduce((sum, purchase) => sum + (purchase.totalCost || 0), 0);
+    
+    // Calculate profits
+    const barProfit = barRevenue - barCosts;
+    const kitchenProfit = kitchenRevenue - kitchenCosts;
+    const totalProfit = barProfit + kitchenProfit;
+    const totalRevenue = barRevenue + kitchenRevenue;
+    const totalCosts = barCosts + kitchenCosts;
+    
+    // Profit margins
+    const barProfitMargin = barRevenue > 0 ? ((barProfit / barRevenue) * 100).toFixed(2) : 0;
+    const kitchenProfitMargin = kitchenRevenue > 0 ? ((kitchenProfit / kitchenRevenue) * 100).toFixed(2) : 0;
+    const overallProfitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
+    
+    res.json({
+      period: days,
+      bar: {
+        revenue: barRevenue,
+        costs: barCosts,
+        profit: barProfit,
+        profitMargin: barProfitMargin,
+        ordersCount: recentBarOrders.length
+      },
+      kitchen: {
+        revenue: kitchenRevenue,
+        costs: kitchenCosts,
+        profit: kitchenProfit,
+        profitMargin: kitchenProfitMargin,
+        ordersCount: recentKitchenOrders.length
+      },
+      combined: {
+        revenue: totalRevenue,
+        costs: totalCosts,
+        profit: totalProfit,
+        profitMargin: overallProfitMargin,
+        ordersCount: recentBarOrders.length + recentKitchenOrders.length
+      },
+      analysis: {
+        averageDailyProfit: totalProfit / days,
+        averageDailyRevenue: totalRevenue / days,
+        averageDailyCosts: totalCosts / days,
+        profitTrend: totalProfit > 0 ? 'positive' : totalProfit < 0 ? 'negative' : 'neutral'
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Profit analysis error:', error);
+    res.status(500).json({ error: 'Failed to generate profit analysis' });
+  }
+});
+
+// Top performing items analysis
+app.get('/api/inventory/top-performers', requireStaffAuth, (req, res) => {
+  try {
+    // Analyze bar items performance
+    const barPerformance = barInventory.map(item => ({
+      ...item,
+      profitPerUnit: (item.sellingPrice || 0) - (item.costPrice || 0),
+      profitMarginCalculated: calculateProfitMargin(item.costPrice, item.sellingPrice),
+      potentialProfit: ((item.sellingPrice || 0) - (item.costPrice || 0)) * (item.stock || 0)
+    })).sort((a, b) => b.profitPerUnit - a.profitPerUnit);
+    
+    // Analyze kitchen items performance
+    const kitchenPerformance = kitchenInventory.map(item => ({
+      ...item,
+      profitPerServing: (item.sellingPricePerServing || 0) - ((item.costPerUnit || 0) / (item.servingsPerUnit || 1)),
+      profitMarginCalculated: calculateProfitMargin(
+        (item.costPerUnit || 0) / (item.servingsPerUnit || 1),
+        item.sellingPricePerServing || 0
+      ),
+      potentialProfit: (
+        (item.sellingPricePerServing || 0) - 
+        ((item.costPerUnit || 0) / (item.servingsPerUnit || 1))
+      ) * (item.stock || 0) * (item.servingsPerUnit || 1)
+    })).sort((a, b) => b.profitPerServing - a.profitPerServing);
+    
+    res.json({
+      bar: {
+        topProfitItems: barPerformance.slice(0, 3),
+        allItems: barPerformance
+      },
+      kitchen: {
+        topProfitItems: kitchenPerformance.slice(0, 3),
+        allItems: kitchenPerformance
+      },
+      insights: {
+        bestBarItem: barPerformance[0]?.name || 'No items',
+        bestKitchenItem: kitchenPerformance[0]?.name || 'No items',
+        averageBarMargin: (barPerformance.reduce((sum, item) => 
+          sum + parseFloat(item.profitMarginCalculated || 0), 0) / barPerformance.length).toFixed(2),
+        averageKitchenMargin: (kitchenPerformance.reduce((sum, item) => 
+          sum + parseFloat(item.profitMarginCalculated || 0), 0) / kitchenPerformance.length).toFixed(2)
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Top performers analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze top performing items' });
+  }
+});
+
+// =================== END INVENTORY ANALYTICS ===================
 
 // Police Reports Routes
 app.get('/api/police-reports', (req, res) => {

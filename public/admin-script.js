@@ -300,6 +300,10 @@ function showTab(tabName) {
                 break;
             case 'financial':
                 loadFinancialOverview();
+                // Load inventory analytics for the financial tab
+                setTimeout(() => {
+                    loadInventoryAnalytics();
+                }, 500);
                 break;
             case 'guest-portal':
                 loadGuestPortalData();
@@ -3496,7 +3500,308 @@ async function markPODelivered(orderId) {
             showNotification(err.message || 'Failed to mark as received', 'error');
         }
     } catch (e) {
-        console.error('markPODelivered error', e);
         showNotification('Error updating purchase order', 'error');
     }
 }
+
+// =================== INVENTORY PROFIT ANALYTICS FUNCTIONS ===================
+
+// Load and display inventory analytics
+async function loadInventoryAnalytics() {
+    try {
+        const response = await fetchWithAuth('/api/inventory/analytics');
+        if (!response.ok) throw new Error('Failed to fetch inventory analytics');
+        
+        const analytics = await response.json();
+        
+        // Update quick stats
+        updateInventoryQuickStats(analytics.combined);
+        
+        // Update bar vs kitchen comparison
+        updateInventoryComparison(analytics.bar, analytics.kitchen);
+        
+        // Load top performers
+        await loadTopPerformers();
+        
+        // Update budget forecast
+        await updateBudgetForecast();
+        
+        console.log('✅ Inventory analytics loaded successfully');
+    } catch (error) {
+        console.error('❌ Error loading inventory analytics:', error);
+        showNotification('Failed to load inventory analytics', 'error');
+    }
+}
+
+// Update quick stats cards
+function updateInventoryQuickStats(combined) {
+    const elements = {
+        totalInventoryValue: document.getElementById('totalInventoryValue'),
+        totalPotentialRevenue: document.getElementById('totalPotentialRevenue'),
+        totalPotentialProfit: document.getElementById('totalPotentialProfit'),
+        averageInventoryMargin: document.getElementById('averageInventoryMargin')
+    };
+    
+    if (elements.totalInventoryValue) {
+        elements.totalInventoryValue.textContent = `₦${combined.totalCost.toLocaleString()}`;
+    }
+    if (elements.totalPotentialRevenue) {
+        elements.totalPotentialRevenue.textContent = `₦${combined.totalRevenue.toLocaleString()}`;
+    }
+    if (elements.totalPotentialProfit) {
+        elements.totalPotentialProfit.textContent = `₦${combined.totalProfit.toLocaleString()}`;
+    }
+    if (elements.averageInventoryMargin) {
+        elements.averageInventoryMargin.textContent = `${combined.profitMargin}%`;
+        
+        // Apply color coding based on profit margin
+        const margin = parseFloat(combined.profitMargin);
+        const element = elements.averageInventoryMargin;
+        element.className = 'stat-value';
+        if (margin >= 50) element.classList.add('profit-margin-excellent');
+        else if (margin >= 30) element.classList.add('profit-margin-good');
+        else if (margin >= 15) element.classList.add('profit-margin-fair');
+        else element.classList.add('profit-margin-poor');
+    }
+}
+
+// Update bar vs kitchen comparison
+function updateInventoryComparison(barData, kitchenData) {
+    const elements = {
+        barStockValue: document.getElementById('barStockValue'),
+        barPotentialRevenue: document.getElementById('barPotentialRevenue'),
+        barAvgMargin: document.getElementById('barAvgMargin'),
+        barLowStockCount: document.getElementById('barLowStockCount'),
+        kitchenStockValue: document.getElementById('kitchenStockValue'),
+        kitchenPotentialRevenue: document.getElementById('kitchenPotentialRevenue'),
+        kitchenAvgMargin: document.getElementById('kitchenAvgMargin'),
+        kitchenLowStockCount: document.getElementById('kitchenLowStockCount')
+    };
+    
+    // Update bar stats
+    if (elements.barStockValue) elements.barStockValue.textContent = `₦${barData.totalCost.toLocaleString()}`;
+    if (elements.barPotentialRevenue) elements.barPotentialRevenue.textContent = `₦${barData.totalRevenue.toLocaleString()}`;
+    if (elements.barAvgMargin) {
+        elements.barAvgMargin.textContent = `${barData.profitMargin}%`;
+        applyMarginColorCoding(elements.barAvgMargin, parseFloat(barData.profitMargin));
+    }
+    if (elements.barLowStockCount) elements.barLowStockCount.textContent = barData.lowStockItems.length;
+    
+    // Update kitchen stats
+    if (elements.kitchenStockValue) elements.kitchenStockValue.textContent = `₦${kitchenData.totalCost.toLocaleString()}`;
+    if (elements.kitchenPotentialRevenue) elements.kitchenPotentialRevenue.textContent = `₦${kitchenData.totalRevenue.toLocaleString()}`;
+    if (elements.kitchenAvgMargin) {
+        elements.kitchenAvgMargin.textContent = `${kitchenData.profitMargin}%`;
+        applyMarginColorCoding(elements.kitchenAvgMargin, parseFloat(kitchenData.profitMargin));
+    }
+    if (elements.kitchenLowStockCount) elements.kitchenLowStockCount.textContent = kitchenData.lowStockItems.length;
+    
+    // Update comparison chart if canvas exists
+    updateInventoryComparisonChart(barData, kitchenData);
+}
+
+// Load and display top performing items
+async function loadTopPerformers() {
+    try {
+        const response = await fetchWithAuth('/api/inventory/top-performers');
+        if (!response.ok) throw new Error('Failed to fetch top performers');
+        
+        const performers = await response.json();
+        
+        // Update bar top performers
+        const barContainer = document.getElementById('topBarPerformers');
+        if (barContainer) {
+            barContainer.innerHTML = '';
+            performers.bar.topProfitItems.forEach(item => {
+                const performerDiv = document.createElement('div');
+                performerDiv.className = 'performer-item';
+                performerDiv.innerHTML = `
+                    <div>
+                        <div class="performer-name">${item.name}</div>
+                        <div class="performer-margin">${item.profitMarginCalculated}% margin</div>
+                    </div>
+                    <div class="performer-profit">₦${item.profitPerUnit.toLocaleString()}</div>
+                `;
+                barContainer.appendChild(performerDiv);
+            });
+            
+            if (performers.bar.topProfitItems.length === 0) {
+                barContainer.innerHTML = '<div class="performer-item">No bar items found</div>';
+            }
+        }
+        
+        // Update kitchen top performers
+        const kitchenContainer = document.getElementById('topKitchenPerformers');
+        if (kitchenContainer) {
+            kitchenContainer.innerHTML = '';
+            performers.kitchen.topProfitItems.forEach(item => {
+                const performerDiv = document.createElement('div');
+                performerDiv.className = 'performer-item';
+                performerDiv.innerHTML = `
+                    <div>
+                        <div class="performer-name">${item.name}</div>
+                        <div class="performer-margin">${item.profitMarginCalculated}% margin</div>
+                    </div>
+                    <div class="performer-profit">₦${item.profitPerServing.toLocaleString()}/serving</div>
+                `;
+                kitchenContainer.appendChild(performerDiv);
+            });
+            
+            if (performers.kitchen.topProfitItems.length === 0) {
+                kitchenContainer.innerHTML = '<div class="performer-item">No kitchen items found</div>';
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading top performers:', error);
+        showNotification('Failed to load top performing items', 'error');
+    }
+}
+
+// Update budget forecast
+async function updateBudgetForecast() {
+    const period = document.getElementById('budgetForecastPeriod')?.value || '30';
+    
+    try {
+        const response = await fetchWithAuth(`/api/budget-forecast?days=${period}`);
+        if (!response.ok) throw new Error('Failed to fetch budget forecast');
+        
+        const forecast = await response.json();
+        
+        // Update forecast values
+        const projectedSpend = document.getElementById('projectedMonthlySpend');
+        const budgetUtil = document.getElementById('budgetUtilization');
+        const remainingBudget = document.getElementById('remainingBudget');
+        
+        if (projectedSpend) projectedSpend.textContent = `₦${forecast.combined.monthlyForecast.toLocaleString()}`;
+        if (budgetUtil) {
+            budgetUtil.textContent = `${forecast.budget.utilizationPercentage}%`;
+            applyUtilizationColorCoding(budgetUtil, parseFloat(forecast.budget.utilizationPercentage));
+        }
+        if (remainingBudget) {
+            const remaining = forecast.budget.remainingBudget;
+            remainingBudget.textContent = `₦${remaining.toLocaleString()}`;
+            remainingBudget.className = 'forecast-value';
+            if (remaining < 0) remainingBudget.classList.add('profit-margin-poor');
+            else if (remaining < forecast.budget.monthlyLimit * 0.2) remainingBudget.classList.add('profit-margin-fair');
+            else remainingBudget.classList.add('profit-margin-good');
+        }
+        
+        // Update recommendations
+        const recommendationsContainer = document.getElementById('budgetRecommendations');
+        if (recommendationsContainer && forecast.budget.recommendations) {
+            recommendationsContainer.innerHTML = '';
+            forecast.budget.recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                recommendationsContainer.appendChild(li);
+            });
+            
+            if (forecast.budget.recommendations.length === 0) {
+                recommendationsContainer.innerHTML = '<li>Budget management is on track</li>';
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Error updating budget forecast:', error);
+        showNotification('Failed to update budget forecast', 'error');
+    }
+}
+
+// Apply color coding based on profit margin
+function applyMarginColorCoding(element, margin) {
+    element.className = element.className.replace(/profit-margin-\w+/g, '');
+    if (margin >= 50) element.classList.add('profit-margin-excellent');
+    else if (margin >= 30) element.classList.add('profit-margin-good');
+    else if (margin >= 15) element.classList.add('profit-margin-fair');
+    else element.classList.add('profit-margin-poor');
+}
+
+// Apply color coding based on budget utilization
+function applyUtilizationColorCoding(element, utilization) {
+    element.className = element.className.replace(/profit-margin-\w+/g, '');
+    if (utilization <= 70) element.classList.add('profit-margin-good');
+    else if (utilization <= 85) element.classList.add('profit-margin-fair');
+    else if (utilization <= 100) element.classList.add('profit-margin-poor');
+    else element.classList.add('profit-margin-poor');
+}
+
+// Update inventory comparison chart
+function updateInventoryComparisonChart(barData, kitchenData) {
+    const canvas = document.getElementById('inventoryComparisonChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (chartInstances.inventoryComparison) {
+        chartInstances.inventoryComparison.destroy();
+    }
+    
+    chartInstances.inventoryComparison = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Bar Stock Value', 'Kitchen Stock Value', 'Bar Potential Profit', 'Kitchen Potential Profit'],
+            datasets: [{
+                data: [
+                    barData.totalCost,
+                    kitchenData.totalCost,
+                    barData.totalProfit,
+                    kitchenData.totalProfit
+                ],
+                backgroundColor: [
+                    '#3b82f6',
+                    '#10b981',
+                    '#6366f1',
+                    '#84cc16'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Refresh inventory analytics
+async function refreshInventoryAnalytics() {
+    showNotification('Refreshing inventory analytics...', 'info');
+    await loadInventoryAnalytics();
+    showNotification('Inventory analytics refreshed', 'success');
+}
+
+// Event listener for budget forecast period change
+function onBudgetForecastPeriodChange() {
+    updateBudgetForecast();
+}
+
+// Initialize inventory analytics when tab is shown
+function initializeInventoryAnalytics() {
+    // Load analytics if financial tab is active
+    const financialTab = document.getElementById('financial-tab');
+    if (financialTab && financialTab.classList.contains('active')) {
+        loadInventoryAnalytics();
+    }
+}
+
+// Add event listener for budget forecast period selector
+document.addEventListener('DOMContentLoaded', function() {
+    const budgetPeriodSelect = document.getElementById('budgetForecastPeriod');
+    if (budgetPeriodSelect) {
+        budgetPeriodSelect.addEventListener('change', updateBudgetForecast);
+    }
+});
+
+// =================== END INVENTORY ANALYTICS FUNCTIONS ===================
