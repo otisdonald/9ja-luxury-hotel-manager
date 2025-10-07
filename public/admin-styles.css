@@ -2970,4 +2970,150 @@
     }
 }
 
+/* =================== STAFF MANAGEMENT STYLES =================== */
+
+.staff-management-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 12px 12px 0 0;
+    margin: -20px -20px 20px -20px;
+}
+
+.staff-management-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.5em;
+    font-weight: 600;
+}
+
+.staff-management-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.95em;
+}
+
+.staff-list {
+    display: grid;
+    gap: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.staff-member-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.staff-member-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.staff-info h4 {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.staff-position {
+    margin: 0 0 5px 0;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.staff-id {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-family: 'Courier New', monospace;
+}
+
+.staff-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-on-duty {
+    background: var(--success-color);
+    color: white;
+}
+
+.status-off-duty {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.status-break {
+    background: var(--warning-color);
+    color: white;
+}
+
+.status-sick {
+    background: var(--danger-color);
+    color: white;
+}
+
+.status-select {
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px;
+}
+
+.status-select:hover {
+    border-color: var(--primary-color);
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Responsive design for staff management */
+@media (max-width: 768px) {
+    .staff-member-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .staff-status {
+        align-items: center;
+        width: 100%;
+    }
+    
+    .status-select {
+        width: 100%;
+    }
+}
+
+/* =================== END STAFF MANAGEMENT STYLES ===================
+
 /* =================== END INVENTORY ANALYTICS STYLES ===================

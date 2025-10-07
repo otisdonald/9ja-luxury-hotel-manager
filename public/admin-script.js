@@ -343,9 +343,9 @@ function checkStaffAuthentication() {
         return;
     }
     
-    // Check if staff has admin privileges (Director only - DIR001)
-    if (staffInfo.position !== 'director') {
-        alert('Director access required. Only DIR001 (Hotel Director) can access this dashboard.');
+    // Check if staff has admin privileges (Directors and Managers can access admin dashboard)
+    if (!['director', 'management'].includes(staffInfo.position)) {
+        alert('Manager or Director access required. Only management staff can access this dashboard.');
         window.location.href = '/index.html';
         return;
     }
@@ -379,9 +379,9 @@ async function verifyStaffTokenAndShowDashboard() {
             return;
         }
         
-        // Check admin privileges again (Director only)
-        if (data.staff.position !== 'director') {
-            alert('Director access required. You will be redirected to the staff portal.');
+        // Check admin privileges again (Directors and Managers)
+        if (!['director', 'management'].includes(data.staff.position)) {
+            alert('Manager or Director access required. You will be redirected to the staff portal.');
             window.location.href = '/index.html';
             return;
         }
@@ -1807,6 +1807,106 @@ async function loadStaffReport() {
 
     } catch (error) {
         console.error('Error loading staff report:', error);
+    }
+}
+
+// Staff Status Management Functions
+async function loadStaffManagement() {
+    try {
+        const staff = await fetchWithAuth('/api/staff/current-status').catch(e => []);
+        const staffArray = Array.isArray(staff) ? staff : [];
+        
+        let staffHTML = `
+            <div class="staff-management-header">
+                <h3>Staff Status Management</h3>
+                <p>Update staff duty status (Managers and Directors only)</p>
+            </div>
+            <div class="staff-list">
+        `;
+        
+        staffArray.forEach(member => {
+            staffHTML += `
+                <div class="staff-member-card">
+                    <div class="staff-info">
+                        <h4>${member.name}</h4>
+                        <p class="staff-position">${member.position}</p>
+                        <p class="staff-id">ID: ${member.personalId}</p>
+                    </div>
+                    <div class="staff-status">
+                        <span class="status-badge status-${member.status}">${member.status}</span>
+                        <select class="status-select" onchange="changeStaffStatus('${member.id}', this.value)">
+                            <option value="">Change Status...</option>
+                            <option value="on-duty" ${member.status === 'on-duty' ? 'disabled' : ''}>On Duty</option>
+                            <option value="off-duty" ${member.status === 'off-duty' ? 'disabled' : ''}>Off Duty</option>
+                            <option value="break" ${member.status === 'break' ? 'disabled' : ''}>On Break</option>
+                            <option value="sick" ${member.status === 'sick' ? 'disabled' : ''}>Sick Leave</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        });
+        
+        staffHTML += '</div>';
+        
+        updateElementHTML('staffManagementContainer', staffHTML);
+        
+    } catch (error) {
+        console.error('Error loading staff management:', error);
+        updateElementHTML('staffManagementContainer', '<p class="error">Error loading staff data</p>');
+    }
+}
+
+// Change staff status
+async function changeStaffStatus(staffId, newStatus) {
+    if (!newStatus) return;
+    
+    const confirmation = confirm(`Are you sure you want to change this staff member's status to "${newStatus}"?`);
+    if (!confirmation) return;
+    
+    try {
+        const response = await fetchWithAuth(`/api/staff/${staffId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (response.success) {
+            showNotification(`Staff status updated successfully to "${newStatus}"`, 'success');
+            // Reload staff management and dashboard data
+            await Promise.all([
+                loadStaffManagement(),
+                loadStaffReport(),
+                refreshAllData()
+            ]);
+        } else {
+            throw new Error(response.message || 'Failed to update staff status');
+        }
+        
+    } catch (error) {
+        console.error('Error changing staff status:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+    }
+}
+
+// Make function globally available
+window.changeStaffStatus = changeStaffStatus;
+
+// Global function to open staff management modal
+function openStaffManagement() {
+    const modal = document.getElementById('staffManagementModal');
+    if (modal) {
+        modal.classList.add('show');
+        loadStaffManagement();
+    }
+}
+
+// Close staff management modal
+function closeStaffManagement() {
+    const modal = document.getElementById('staffManagementModal');
+    if (modal) {
+        modal.classList.remove('show');
     }
 }
 
