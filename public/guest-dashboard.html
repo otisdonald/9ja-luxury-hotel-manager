@@ -370,6 +370,87 @@
             margin-top: 15px;
         }
         
+        /* Reconfirmation Notification Styles */
+        .reconfirmation-notifications {
+            margin: 20px 0;
+        }
+        
+        .reconfirmation-item {
+            background: linear-gradient(135deg, #ffc107 10%, #fd7e14 90%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            color: #212529;
+            box-shadow: var(--shadow-md);
+            border: 1px solid #fd7e14;
+        }
+        
+        .reconfirmation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .reconfirmation-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .reconfirmation-details {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .reconfirmation-message {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        
+        .reconfirmation-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .reconfirm-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .reconfirm-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
         @media (max-width: 768px) {
             .guest-dashboard {
                 padding: 10px;
@@ -416,6 +497,11 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Reconfirmation Notifications -->
+        <div id="reconfirmationNotifications" class="reconfirmation-notifications" style="display: none;">
+            <!-- Pending reconfirmations will be displayed here -->
         </div>
 
         <!-- Services Grid -->
@@ -678,9 +764,15 @@
                     // Use stored info if API fails
                     updateGuestInfo(guestInfo);
                 }
+                
+                // Check for pending reconfirmations after loading profile
+                await checkPendingReconfirmations();
             } catch (error) {
                 console.error('Error loading profile:', error);
                 updateGuestInfo(guestInfo);
+                
+                // Still check for reconfirmations even if profile fails
+                await checkPendingReconfirmations();
             }
         }
         
@@ -693,6 +785,102 @@
                 const checkIn = new Date(info.checkInDate).toLocaleDateString();
                 const checkOut = new Date(info.checkOutDate).toLocaleDateString();
                 document.getElementById('checkDates').textContent = `${checkIn} - ${checkOut}`;
+            }
+        }
+        
+        // Load and check for pending reconfirmations
+        async function checkPendingReconfirmations() {
+            try {
+                const response = await fetch(`${API_BASE}/api/guest/visitors/pending-reconfirmations`, {
+                    headers: {
+                        'Authorization': `Bearer ${guestToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const pendingReconfirmations = await response.json();
+                    displayReconfirmationNotifications(pendingReconfirmations);
+                }
+            } catch (error) {
+                console.error('Error checking pending reconfirmations:', error);
+            }
+        }
+        
+        // Display reconfirmation notifications
+        function displayReconfirmationNotifications(reconfirmations) {
+            const container = document.getElementById('reconfirmationNotifications');
+            
+            if (reconfirmations.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            container.innerHTML = reconfirmations.map(reconf => `
+                <div class="reconfirmation-item">
+                    <div class="reconfirmation-header">
+                        <div class="reconfirmation-title">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Visitor Request Needs Confirmation
+                        </div>
+                    </div>
+                    <div class="reconfirmation-details">
+                        <strong>Visitor:</strong> ${reconf.visitorName}<br>
+                        <strong>Expected Date:</strong> ${new Date(reconf.expectedDate).toLocaleDateString()}<br>
+                        <strong>Expected Time:</strong> ${reconf.expectedTime}<br>
+                        <strong>Purpose:</strong> ${reconf.purpose}
+                    </div>
+                    <div class="reconfirmation-message">
+                        <strong>Message from Front Desk:</strong><br>
+                        ${reconf.reconfirmationMessage}
+                    </div>
+                    <div class="reconfirmation-actions">
+                        <button class="reconfirm-btn" onclick="reconfirmVisitor('${reconf.id}', true)">
+                            <i class="fas fa-check"></i> Confirm Request
+                        </button>
+                        <button class="cancel-btn" onclick="reconfirmVisitor('${reconf.id}', false)">
+                            <i class="fas fa-times"></i> Cancel Request
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Handle visitor reconfirmation
+        async function reconfirmVisitor(visitorId, confirmed) {
+            const response = confirmed 
+                ? prompt('Additional notes for the front desk (optional):')
+                : prompt('Reason for cancelling this visitor request (optional):');
+            
+            if (response === null && confirmed) return; // User cancelled the prompt
+            
+            try {
+                const apiResponse = await fetch(`${API_BASE}/api/guest/visitors/${visitorId}/reconfirm`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${guestToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        confirmed: confirmed,
+                        response: response || ''
+                    })
+                });
+                
+                if (apiResponse.ok) {
+                    const result = await apiResponse.json();
+                    showAlert(result.message, 'success');
+                    
+                    // Refresh reconfirmation notifications
+                    await checkPendingReconfirmations();
+                } else {
+                    const error = await apiResponse.json();
+                    showAlert('Error processing request: ' + (error.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error processing reconfirmation:', error);
+                showAlert('Network error. Please try again.', 'error');
             }
         }
         
@@ -988,11 +1176,15 @@
             if (visitors.length > 0) {
                 html += '<h4 style="margin-top: 30px;">Registered Visitors</h4>';
                 visitors.forEach(visitor => {
+                    const visitorInfo = visitor.status === 'approved' 
+                        ? `${visitor.purpose} • ${new Date(visitor.expectedDate).toLocaleDateString()} at ${visitor.expectedTime}<br><small style="color: green;"><i class="fas fa-check-circle"></i> Approved - Visitor can proceed to front desk with ID</small>`
+                        : `${visitor.purpose} • ${new Date(visitor.expectedDate).toLocaleDateString()} at ${visitor.expectedTime}`;
+                    
                     html += `
                         <div class="cart-item">
                             <div>
                                 <strong>${visitor.visitorName}</strong><br>
-                                <small>${visitor.purpose} • ${new Date(visitor.expectedDate).toLocaleDateString()} at ${visitor.expectedTime}</small>
+                                <small>${visitorInfo}</small>
                             </div>
                             <div>
                                 <span class="status-${visitor.status}">${visitor.status.toUpperCase()}</span>

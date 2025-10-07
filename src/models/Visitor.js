@@ -16,10 +16,18 @@ const VisitorSchema = new Schema({
   duration: { type: String }, // e.g., "2 hours", "1 day"
   status: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected', 'checked-in', 'checked-out'], 
+    enum: ['pending', 'pending_reconfirmation', 'approved', 'rejected', 'checked-in', 'checked-out'], 
     default: 'pending' 
   },
   notes: { type: String },
+  
+  // Reconfirmation workflow fields
+  reconfirmationRequestedBy: { type: String }, // Staff member who requested reconfirmation
+  reconfirmationRequestedAt: { type: Date },
+  reconfirmationMessage: { type: String }, // Message from front desk to guest
+  guestReconfirmedAt: { type: Date },
+  guestReconfirmationResponse: { type: String }, // Guest's response/notes
+  
   // Security fields
   approvedBy: { type: String }, // Staff member who approved
   approvedAt: { type: Date },

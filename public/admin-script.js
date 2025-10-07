@@ -2269,10 +2269,21 @@ async function loadVisitors() {
 
         visitorsList.innerHTML = visitors.map(visitor => {
             const notesHtml = visitor.securityNotes ? '<div class="visitor-notes"><strong>Security Notes:</strong> ' + visitor.securityNotes + '</div>' : '';
+            
+            // Reconfirmation info if applicable
+            const reconfirmationHtml = visitor.status === 'pending_reconfirmation' && visitor.reconfirmationRequestedAt
+                ? '<div class="visitor-reconfirmation"><strong>Reconfirmation requested:</strong> ' + new Date(visitor.reconfirmationRequestedAt).toLocaleString() + '<br><strong>Message:</strong> ' + (visitor.reconfirmationMessage || 'Please confirm details') + '</div>'
+                : '';
+            
             const actions = [];
-            if (visitor.status === 'pending') {
-                actions.push('<button class="btn btn-success btn-sm" onclick="approveVisitor(\'' + visitor._id + '\')">Approve</button>');
-                actions.push('<button class="btn btn-danger btn-sm" onclick="rejectVisitor(\'' + visitor._id + '\')">Reject</button>');
+            if (visitor.status === 'approved') {
+                actions.push('<button class="btn btn-info btn-sm" onclick="markVisitorCheckedIn(\'' + visitor._id + '\')">Mark Checked In</button>');
+            } else if (visitor.status === 'checked-in') {
+                actions.push('<button class="btn btn-warning btn-sm" onclick="markVisitorCheckedOut(\'' + visitor._id + '\')">Mark Checked Out</button>');
+            } else if (visitor.status === 'checked-out') {
+                actions.push('<button class="btn btn-success btn-sm" disabled>Visit Complete</button>');
+            } else if (visitor.status === 'rejected') {
+                actions.push('<button class="btn btn-danger btn-sm" disabled>Rejected</button>');
             }
             actions.push('<button class="btn btn-secondary btn-sm" onclick="viewVisitorDetails(\'' + visitor._id + '\')">View Details</button>');
 
@@ -2283,7 +2294,7 @@ async function loadVisitors() {
                 '<div class="visitor-item">' +
                     '<div class="visitor-header">' +
                         '<div class="visitor-name">' + (visitor.visitorName || '-') + '</div>' +
-                        '<div class="visitor-status status-' + visitor.status + '">' + visitor.status + '</div>' +
+                        '<div class="visitor-status status-' + visitor.status.replace('_', '-') + '">' + visitor.status.replace('_', ' ').toUpperCase() + '</div>' +
                     '</div>' +
                     '<div class="visitor-details">' +
                         '<div class="detail-item"><span class="detail-label">Guest</span><span class="detail-value">' + (visitor.customerId || '') + '</span></div>' +
@@ -2294,6 +2305,7 @@ async function loadVisitors() {
                         '<div class="detail-item"><span class="detail-label">Requested</span><span class="detail-value">' + (visitor.createdAt ? new Date(visitor.createdAt).toLocaleString() : '-') + '</span></div>' +
                     '</div>' +
                     notesHtml +
+                    reconfirmationHtml +
                     '<div class="visitor-actions">' + actions.join('') + '</div>' +
                 '</div>'
             );
@@ -2428,6 +2440,93 @@ async function rejectVisitor(visitorId) {
     } catch (error) {
         console.error('Error rejecting visitor:', error);
         alert('Error rejecting visitor');
+    }
+}
+
+// Request visitor reconfirmation from guest
+async function requestReconfirmation(visitorId) {
+    const message = prompt('Message to guest about reconfirmation (optional):', 'Please confirm your visitor request details to proceed with approval.');
+    
+    if (message === null) return; // User cancelled
+    
+    try {
+        const response = await fetchWithAuth(`/api/admin/visitors/${visitorId}/request-reconfirmation`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+
+        if (response.ok) {
+            // Reload visitors to show updated status
+            await loadVisitors();
+            await loadGuestPortalData(); // Update overview cards
+
+            alert('Reconfirmation request sent to guest successfully');
+        } else {
+            const error = await response.json();
+            alert('Error requesting reconfirmation: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error requesting reconfirmation:', error);
+        alert('Error requesting reconfirmation');
+    }
+}
+
+// Mark visitor as checked in
+async function markVisitorCheckedIn(visitorId) {
+    if (!confirm('Mark this visitor as checked in?')) return;
+    
+    try {
+        const response = await fetchWithAuth(`/api/admin/visitors/${visitorId}/checkin`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            // Reload visitors to show updated status
+            await loadVisitors();
+            await loadGuestPortalData(); // Update overview cards
+
+            alert('Visitor marked as checked in successfully');
+        } else {
+            const error = await response.json();
+            alert('Error checking in visitor: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error checking in visitor:', error);
+        alert('Error checking in visitor');
+    }
+}
+
+// Mark visitor as checked out
+async function markVisitorCheckedOut(visitorId) {
+    if (!confirm('Mark this visitor as checked out?')) return;
+    
+    try {
+        const response = await fetchWithAuth(`/api/admin/visitors/${visitorId}/checkout`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            // Reload visitors to show updated status
+            await loadVisitors();
+            await loadGuestPortalData(); // Update overview cards
+
+            alert('Visitor marked as checked out successfully');
+        } else {
+            const error = await response.json();
+            alert('Error checking out visitor: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error checking out visitor:', error);
+        alert('Error checking out visitor');
     }
 }
 

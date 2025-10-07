@@ -2989,7 +2989,9 @@ app.post('/api/guest/visitors', requireGuestAuth, async (req, res) => {
     purpose,
     duration: duration || '',
     notes: notes || '',
-    status: 'pending'
+    status: 'approved',
+    approvedBy: 'Auto-approved',
+    approvedAt: new Date()
   };
   
   if (dbConnected && Visitor) {
@@ -3006,7 +3008,7 @@ app.post('/api/guest/visitors', requireGuestAuth, async (req, res) => {
           purpose: visitor.purpose,
           status: visitor.status
         },
-        message: 'Visitor registered successfully. Security will be notified.'
+        message: 'Visitor approved and registered successfully! They can now visit at the scheduled time.'
       });
     } catch (err) {
       console.error('❌ Error registering visitor:', err);
@@ -3023,9 +3025,9 @@ app.post('/api/guest/visitors', requireGuestAuth, async (req, res) => {
       expectedDate: visitorData.expectedDate,
       expectedTime: visitorData.expectedTime,
       purpose: visitorData.purpose,
-      status: 'pending'
+      status: 'approved'
     },
-    message: 'Visitor registered successfully. Security will be notified.'
+    message: 'Visitor approved and registered successfully! They can now visit at the scheduled time.'
   });
 });
 
@@ -5775,6 +5777,229 @@ app.put('/api/admin/visitors/:id/reject', requireStaffAuth, async (req, res) => 
       }
     } catch (err) {
       console.error('❌ Error rejecting visitor:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Visitor not found' });
+});
+
+// Request visitor reconfirmation (front desk staff)
+app.put('/api/admin/visitors/:id/request-reconfirmation', requireStaffAuth, async (req, res) => {
+  const visitorId = req.params.id;
+  const { message } = req.body;
+  const staffName = req.user?.name || 'Front Desk Staff';
+  
+  console.log('🔄 Staff requesting visitor reconfirmation:', visitorId);
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitor = await Visitor.findByIdAndUpdate(
+        visitorId,
+        { 
+          status: 'pending_reconfirmation',
+          reconfirmationRequestedBy: staffName,
+          reconfirmationRequestedAt: new Date(),
+          reconfirmationMessage: message || 'Please confirm your visitor request details.',
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      if (visitor) {
+        console.log('🔄 Reconfirmation requested successfully');
+        return res.json({
+          success: true,
+          visitor: {
+            id: visitor._id,
+            status: visitor.status,
+            reconfirmationRequestedAt: visitor.reconfirmationRequestedAt,
+            reconfirmationMessage: visitor.reconfirmationMessage
+          },
+          message: 'Reconfirmation request sent to guest'
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error requesting reconfirmation:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Visitor not found' });
+});
+
+// Guest reconfirms visitor request
+app.put('/api/guest/visitors/:id/reconfirm', requireGuestAuth, async (req, res) => {
+  const visitorId = req.params.id;
+  const customerId = req.guest.customerId;
+  const { response, confirmed } = req.body;
+  
+  console.log('✅ Guest reconfirming visitor:', visitorId, 'Confirmed:', confirmed);
+  
+  if (dbConnected && Visitor) {
+    try {
+      // First verify this visitor belongs to the guest
+      const existingVisitor = await Visitor.findOne({ 
+        _id: visitorId, 
+        customerId: customerId,
+        status: 'pending_reconfirmation'
+      });
+      
+      if (!existingVisitor) {
+        return res.status(404).json({ error: 'Visitor request not found or not pending reconfirmation' });
+      }
+      
+      const updateData = {
+        guestReconfirmedAt: new Date(),
+        guestReconfirmationResponse: response || '',
+        updatedAt: new Date()
+      };
+      
+      // If guest confirmed, set back to pending for staff approval
+      // If not confirmed (cancelled), set to rejected
+      if (confirmed === true) {
+        updateData.status = 'pending';
+      } else {
+        updateData.status = 'rejected';
+        updateData.rejectedReason = 'Cancelled by guest during reconfirmation';
+        updateData.rejectedBy = 'Guest';
+        updateData.rejectedAt = new Date();
+      }
+      
+      const visitor = await Visitor.findByIdAndUpdate(
+        visitorId,
+        updateData,
+        { new: true }
+      );
+      
+      if (visitor) {
+        console.log('✅ Guest reconfirmation processed successfully');
+        return res.json({
+          success: true,
+          visitor: {
+            id: visitor._id,
+            status: visitor.status,
+            guestReconfirmedAt: visitor.guestReconfirmedAt
+          },
+          message: confirmed 
+            ? 'Visitor request reconfirmed and submitted for approval'
+            : 'Visitor request cancelled'
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error processing guest reconfirmation:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Visitor not found' });
+});
+
+// Get pending reconfirmations for a guest
+app.get('/api/guest/visitors/pending-reconfirmations', requireGuestAuth, async (req, res) => {
+  const customerId = req.guest.customerId;
+  
+  if (dbConnected && Visitor) {
+    try {
+      const pendingReconfirmations = await Visitor.find({ 
+        customerId: customerId,
+        status: 'pending_reconfirmation'
+      })
+      .sort({ reconfirmationRequestedAt: -1 })
+      .lean();
+      
+      const formattedReconfirmations = pendingReconfirmations.map(visitor => ({
+        id: visitor._id,
+        visitorName: visitor.visitorName,
+        expectedDate: visitor.expectedDate,
+        expectedTime: visitor.expectedTime,
+        purpose: visitor.purpose,
+        reconfirmationMessage: visitor.reconfirmationMessage,
+        reconfirmationRequestedBy: visitor.reconfirmationRequestedBy,
+        reconfirmationRequestedAt: visitor.reconfirmationRequestedAt
+      }));
+      
+      return res.json(formattedReconfirmations);
+    } catch (err) {
+      console.error('❌ Error fetching pending reconfirmations:', err);
+    }
+  }
+  
+  // Fallback: empty array
+  res.json([]);
+});
+
+// Check visitor in (admin)
+app.put('/api/admin/visitors/:id/checkin', requireStaffAuth, async (req, res) => {
+  const visitorId = req.params.id;
+  const staffName = req.user?.name || 'Front Desk Staff';
+  
+  console.log('✅ Admin checking in visitor:', visitorId);
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitor = await Visitor.findByIdAndUpdate(
+        visitorId,
+        { 
+          status: 'checked-in',
+          checkedInAt: new Date(),
+          checkedInBy: staffName,
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      if (visitor) {
+        console.log('✅ Visitor checked in successfully');
+        return res.json({
+          success: true,
+          visitor: {
+            id: visitor._id,
+            status: visitor.status,
+            checkedInAt: visitor.checkedInAt
+          },
+          message: 'Visitor checked in successfully'
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error checking in visitor:', err);
+    }
+  }
+  
+  res.status(404).json({ error: 'Visitor not found' });
+});
+
+// Check visitor out (admin)
+app.put('/api/admin/visitors/:id/checkout', requireStaffAuth, async (req, res) => {
+  const visitorId = req.params.id;
+  const staffName = req.user?.name || 'Front Desk Staff';
+  
+  console.log('✅ Admin checking out visitor:', visitorId);
+  
+  if (dbConnected && Visitor) {
+    try {
+      const visitor = await Visitor.findByIdAndUpdate(
+        visitorId,
+        { 
+          status: 'checked-out',
+          checkedOutAt: new Date(),
+          checkedOutBy: staffName,
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      if (visitor) {
+        console.log('✅ Visitor checked out successfully');
+        return res.json({
+          success: true,
+          visitor: {
+            id: visitor._id,
+            status: visitor.status,
+            checkedOutAt: visitor.checkedOutAt
+          },
+          message: 'Visitor checked out successfully'
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error checking out visitor:', err);
     }
   }
   
